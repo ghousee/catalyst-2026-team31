@@ -11,7 +11,7 @@ const when = (ts: string | null) => (ts ? ts.slice(0, 16).replace("T", " ") : "n
 
 function Tile({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <article className="rounded-2xl border border-line bg-panel p-4 shadow-sm">
+    <article className="rounded border border-line bg-panel p-4">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
       <p className="mt-2 text-xs leading-4 text-muted">{note}</p>
@@ -21,7 +21,7 @@ function Tile({ label, value, note }: { label: string; value: number | string; n
 
 function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+    <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded border border-line bg-panel">
       <div className="shrink-0 border-b border-line px-4 py-3">
         <h3 className="text-sm font-semibold">{title}</h3>
         {sub && <p className="text-xs text-muted">{sub}</p>}
@@ -51,12 +51,12 @@ export function LearningPage() {
       </header>
       <label className="mb-3 flex items-center gap-2 text-sm">
         <span className="font-medium">Operator</span>
-        <select className="field h-10 rounded-xl bg-panel px-3" value={user} onChange={(e) => setUser(e.target.value)} aria-label="Operator">
+        <select className="field h-10 rounded bg-panel px-3" value={user} onChange={(e) => setUser(e.target.value)} aria-label="Operator">
           {options.map((u) => <option key={u.user_id} value={u.user_id}>{u.user_id} ({u.questions} questions)</option>)}
         </select>
       </label>
       {(users.error || map.error) && (
-        <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/8 p-3 text-sm text-crit">
+        <p role="alert" className="mb-3 rounded border border-crit/30 bg-crit/8 p-3 text-sm text-crit">
           {map.error?.includes("no questions") ? `${user} has not asked anything yet.` : `Learning map unavailable: ${map.error ?? users.error}`}
         </p>
       )}

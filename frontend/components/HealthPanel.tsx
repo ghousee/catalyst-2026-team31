@@ -31,7 +31,7 @@ export function HealthPanel() {
           const near = cur !== null && cur >= m.threshold * 0.85;
           const color = over ? "rgb(var(--crit))" : near ? "rgb(var(--warn))" : "rgb(var(--ok))";
           return (
-            <li key={m.metric} className="min-w-0 rounded-md border border-line bg-panel px-2.5 py-1.5">
+            <li key={m.metric} className="min-w-0 rounded border border-line bg-panel px-2.5 py-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-[11.5px] text-muted" title={m.metric}>
                   {m.label}

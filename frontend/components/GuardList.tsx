@@ -21,7 +21,7 @@ export function GuardList({ nodeOk, rvuOk, blockers }: { nodeOk: boolean; rvuOk:
         ))}
       </ul>
       {blockers.length > 0 && (
-        <div role="alert" className="mt-2 rounded-md border-2 border-crit bg-crit/15 p-3 text-crit">
+        <div role="alert" className="mt-2 rounded border-2 border-crit bg-crit/15 p-3 text-crit">
           <p className="flex items-center gap-2 text-[14px] font-bold">
             <OctagonX size={18} aria-hidden="true" /> BLOCKED. This command cannot be run.
           </p>

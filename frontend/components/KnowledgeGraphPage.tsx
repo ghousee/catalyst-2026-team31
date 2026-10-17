@@ -23,7 +23,7 @@ const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a +
 
 function Tile({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <article className="rounded-2xl border border-line bg-panel p-4 shadow-sm">
+    <article className="rounded border border-line bg-panel p-4">
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
       <p className="mt-2 text-xs leading-4 text-muted">{note}</p>
@@ -33,7 +33,7 @@ function Tile({ label, value, note }: { label: string; value: number | string; n
 
 function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+    <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded border border-line bg-panel">
       <div className="shrink-0 border-b border-line px-4 py-3">
         <h3 className="text-sm font-semibold">{title}</h3>
         {sub && <p className="text-xs text-muted">{sub}</p>}
@@ -69,7 +69,7 @@ export function KnowledgeGraphPage() {
           What the assistant actually knows. Refreshes every 10 s: sign a note or upload a manual and watch the counts, links and recent changes move.
         </p>
       </header>
-      {error && <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/8 p-3 text-sm text-crit">Graph unavailable: {error}</p>}
+      {error && <p role="alert" className="mb-3 rounded border border-crit/30 bg-crit/8 p-3 text-sm text-crit">Graph unavailable: {error}</p>}
       {!data && loading && <p className="text-sm text-muted">Loading graph...</p>}
       {data && <Body data={data} q={q} setQ={setQ} has={has} />}
     </div>
@@ -93,7 +93,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
       <div className="mt-3 flex gap-1" role="tablist" aria-label="Graph view">
         {(["graph", "tables"] as const).map((t) => (
           <button key={t} type="button" role="tab" aria-selected={view === t} onClick={() => setView(t)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${view === t ? "bg-accent/10 text-accent" : "text-muted hover:text-fg"}`}>
+            className={`rounded px-3 py-1.5 text-sm font-medium ${view === t ? "bg-accent/10 text-accent" : "text-muted hover:text-fg"}`}>
             {t === "graph" ? "Graph" : "Tables"}
           </button>
         ))}
@@ -102,7 +102,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
       {view === "tables" && <>
       <label className="relative mt-3 block max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
-        <input className="field h-10 w-full rounded-xl bg-panel pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter entities and links" aria-label="Filter entities and links" />
+        <input className="field h-10 w-full rounded bg-panel pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter entities and links" aria-label="Filter entities and links" />
       </label>
 
       <div className="mt-3 flex h-[78vh] min-h-[560px]">

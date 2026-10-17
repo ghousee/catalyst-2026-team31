@@ -22,7 +22,7 @@ function Message({ m }: { m: ChatMsg }) {
     case "user":
       return (
         <div className="flex justify-end">
-          <p className="max-w-[85%] rounded-lg bg-accent/15 px-3 py-2 text-[13.5px]">{m.text}</p>
+          <p className="max-w-[85%] rounded bg-accent/15 px-3 py-2 text-[13.5px]">{m.text}</p>
         </div>
       );
     case "answer":

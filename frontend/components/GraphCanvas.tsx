@@ -181,7 +181,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <label className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" size={14} aria-hidden="true" />
-          <input className="field h-8 w-56 rounded-lg bg-panel pl-8" placeholder="Find a node (e.g. TMF 185, Maria)" value={q}
+          <input className="field h-8 w-56 rounded bg-panel pl-8" placeholder="Find a node (e.g. TMF 185, Maria)" value={q}
             onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} aria-label="Find a node" />
         </label>
         <button type="button" className="btn" onClick={find}><Crosshair size={13} aria-hidden="true" /> Find</button>
@@ -194,7 +194,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
           Commands &amp; messages from the manuals ({autoCount})
         </label>
         {showAuto && (
-          <select className="field h-8 rounded-lg bg-panel px-2" value={autoSub} onChange={(e) => setAutoSub(e.target.value)} aria-label="Subsystem for manual-extracted nodes">
+          <select className="field h-8 rounded bg-panel px-2" value={autoSub} onChange={(e) => setAutoSub(e.target.value)} aria-label="Subsystem for manual-extracted nodes">
             {subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             <option value="all">All subsystems (slow)</option>
           </select>
@@ -209,7 +209,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         {(Object.keys(STYLE) as Kind[]).filter((k) => k !== "other").map((k) => (
           <button key={k} type="button" aria-pressed={!hidden.has(k)}
             onClick={() => setHidden((h) => { const n = new Set(h); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
-            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${hidden.has(k) ? "border-line text-muted line-through" : "border-line bg-panel"}`}>
+            className={`flex items-center gap-1 rounded border px-2 py-0.5 ${hidden.has(k) ? "border-line text-muted line-through" : "border-line bg-panel"}`}>
             <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: STYLE[k].color }} aria-hidden="true" />{STYLE[k].label}
           </button>
         ))}
@@ -217,8 +217,8 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2" style={{ borderColor: REL_COLOR.contradicts }} aria-hidden="true" />contradicts</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <div ref={box} className="min-h-0 flex-1 rounded-2xl border border-line bg-panel" aria-label="Knowledge graph canvas" role="img" />
-        <aside className="scroll w-72 shrink-0 overflow-auto rounded-2xl border border-line bg-panel p-3 text-sm" aria-label="Selected node details">
+        <div ref={box} className="min-h-0 flex-1 rounded border border-line bg-panel" aria-label="Knowledge graph canvas" role="img" />
+        <aside className="scroll w-72 shrink-0 overflow-auto rounded border border-line bg-panel p-3 text-sm" aria-label="Selected node details">
           {!sel && <p className="text-muted">Click a node to see what it is and how it connects. Double-click to show only its neighbours.</p>}
           {sel && (
             <div className="space-y-3">

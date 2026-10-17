@@ -5,7 +5,7 @@ export function AccuracyBadge() {
     <div className="group relative">
       <button
         type="button"
-        className="rounded-full border border-line px-2.5 py-1 text-[11.5px] text-muted hover:text-text"
+        className="rounded border border-line px-2 py-1 text-[11.5px] text-muted hover:text-fg"
         aria-describedby="pilot-stats"
       >
         Test-set accuracy

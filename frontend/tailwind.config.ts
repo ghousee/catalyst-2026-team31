@@ -22,7 +22,8 @@ const config: Config = {
         dr: c("dr"),
       },
       fontFamily: {
-        mono: ["Cascadia Mono", "Consolas", "ui-monospace", "Menlo", "monospace"],
+        sans: ["var(--font-sans)", "IBM Plex Sans", "Segoe UI", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "IBM Plex Mono", "Cascadia Mono", "Consolas", "ui-monospace", "monospace"],
       },
     },
   },

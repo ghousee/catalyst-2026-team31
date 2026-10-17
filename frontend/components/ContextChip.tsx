@@ -27,7 +27,7 @@ export function ContextChip({ display, confidence }: { display: string; confiden
         onClick={toggle}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[12px] text-accent hover:bg-accent/20"
+        className="inline-flex items-center gap-1.5 rounded border border-line bg-panel px-2 py-0.5 text-[12px] text-fg hover:border-accent"
         title="Change the context used for your next question"
       >
         <Crosshair size={12} aria-hidden="true" />

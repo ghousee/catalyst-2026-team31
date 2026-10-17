@@ -5,8 +5,8 @@ export function Avatar({ name, size = 28, muted = false }: { name: string; size?
     <span
       aria-hidden="true"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full border font-semibold ${
-        muted ? "border-line bg-panel2 text-muted" : "border-warn/60 bg-warn/15 text-warn"
+      className={`inline-flex shrink-0 items-center justify-center rounded-[3px] border font-medium ${
+        muted ? "border-line bg-panel2 text-muted" : "border-line bg-panel2 text-fg"
       }`}
     >
       {initials(name)}
