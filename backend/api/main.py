@@ -1,5 +1,5 @@
 """FastAPI app: uvicorn backend.api.main:app --port 8000. Endpoints: /health /session /chat /sources/{id}, plus the routers
-in backend/commands.py (/commands/*), backend/knowledge.py (/persons, /knowledge*) and backend/documents.py (/documents)."""
+in backend/knowledge.py (/persons, /knowledge*) and backend/documents.py (/documents)."""
 from contextlib import asynccontextmanager
 
 import httpx
@@ -7,10 +7,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from backend import commands, documents, knowledge, settings
-from backend.api.state import NODES, SESSION  # in-memory, single demo user
+from backend import documents, knowledge, settings
 from backend.pipeline import answer as pipeline
 from backend.pipeline import verify
+
+NODES = [{"id": "node:PROD", "display": "\\PROD"}, {"id": "node:DR", "display": "\\DR"}]
+SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-memory, single demo user
 
 
 @asynccontextmanager
@@ -20,7 +22,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title="NonStop Copilot", lifespan=lifespan)
-for r in (commands.router, knowledge.router, documents.router):
+for r in (knowledge.router, documents.router):  # /persons /knowledge* /documents
     app.include_router(r)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
 

@@ -2,7 +2,6 @@
 import pytest
 from fastapi import HTTPException
 
-from backend import commands as C
 from backend import documents as D
 from backend import knowledge as K
 
@@ -92,39 +91,3 @@ def test_mentions_match_names_and_aliases_of_own_subsystem_only():
     al = D.alias_tokens(ents, "sub:W")
     assert D.mentioned(al, "Run WIDGET RESTART on prod, TMF is unaffected") == ["cmd:w.restart", "sub:W"]
     assert D.mentioned(al, "nothing relevant") == []
-
-
-# ---------------------------------------------------------------- commands
-def test_command_id_roundtrip_and_fill():
-    cid = C.cmd_id("tmfcom.status_tmf", "node:PROD")
-    assert cid == "tmfcom.status_tmf@PROD" and C.parse_id(cid) == ("tmfcom.status_tmf", "node:PROD")
-    with pytest.raises(ValueError):
-        C.parse_id("nonsense")
-    assert C.fill(r"TMFCOM ABORT TRANSACTION \node(cpu).seq.num", "node:PROD") == r"TMFCOM ABORT TRANSACTION \PROD(cpu).seq.num"
-    assert C.fill("SCF STATUS DISK $vol, DETAIL", "node:DR") == "SCF STATUS DISK $vol, DETAIL"  # other slots stay
-
-
-def test_approval_tier_from_risk():
-    assert [C.approval_for(r)["required"] for r in ("read_only", "state_changing", "critical", "weird")] == [
-        "one_click", "type_node", "second_approver", "second_approver"]
-
-
-def test_tier_enforcement():
-    P, DR = "node:PROD", "node:DR"
-    assert C.check_approval("read_only", P, P, "u")[0] == "approved"
-    # type_node: the typed text must be the session node
-    assert C.check_approval("state_changing", P, P, "u")[0] == "rejected"
-    assert C.check_approval("state_changing", P, P, "u", typed_node=r"\DR")[0] == "rejected"
-    assert C.check_approval("state_changing", P, P, "u", typed_node=r"\PROD")[0] == "approved"
-    # second_approver: needed, must be someone else, must exist
-    assert C.check_approval("critical", P, P, "u")[0] == "needs_second_approver"
-    assert C.check_approval("critical", P, P, "u", second_approver="u")[0] == "rejected"
-    assert C.check_approval("critical", P, P, "u", second_approver="ghost", known_people={"raj"})[0] == "rejected"
-    assert C.check_approval("critical", P, P, "u", second_approver="raj", known_people={"raj"})[0] == "approved"
-    # the node guard beats every tier: a command proposed for \PROD cannot be approved from a \DR session
-    assert C.check_approval("read_only", P, DR, "u")[0] == "rejected"
-
-
-def test_sim_output_is_labelled_simulated():
-    assert "simulated" in C.sim_output("tmfcom.status_tmf", "TMFCOM STATUS TMF", "node:PROD").lower()
-    assert "Simulated" in C.sim_output("unknown.template", "X", "node:DR") and r"\DR" in C.sim_output("unknown.template", "X", "node:DR")
