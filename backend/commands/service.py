@@ -98,10 +98,6 @@ class CommandService:
         if entry is None:
             return {"proposals": [], "no_template": True}
 
-        public = self._make(entry, node_id, version, session_node)
-        return {"proposals": [public], "no_template": False}
-
-    def _make(self, entry: CatalogEntry, node_id: str, version: str, session_node: str) -> dict:
         command = self._render(entry, node_id)
         with self._lock:
             proposal_id = f"cmd-{self._counter}"
@@ -118,19 +114,7 @@ class CommandService:
                 "approval": {"required": RISK_APPROVAL[entry.risk]},
             }
             self._proposals[proposal_id] = ProposalState(public, entry, node_id)
-        return public
-
-    def read_only(self, system: str) -> list[CatalogEntry]:
-        """The read-only (status) catalog commands of a subsystem."""
-        return [e for e in self.catalog if e.subsystem == system and e.risk == "read_only"]
-
-    def read_only_commands(self, system: str, node_id: str) -> list[tuple[str, str]]:
-        """[(rendered command, explanation)] of the subsystem's read-only commands, for text hints."""
-        return [(self._render(e, node_id), e.explanation) for e in self.read_only(system)]
-
-    def status_proposals(self, system: str, context: dict, session_node: str, limit: int = 3) -> list[dict]:
-        """Read-only status commands for a subsystem as ordinary proposals (same approval flow)."""
-        return [self._make(e, context["site"], context["version"], session_node) for e in self.read_only(system)[:limit]]
+        return {"proposals": [public], "no_template": False}
 
     def dryrun(self, proposal_id: str) -> dict:
         state = self._get(proposal_id)
