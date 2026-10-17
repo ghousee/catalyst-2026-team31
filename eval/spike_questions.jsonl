@@ -1,0 +1,27 @@
+{"id": "q01", "type": "syntax", "system": "sub:TMF", "question": "how do I check how much the audit trail is being used right now", "gold": ["doc:TMF-Reference:status-audittrail"], "must_contain": "STATUS AUDITTRAIL"}
+{"id": "q02", "type": "syntax", "system": "sub:SCF-STORAGE", "question": "kill access to a mirror disk path right now even though files are still open on it", "gold": ["doc:SCF-Storage:abort-command", "doc:SCF-Storage:stop-disk-command"], "must_contain": "FORCED"}
+{"id": "q03", "type": "syntax", "system": "sub:PATHWAY", "question": "show me the state of one terminal in pathcom with extra detail", "gold": ["doc:Pathway:status-term-command"], "must_contain": "STATUS TERM"}
+{"id": "q04", "type": "syntax", "system": "sub:FUP", "question": "copy a whole file set over to another volume with FUP", "gold": ["doc:FUP:dup-licate", "doc:FUP:dup-licate-examples"], "must_contain": "DUP"}
+{"id": "q05", "type": "syntax", "system": "sub:TACL", "question": "from a macro how can I find out what program or cpu a process is running in", "gold": ["doc:TACL-Reference:pro-cessinfo-built-in-function"], "must_contain": "PROCESSINFO"}
+{"id": "q06", "type": "syntax", "system": "sub:MEASURE", "question": "begin collecting performance data into a file", "gold": ["doc:measure:start-measurement"], "must_contain": "START MEASUREMENT"}
+{"id": "q07", "type": "syntax", "system": "sub:PEEK", "question": "see how many interrupts each cpu is taking", "gold": ["doc:PEEK:interrupts-option-2", "doc:PEEK:elements-of-the-interrupts-display"], "must_contain": "INTERRUPTS"}
+{"id": "q08", "type": "event", "system": "sub:PATHWAY", "question": "terminal got suspended and the message says invalid pseudocode", "gold": ["doc:Pathway:msg-3001"], "must_contain": "INVALID PSEUDOCODE"}
+{"id": "q09", "type": "event", "system": "sub:TMF", "question": "tmfcom rejected my command saying invalid DENSITY parameter", "gold": ["doc:TMF-Reference:msg-36"], "must_contain": "DENSITY"}
+{"id": "q10", "type": "event", "system": "sub:FUP", "question": "FUP error that all partitions of a non key sequenced file need the same format version", "gold": ["doc:FUP:all-partitions-of-a-non-key-sequenced-file-must-have-same-fo"], "must_contain": "FORMAT VERSION"}
+{"id": "q11", "type": "event", "system": "sub:MEASURE", "question": "what does MEAS 3000 mean, system does not exist", "gold": ["doc:measure:meas-2000"], "must_contain": "MEAS 3000"}
+{"id": "q12", "type": "event", "system": "sub:TACL", "question": "tacl says unable to open file with a file-system error number", "gold": ["doc:TACL-Reference:unable-to-open-file-name-file-system-error-error-number"], "must_contain": "Unable to open"}
+{"id": "q13", "type": "event", "system": "sub:PATHWAY", "question": "terminal error 3123 no server process linked to", "gold": ["doc:Pathway:msg-3122"], "must_contain": "NO SERVER PROCESS LINKED"}
+{"id": "q14", "type": "event", "system": "sub:TMF", "question": "tmfcom says no server is currently running", "gold": ["doc:TMF-Reference:msg-2208"], "must_contain": "No server is currently running"}
+{"id": "q15", "type": "fix", "system": "sub:PATHWAY", "question": "terminal reports wrong transfer count in terminal io what should I do", "gold": ["doc:Pathway:msg-3019"], "must_contain": "WRONG TRANSFER COUNT"}
+{"id": "q16", "type": "fix", "system": "sub:SCF-STORAGE", "question": "one half of a mirrored volume is down, how do I bring it back", "gold": ["doc:SCF-Storage:start-disk-command", "doc:SCF-Storage:reviving-a-mirrored-disk"], "must_contain": "START DISK"}
+{"id": "q17", "type": "fix", "system": "sub:TMF", "question": "a transaction is hung and will not back out", "gold": ["doc:TMF-Reference:abort-transaction"], "must_contain": "hung transaction"}
+{"id": "q18", "type": "fix", "system": "sub:TMF", "question": "I need to shut TMF down, what do I type and what should I watch out for", "gold": ["doc:TMF-Reference:stop-tmf"], "must_contain": "STOP TMF"}
+{"id": "q19", "type": "fix", "system": "sub:PATHWAY", "question": "the TCP is not running, how do I get it started again", "gold": ["doc:Pathway:start-tcp-command"], "must_contain": "START TCP"}
+{"id": "q20", "type": "trap", "system": "sub:SCF-STORAGE", "question": "stop a disk", "gold": ["doc:SCF-Storage:stop-disk-command"], "must_contain": "STOP DISK"}
+{"id": "q21", "type": "trap", "system": "sub:PATHWAY", "question": "stop a terminal", "gold": ["doc:Pathway:stop-term-command"], "must_contain": "STOP TERM"}
+{"id": "q22", "type": "trap", "system": "sub:TMF", "question": "how does the stop command work", "gold": ["doc:TMF-Reference:stop-tmf"], "must_contain": "STOP TMF"}
+{"id": "q23", "type": "trap", "system": "sub:SCF-STORAGE", "question": "abort a disk", "gold": ["doc:SCF-Storage:abort-command"], "must_contain": "ABORT DISK"}
+{"id": "q24", "type": "trap", "system": "sub:TMF", "question": "abort a transaction", "gold": ["doc:TMF-Reference:abort-transaction"], "must_contain": "ABORT TRANS"}
+{"id": "q25", "type": "trap", "system": "sub:PATHWAY", "question": "abort a hung terminal", "gold": ["doc:Pathway:abort-term-command"], "must_contain": "ABORT TERM"}
+{"id": "q26", "type": "trap", "system": "sub:TACL", "question": "show status of what is running", "gold": ["doc:TACL-Reference:status-command"], "must_contain": "STATUS Command"}
+{"id": "q27", "type": "trap", "system": "sub:PATHWAY", "question": "status of a tcp", "gold": ["doc:Pathway:status-tcp-command-2"], "must_contain": "STATUS TCP"}

@@ -1,0 +1,10 @@
+{"id": "g01", "system": "sub:SCF-STORAGE", "question": "kill access to a mirror disk path right now even though files are still open on it", "answerable": true}
+{"id": "g02", "system": "sub:PATHWAY", "question": "terminal got suspended and the message says invalid pseudocode", "answerable": true}
+{"id": "g03", "system": "sub:SCF-STORAGE", "question": "one half of a mirrored volume is down, how do I bring it back", "answerable": true}
+{"id": "g04", "system": "sub:SCF-STORAGE", "question": "stop a disk", "answerable": true}
+{"id": "g05", "system": "sub:PATHWAY", "question": "terminal reports wrong transfer count in terminal io what should I do", "answerable": true}
+{"id": "g06", "system": "sub:TACL", "question": "how do I recover a forgotten SUPER.SUPER password", "answerable": false}
+{"id": "g07", "system": "sub:PATHWAY", "question": "what BASE24 command reloads the PIN offset table", "answerable": false}
+{"id": "g08", "system": "sub:TMF", "question": "what changed for audit trail sizing on NonStop X L-series", "answerable": false}
+{"id": "g09", "system": "sub:TMF", "question": "how do I configure an Expand line handler on a new WAN link", "answerable": false}
+{"id": "g10", "system": "sub:SCF-STORAGE", "question": "how do I tune the TCP/IP window size on the Ethernet adapter", "answerable": false}

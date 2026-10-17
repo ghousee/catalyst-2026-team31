@@ -1,0 +1,24 @@
+{"id": "c01", "chunk": "doc:SCF-Storage:abort-command", "claim": "ABORT DISK puts a disk into the STOPPED state, substate HARDDOWN, but leaves the disk process running.", "supported": true, "note": ""}
+{"id": "c02", "chunk": "doc:SCF-Storage:abort-command", "claim": "With the FORCED attribute the command executes without any interaction with the user, even if files are open on the device.", "supported": true, "note": ""}
+{"id": "c03", "chunk": "doc:SCF-Storage:stop-disk-command", "claim": "Using FORCED on a physical disk requires first stopping all processes that use the disk for object code or swap files, otherwise a %5113 halt could occur.", "supported": true, "note": ""}
+{"id": "c04", "chunk": "doc:Pathway:stop-term-command", "claim": "STOP TERM stops a TERM object once it reaches a SCREEN COBOL ACCEPT statement with STOP-MODE set to zero and is not in TMF transaction mode.", "supported": true, "note": ""}
+{"id": "c05", "chunk": "doc:Pathway:abort-term-command", "claim": "ABORT TERM aborts a suspended or running TERM object.", "supported": true, "note": ""}
+{"id": "c06", "chunk": "doc:Pathway:msg-3001", "claim": "Message 3001 means the SCREEN COBOL object file is corrupted or the compiler generated invalid code, and the terminal is suspended.", "supported": true, "note": ""}
+{"id": "c07", "chunk": "doc:Pathway:msg-3019", "claim": "A wrong transfer count may indicate a terminal hardware problem, so run terminal diagnostics for the device.", "supported": true, "note": ""}
+{"id": "c08", "chunk": "doc:SCF-Storage:start-disk-command", "claim": "START DISK makes a stopped disk accessible and can revive the half of a mirrored volume that is STOPPED, substate DOWN.", "supported": true, "note": ""}
+{"id": "c09", "chunk": "doc:TMF-Reference:status-audittrail", "claim": "The STATUS AUDITTRAIL command displays the current audit trail activity.", "supported": true, "note": ""}
+{"id": "c10", "chunk": "doc:TMF-Reference:msg-36", "claim": "The CPU parameter must be an integer from 0 through 15.", "supported": true, "note": ""}
+{"id": "c11", "chunk": "doc:TACL-Reference:status-command", "claim": "The TACL STATUS command is an alias for the #XSTATUS built-in function.", "supported": true, "note": ""}
+{"id": "c12", "chunk": "doc:TMF-Reference:stop-tmf", "claim": "STOP TMF shuts down TMF and terminates transaction processing.", "supported": true, "note": ""}
+{"id": "c13", "chunk": "doc:SCF-Storage:abort-command", "claim": "ABORT DISK deletes the disk's configuration from the SCF database.", "supported": false, "note": "fabricated effect"}
+{"id": "c14", "chunk": "doc:SCF-Storage:abort-command", "claim": "ABORT is a nonsensitive command that any user may issue.", "supported": false, "note": "contradicts text (sensitive)"}
+{"id": "c15", "chunk": "doc:Pathway:stop-term-command", "claim": "STOP TERM can only be issued for configured TERM objects, not temporary ones.", "supported": false, "note": "contradicts text"}
+{"id": "c16", "chunk": "doc:Pathway:stop-term-command", "claim": "STOP TERM stops all disks in the PATHMON environment.", "supported": false, "note": "subsystem swap"}
+{"id": "c17", "chunk": "doc:Pathway:msg-3001", "claim": "Message 3001 indicates a disk path failure, so run diagnostics on the disk.", "supported": false, "note": "wrong cause"}
+{"id": "c18", "chunk": "doc:Pathway:msg-3019", "claim": "The recovery for wrong transfer count is to restart the TMF subsystem.", "supported": false, "note": "wrong recovery"}
+{"id": "c19", "chunk": "doc:Pathway:stop-term-command", "claim": "The FORCED option can be used with STOP TERM to skip interactive prompts.", "supported": false, "note": "option from another subsystem (SCF)"}
+{"id": "c20", "chunk": "doc:TMF-Reference:status-audittrail", "claim": "STATUS AUDITTRAIL permanently deletes audit trail files that are older than the DETAIL setting.", "supported": false, "note": "fabricated effect"}
+{"id": "c21", "chunk": "doc:TMF-Reference:msg-36", "claim": "The CPU parameter may be any integer from 0 through 255.", "supported": false, "note": "wrong range"}
+{"id": "c22", "chunk": "doc:TACL-Reference:status-command", "claim": "The TACL STATUS command always requires SUPER.SUPER privileges.", "supported": false, "note": "fabricated restriction"}
+{"id": "c23", "chunk": "doc:TMF-Reference:stop-tmf", "claim": "STOP TMF automatically restarts TMF after the shutdown completes.", "supported": false, "note": "fabricated effect"}
+{"id": "c24", "chunk": "doc:SCF-Storage:start-disk-command", "claim": "START DISK permanently deletes the data on a mirrored volume before reviving it.", "supported": false, "note": "fabricated effect"}
