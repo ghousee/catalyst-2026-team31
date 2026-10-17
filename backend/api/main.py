@@ -28,7 +28,9 @@ async def lifespan(app):
 app = FastAPI(title="NonStop Copilot", lifespan=lifespan)
 for r in (knowledge.router, documents.router):  # /persons /knowledge* /documents
     app.include_router(r)
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
+# any local UI port (Next.js moves to 3001+ when 3000 is busy); still local-only
+app.add_middleware(CORSMiddleware, allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+                   allow_methods=["*"], allow_headers=["*"])
 
 
 def session_view():
