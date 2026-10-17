@@ -43,9 +43,16 @@ class SessionIn(BaseModel):
     node: str
 
 
+class Turn(BaseModel):
+    question: str
+    context: dict | None = None  # the turn's resolved {system, site, version}
+    entities: list[str] = []
+
+
 class ChatIn(BaseModel):
     user_id: str = "newhire1"
     question: str
+    history: list[Turn] | None = None  # the last ~3 turns, used only to complete short follow-ups
     context_override: dict | None = None
     ablation: int | None = None  # accepted, ignored (eval-only flag in the contract)
 
@@ -104,7 +111,8 @@ def set_session(body: SessionIn):
 @app.post("/chat")
 def chat(body: ChatIn):
     # sync def: FastAPI runs it in a worker thread, so the event loop is not blocked by Ollama/MiniCheck
-    return pipeline.answer(body.question, {**SESSION, "user": body.user_id}, body.context_override)
+    return pipeline.answer(body.question, {**SESSION, "user": body.user_id}, body.context_override,
+                           [t.model_dump() for t in body.history or []])
 
 
 @app.get("/sources/{source_id:path}")

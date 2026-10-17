@@ -13,10 +13,12 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from backend import settings
+from backend.commands.service import command_service
 from backend.graph.query import _captured, fetch_notes, lookup, note_search, resolve, scope_text, short
 from backend.ingest.embedder import embed_query
-from backend.pipeline import gate, generate, verify
+from backend.pipeline import converse, gate, generate, verify
 from backend.pipeline.retrieve import hybrid_search, query_terms
+from backend.simulator.service import simulator
 
 VERIFY_THRESHOLD = float(os.getenv("VERIFY_THRESHOLD", "0.5"))
 GEN_CHARS = 1800   # per-source text handed to Qwen (MiniCheck sees the full text)
@@ -236,8 +238,10 @@ def subsystem_from_hits(hits, min_share=3):
 
 
 # ---------------------------------------------------------------- the pipeline
-def answer(question, session, override=None):
+def answer(question, session, override=None, history=None):
+    """history: the client's last turns [{question, context, entities}]; used only to complete short follow-ups."""
     t_start, st = time.perf_counter(), {}
+    history = history or []
     override = {k: v for k, v in (override or {}).items() if v}
     node = override.get("site") or session["node"]
     series = override.get("version") or session["series"]
@@ -249,28 +253,42 @@ def answer(question, session, override=None):
         _ms(st, "resolve", t)
         if not override.get("site") and any(n != session["node"] for n in r["nodes_mentioned"]):
             return _clarify(conn, question, "node", current="\\" + session["node"].split(":", 1)[1])
+        q_ret = question  # the text retrieval and generation work from
+        fu = converse.followup_text(question, history)  # "why?" / "what about on DR?" -> previous question + this one
+        if fu:
+            # entities come from the completed text; the node check above used only what the operator just typed
+            q_ret = fu
+            r = {**resolve(conn, fu, {"system": override.get("system"), "version": series, "site": node}),
+                 "nodes_mentioned": r["nodes_mentioned"]}
         sub = override.get("system") or r["subsystem"]
+        if not sub and history and is_vague(question):
+            sub = converse.last_system(history)  # a vague follow-up keeps the subsystem of the conversation
         qvec = None
+        inferred = False  # subsystem guessed from search hits (nothing in the graph matched): the only case the gate guards
         if not sub and not r["entities"]:
             # nothing in the graph matched: too vague -> ask; otherwise let the manuals say which subsystem it is
             if is_vague(question):
                 return _clarify(conn, question, "vague")
             t = time.perf_counter()
-            qvec = embed_query(question)
-            sub = subsystem_from_hits(hybrid_search(conn, question, qvec, None, k=5))
+            qvec = embed_query(q_ret)
+            sub = subsystem_from_hits(hybrid_search(conn, q_ret, qvec, None, k=5))
+            inferred = bool(sub)
             _ms(st, "infer_subsystem", t)
             if not sub:
                 gate_info = {"sufficient": False, "reason": "no entity in the knowledge graph matches the question"}
+                experts = _all_experts(conn)
                 return {"type": "refer", "reason": "Nothing in the knowledge base matches this question.",
+                        "reply": converse.refer_reply(_display(node, series), [], experts, False), "next_steps": [],
                         "context": {"system": "", "version": series, "site": node, "display": _display(node, series),
                                     "confidence": 0.0},
-                        "experts": _all_experts(conn),
+                        "experts": experts,
                         "quality": _quality(st, t_start, gate_info, 0.0, "session+graph"),
                         "debug": {"stages_ms": st, "entities": []}}
         if not sub:
             return _clarify(conn, question, "subsystem")
-        # specific = the graph pinned an event/object/command/metric; subsystem-only matches go through the LLM gate
-        specific = any(e["kind"] in SPECIFIC for e in r["entities"])
+        status = converse.is_status_question(question)
+        if status:  # retrieve for "what does normal look like", not for the word "healthy"
+            q_ret, qvec = f"What does a normal, healthy {short(sub)} look like and which status commands show it?", None
         ctx = {"system": sub, "version": series, "site": node}
         context = {**ctx, "display": _display(node, series, sub),
                    "confidence": 1.0 if override.get("system") else 0.9}
@@ -281,8 +299,8 @@ def answer(question, session, override=None):
         _ms(st, "lookup", t)
 
         t = time.perf_counter()
-        qvec = qvec or embed_query(question)
-        hits = hybrid_search(conn, question, qvec, {"system": sub, "version": None, "site": None}, k=5)
+        qvec = qvec or embed_query(q_ret)
+        hits = hybrid_search(conn, q_ret, qvec, {"system": sub, "version": None, "site": None}, k=5)
         _ms(st, "search", t)
 
         # merge manual sections (graph-linked, then search hits; deduped, capped) and up to MAX_NOTES veteran notes,
@@ -313,25 +331,64 @@ def answer(question, session, override=None):
         for c in debug["retrieved"]:
             c["edition"], c["owner"] = editions.get(c["id"]), owners.get(c["id"])
 
-        t = time.perf_counter()
-        if specific and (lk["heuristics"] or lk["doc_chunks"]):
-            # the graph pinned the question to a specific event/object with linked knowledge: skip the LLM gate
-            # (saves ~2.7 s); generation can still return [] and MiniCheck still drops unsupported claims
-            ok, reason = True, "graph match: " + ", ".join(e["name"] for e in r["entities"] if e["kind"] in SPECIFIC)
-            st["gate"] = 0
-        else:
-            ok, g = gate.sufficient(question, gen_chunks)
+        if inferred:
+            # nothing in the graph matched and the subsystem was guessed from search hits: irrelevance is likely, so the
+            # LLM gate decides. A subsystem the graph (or the user) named skips it: the verifiers below are the guard
+            # (the gate refused "what is the SCF storage subsystem" for "lacking a verb" with the right sections found).
+            t = time.perf_counter()
+            ok, g = gate.sufficient(q_ret, gen_chunks)
             _ms(st, "gate", t)
             try:
                 reason = json.loads(g["content"]).get("reason", "")
             except ValueError:
                 reason = ""
+        else:
+            ok, reason = True, "subsystem from the graph: gate skipped, claims are verified"
+            st["gate"] = 0
         gate_info = {"sufficient": bool(ok), "reason": reason}
         debug["gate"] = gate_info
+        node_name = "\\" + node.split(":", 1)[1]
+        turn_entities = [e["id"] for e in r["entities"][:3]]
+
+        def finish(kept, total):
+            """The answer card: sources, log row, reply (or, for a status question, the status block)."""
+            used = list(dict.fromkeys(c["source_id"] for c in kept))
+            sources = [source_card(conn, i) for i in used]
+            lanes_used = {"doc": sum(lane_of[i] == "doc" for i in used), "veteran": sum(lane_of[i] == "veteran" for i in used)}
+            log = conn.execute(
+                "INSERT INTO answer_log (user_id, question, context, outcome, citations, dropped_claims) "
+                "VALUES (%s, %s, %s::jsonb, 'answer', %s, %s) RETURNING id",
+                (session.get("user", "newhire1"), question, json.dumps(context), used, len(debug["dropped"]))).fetchone()[0]
+            conn.commit()
+            out = {"type": "answer", "answer_log_id": log, "context": context, "claims": kept, "sources": sources,
+                   "dropped_claims": len(debug["dropped"]), "experts": lk["experts"][:3], "entities": turn_entities}
+            t = time.perf_counter()
+            if status:
+                # live data only where the simulator has a feed for this subsystem; never a verdict we cannot back
+                live = converse.live_metrics(sub, simulator.metrics(node, "5m"))
+                props = command_service.status_proposals(sub, ctx, session["node"])
+                out["status"] = {"live": live, "simulated": True}
+                out["proposals"] = props
+                out["reply"], out["reply_citations"] = converse.status_reply(
+                    short(sub), node_name, live, [p["command"] for p in props]), {}
+            else:
+                reply, cites = converse.write_reply(
+                    question, kept, extra=f"{context['display']} {node_name}", history_q=converse.previous_question(history) if fu else None)
+                if reply:
+                    out["reply"], out["reply_citations"] = reply, cites
+            _ms(st, "reply", t)
+            debug["stages_ms"] = st
+            out["quality"] = _quality(st, t_start, gate_info, context["confidence"], ctx_source, kept, total, lanes_used)
+            out["debug"] = debug
+            return out
 
         def refer(why, kept=(), total=0):
+            if status:  # "is X healthy?" is never a dead end: the status block (checks to run) with no claims
+                return finish([], total)
             debug["stages_ms"] = st
-            return {"type": "refer", "reason": why, "context": context, "experts": lk["experts"],
+            steps = converse.refer_next_steps(command_service.read_only_commands(sub, node))
+            return {"type": "refer", "reason": why, "context": context, "experts": lk["experts"], "next_steps": steps,
+                    "reply": converse.refer_reply(context["display"], steps, lk["experts"]), "entities": turn_entities,
                     "quality": _quality(st, t_start, gate_info, context["confidence"], ctx_source, kept, total, lanes),
                     "debug": debug}
 
@@ -339,7 +396,7 @@ def answer(question, session, override=None):
             return refer(f"No verified answer for {context['display']}.")
 
         t = time.perf_counter()
-        claims, _ = generate.generate(question, gen_chunks, max_claims=MAX_CLAIMS)
+        claims, _ = generate.generate(q_ret, gen_chunks, max_claims=MAX_CLAIMS)
         _ms(st, "generate", t)
         if claims is None:
             return refer(f"No verified answer for {context['display']}.")
@@ -394,19 +451,8 @@ def answer(question, session, override=None):
         kept = vets + kept  # the operator-specific advice first, then the manual's facts
         _ms(st, "verify", t)
         total = len(kept) + len(debug["dropped"])
-        if not kept:
+        if status:
+            kept = [c for c in kept if c["lane"] == "doc"]  # what normal looks like; veteran notes are not a status
+        elif not kept:
             return refer(f"No verified answer for {context['display']}.", total=total)
-
-        used = list(dict.fromkeys(c["source_id"] for c in kept))
-        sources = [source_card(conn, i) for i in used]
-        lanes = {"doc": sum(lane_of[i] == "doc" for i in used), "veteran": sum(lane_of[i] == "veteran" for i in used)}
-        log = conn.execute(
-            "INSERT INTO answer_log (user_id, question, context, outcome, citations, dropped_claims) "
-            "VALUES (%s, %s, %s::jsonb, 'answer', %s, %s) RETURNING id",
-            (session.get("user", "newhire1"), question, json.dumps(context), used, len(debug["dropped"]))).fetchone()[0]
-        conn.commit()
-        debug["stages_ms"] = st
-        return {"type": "answer", "answer_log_id": log, "context": context, "claims": kept, "sources": sources,
-                "dropped_claims": len(debug["dropped"]), "experts": lk["experts"][:3],
-                "quality": _quality(st, t_start, gate_info, context["confidence"], ctx_source, kept, total, lanes),
-                "debug": debug}
+        return finish(kept, total)

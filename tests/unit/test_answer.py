@@ -49,6 +49,7 @@ def fake(monkeypatch):
     monkeypatch.setattr(A.gate, "sufficient", lambda q, c: (state["gate"], {"content": '{"reason": "why"}'}))
     monkeypatch.setattr(A.generate, "generate", lambda q, c, **kw: (state["claims"], {}))
     monkeypatch.setattr(A.verify, "support_probs", lambda pairs: [state["scores"][claim] for _, claim in pairs])
+    monkeypatch.setattr(A.converse, "write_reply", lambda *a, **k: state.get("reply", (None, {})))
     monkeypatch.setattr(A, "source_card", lambda conn, i: {"id": i, "kind": "doc" if i.startswith("doc:") else "heuristic"})
     monkeypatch.setattr(A, "_rows", lambda conn, sql, params=(): [{"id": "node:DR", "name": "DR"}])
     return state
@@ -71,13 +72,13 @@ def test_answer_lanes_and_dropped(fake):
     assert q["sources_by_lane"] == {"doc": 1, "veteran": 1} and q["gate"]["sufficient"]
 
 
-def test_insufficient_refers_with_experts(fake):
-    # a subsystem-only match (confirmed by the user's override) still goes through the LLM gate
-    fake["resolved"] = {**fake["resolved"], "entities": [{"id": "sub:TMF", "kind": "system", "name": "TMF", "matched": "TMF"}]}
-    fake["gate"] = False
+def test_no_surviving_claim_refers_with_experts_and_next_steps(fake):
+    # a subsystem the user picked skips the gate; with nothing verified the refer still helps
+    fake["claims"] = []
     r = A.answer("q", SESSION, {"system": "sub:TMF"})
     assert r["type"] == "refer" and r["experts"] == [EXPERT] and r["context"]["system"] == "sub:TMF"
-    assert r["quality"]["gate"] == {"sufficient": False, "reason": "why"}
+    assert r["quality"]["gate"]["sufficient"] and 1 <= len(r["next_steps"]) <= 3
+    assert all("read-only" in x for x in r["next_steps"]) and "Raj" in r["reply"] and r["entities"] == ["evt:TMF-185"]
 
 
 def test_all_claims_unsupported_refers(fake):
@@ -92,7 +93,7 @@ def test_node_mismatch_clarifies(fake):
     assert r["type"] == "clarify" and r["options"] == [{"label": r"\DR", "value": {"site": "node:DR"}}]
     assert "context" not in r
     # the UI's override wins: no second clarify, and the context is the overridden node
-    fake["gate"] = False
+    fake["claims"] = []
     r = A.answer("q", SESSION, {"site": "node:DR"})
     assert r["type"] == "refer" and r["context"]["site"] == "node:DR"
 
@@ -103,20 +104,25 @@ def test_unresolved_subsystem_clarifies(fake):
     assert r["type"] == "clarify" and "system" in r["options"][0]["value"]
 
 
-def test_specific_graph_match_skips_gate(fake):
+def test_graph_subsystem_skips_gate(fake):
     fake["gate"] = False  # would refer if the gate ran
     fake["claims"] = [{"claim": "a", "source_id": "maria:h7"}]
     fake["scores"] = {"a": 0.9}
     r = A.answer("why is the audit trail filling?", SESSION)
-    assert r["type"] == "answer" and r["quality"]["gate"]["reason"].startswith("graph match")
+    assert r["type"] == "answer" and r["quality"]["gate"]["reason"].startswith("subsystem from the graph")
 
 
-def test_subsystem_only_match_goes_through_gate(fake):
-    # "one txn shows up as HUNG in tmfcom" names only a subsystem but is specific: no clarify, the LLM gate decides
+def test_subsystem_only_match_skips_gate_and_answers(fake):
+    # "what is the SCF storage subsystem": the gate once refused it ("lacks a verb"); now claims are verified instead
     fake["resolved"] = {**fake["resolved"], "entities": [{"id": "sub:TMF", "kind": "system", "name": "TMF", "matched": "tmfcom"}]}
-    fake["gate"] = False
-    r = A.answer("one txn shows up as HUNG in tmfcom, what does that mean?", SESSION)
-    assert r["type"] == "refer" and r["quality"]["gate"]["reason"] == "why"
+    fake["gate"] = False  # would refer if the gate ran
+    fake["claims"] = [{"claim": "b", "source_id": "doc:TMF-Reference:x"}]
+    fake["scores"] = {"b": 0.9}
+    r = A.answer("what is the tmfcom subsystem", SESSION)
+    assert r["type"] == "answer" and r["claims"][0]["lane"] == "doc" and "reply" not in r
+    fake["reply"] = ("It is the TMF utility [1].", {"1": "doc:TMF-Reference:x"})
+    r = A.answer("what is the tmfcom subsystem", SESSION)
+    assert r["reply"] == "It is the TMF utility [1]." and r["reply_citations"] == {"1": "doc:TMF-Reference:x"}
 
 
 def test_unmatched_short_question_clarifies(fake):
@@ -128,6 +134,9 @@ def test_unmatched_short_question_clarifies(fake):
 def test_unmatched_long_question_infers_subsystem_from_manuals(fake, monkeypatch):
     fake["resolved"] = {"subsystem": None, "nodes_mentioned": [], "entities": []}
     monkeypatch.setattr(A, "hybrid_search", lambda *a, **k: [{"id": f"doc:{i}", "text": "t", "system_id": "sub:TMF"} for i in range(4)])
+    fake["gate"] = False  # the gate still guards a subsystem inferred from search hits
+    assert A.answer("abort of a txn just leaves it hung because of data errors on a file, what now", SESSION)["type"] == "refer"
+    fake["gate"] = True
     fake["claims"] = [{"claim": "a", "source_id": "doc:TMF-Reference:x"}]
     fake["scores"] = {"a": 0.9}
     r = A.answer("abort of a txn just leaves it hung because of data errors on a file, what now", SESSION)
@@ -280,7 +289,6 @@ def test_real_questions_are_not_smalltalk():
 
 
 def test_refer_reason_hides_gate_reasoning(fake):
-    fake["resolved"] = {**fake["resolved"], "entities": [{"id": "sub:TMF", "kind": "system", "name": "TMF", "matched": "TMF"}]}
-    fake["gate"] = False
+    fake["claims"] = []
     r = A.answer("something about tmf retention", SESSION, {"system": "sub:TMF"})
     assert r["type"] == "refer" and r["reason"] == "No verified answer for \PROD · L-series · TMF."
