@@ -98,15 +98,16 @@ entities (ids `cmd:auto:<sub>:..`, `evt:auto:<sub>:..`, ~1,660) behind a checkbo
 created once and updated in place (`ready` flag re-syncs after the async import - without it the canvas stayed blank).
 Drag, zoom, click = details panel, double-click = isolate neighbourhood, kind filters, find, auto links dashed.
 
-## Design system (2026-10-17 de-AI pass)
-Direction: a calm, dense operator's console, closer to a terminal tool than a SaaS dashboard. Styling only; no data/logic changes.
-- **Fonts:** IBM Plex Sans (UI) and IBM Plex Mono (commands, node names `\PROD`, ids, numbers) via `next/font/google` in `app/layout.tsx` (CSS vars `--font-sans`, `--font-mono`, Tailwind `font-sans`/`font-mono`). Numbers are tabular (`body` + `.num` for mono figures).
-- **Tokens** (`app/globals.css`, light and dark): cool ink/paper neutrals (`bg`, `panel`, `panel2`, `line`, `fg`, `muted`), ONE accent (indigo), colour otherwise only for meaning: `prod` orange, `dr` blue, `ok`/`warn`/`crit`. `--term`/`--term-fg` for the command surface (`.term-block`). Never hard-code colours in components.
-- **Shape:** radii <= 6px (`rounded` = 4px), hairline borders, no decorative shadows (popovers only). Sections are separated by rules and whitespace (`Block` in `OperationsWorkspace.tsx`); boxes only for real objects (answer, command card, source dialog).
-- **Stat strip** (`StatStrip`, `Strip`+`Tile` on graph/learning) replaces icon tiles. Tabs are underlined, active nav has a thin accent rule. Status = text label + small square marker (`.status-chip`), never colour alone.
-- **Type helpers:** `.label` (small semibold muted section label, sentence case, no uppercase eyebrows), `.code` (inline code), `.num` (mono figures).
-- **Assistant replies** (`ReplyText.tsx`): `` `code` `` renders as `<code>`, `**bold**` as strong, citations as inline bracketed numerals `[1]` (buttons opening the source card), cited sources as a footnote list. Lane/risk/approval labels remain in text.
-- Copy: no emoji or sparkles, no filler subtitles; "Summary", "Investigate".
+## Design system (2026-10-17 light-blue redesign)
+Direction: light, airy, colourful and friendly. Near-white paper with a blue tint, navy for strong elements, sky blue for fills and highlights, a few category colours. Presentation only; no data/logic changes.
+- **Fonts:** Bricolage Grotesque (headings, big numbers; `font-display`), Figtree (UI), IBM Plex Mono (commands, `\PROD`, ids), all via `next/font/google` in `app/layout.tsx`.
+- **Tokens** (`app/globals.css`, light and dark): `bg #F2F7FD`, `panel #FFF`, `panel2 #E9F3FC`, `line #D3E2F2`, `fg/head #0E2342`/`#0B2A64`, `muted #4C6381`, `accent #144CAA` (links), `navy #0B2A64` / `navy2 #1B56B2` (sidebar, primary buttons), `sky #38A8F0` / `skysoft #DEEFFD` (fills, tints), status `ok #0A7C54`, `warn #965C00`, `crit #C52838`. `\PROD` `#D9480F` coral-orange, `\DR` `#6A3FC4` violet (never a blue). Subsystem colours `--sub-tmf/pathway/scf/tacl/peek/measure/fup`; lanes use info (Doc), warn (Veteran), ok (Live). Never hard-code colours in components.
+- **Tailwind config:** the theme is `tailwind.theme.ts`, loaded by `@config` at the top of `globals.css`; `tailwind.config.ts` re-exports it. (A running dev server caches `tailwind.config.ts`; a new file path is picked up without a restart. Restart `next dev` once, then it is fine to rename back.)
+- **Shared pieces** (`components/ui.tsx`): `PageHeader` (gradient band), `StatCard` (tinted, coloured icon chip, count-up), `Panel`, `SubPill` (coloured subsystem pill), `CountUp`, `Skeleton`, `hueStyle`. CSS helpers: `.pill`, `.tint`, `.icon-chip` (set `--c`), `.card`, `.btn`, `.btn-primary` (navy gradient), `.chip`, `.field`.
+- **Motion** (all CSS keyframes in `globals.css`, no GSAP; `prefers-reduced-motion` turns it all off, `CountUp` jumps to the final value): `.rise` page entrance, `.stagger` children, `.lift` card hover, `.flow-band` animated gradient (top bar, sidebar header), `.draw` sparkline wipe, `.bar-grow` coverage bars, `.live-dot` pulse (Watcher status, active alerts, nav badge), `.skeleton` shimmer while loading, `.tab` sliding underline.
+- **Status** = text label + round dot (`.status-chip`), never colour alone. Lane, risk and approval labels stay in text. `.label`, `.code`, `.num` type helpers remain.
+- **Assistant replies** (`ReplyText.tsx`): `` `code` `` as `<code>`, `**bold**`, citations `[1]` as small chips opening the source card, cited sources as a footnote list.
+- Copy: no emoji or sparkles.
 
 ## Who is using the app (lib/me.ts, WhoAmI.tsx)
 Top-bar picker, remembered in localStorage (`cail.me`). Seniors = person rows (Teach/owner default to them);
