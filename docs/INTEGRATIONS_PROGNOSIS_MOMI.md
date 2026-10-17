@@ -13,6 +13,25 @@ Scholarly note: no papers cited, so the LibKey connector was not needed.
 
 ---
 
+## 0. Correction (2026-10-17, later the same day): Prognosis DOES have a REST API
+
+The first pass missed it. IR Community posts [S] describe a Prognosis REST API on the Prognosis Web UI server (IIS, Windows):
+- Data is exposed as named **datasets**, each a PQL query, defined by an admin in
+  `Prognosis\WebUI\IIS\Administration\Config\RestApiDataSets.xml` (restart `IrPrognosisSite` in IIS after editing; test the query with `irpqlcli`).
+- Read with `GET https://<prognosis-server>/Prognosis/Rest/v1/data/<datasetId>` → JSON over HTTPS. Datasets can take parameters (e.g. a CPU number).
+- Auth: basic auth or the Web UI session cookie; rows are filtered by Prognosis Role Based Security.
+- Alerts: IR's own guide exposes **open problems (PROBSUM)** and closed problems as datasets so third-party tools (ServiceNow, OpsRamp) can **pull** them. A Swagger page exists in Prognosis.
+- Caveats: the posts are several years old and generic (UC-focused), not NonStop-specific; pages could not be opened (redirect, then a TLS error), so this is search-summary evidence. Confirm with IR/CAIL that their version and licence have the Web UI + REST API and that NonStop problem records are queryable.
+
+**Revised Prognosis adapter, ranked:** (1) poll the REST API for open problems every 10-30 s (pull, simplest, no NonStop change); (2) SNMP traps out (push) if REST is not licensed.
+MOMI is unchanged: BlackWood's own overview page lists alarm outputs as on-screen, MOMI log, EMS and email only; no API.
+
+Sources: [Prognosis Alerts via REST API](https://community.ir.com/t5/Prognosis-Blog/Prognosis-Alerts-via-REST-API/ba-p/5963),
+[API(s) for Prognosis?](https://community.ir.com/t5/Unified-Communications/API-s-for-Prognosis/td-p/1195),
+[Prognosis REST API](https://community.ir.com/t5/Collaborate/Prognosis-REST-API/td-p/2586),
+[Swagger tool in Prognosis](https://community.ir.com/t5/General/How-to-use-the-Swagger-tool-in-Prognosis/td-p/8387),
+[MOMI overview](https://www.momi.com/website/momi_overview.htm).
+
 ## 1. Summary
 
 | | IR Prognosis | BlackWood MOMI |
