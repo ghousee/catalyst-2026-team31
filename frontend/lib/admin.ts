@@ -49,6 +49,24 @@ export interface NewNote {
   subsystem: string;
 }
 
+export interface TeachMessage {
+  role: "veteran" | "assistant";
+  text: string;
+}
+
+export interface TeachDraft {
+  trigger_text: string;
+  call_text: string;
+  why_text: string;
+  not_when_text: string;
+  node: "PROD" | "DR" | "ALL";
+  subsystem: string;
+  kind: "note" | "warning_pattern";
+}
+
+/** POST /knowledge/teach: the assistant either asks one follow-up or hands back a draft. */
+export type TeachTurn = { type: "question"; text: string } | { type: "draft"; draft: TeachDraft };
+
 export interface Suggestion {
   id: string;
   section: string;
@@ -135,6 +153,8 @@ export const admin = {
   persons: () => call<Person[]>("GET", "/persons"),
   notes: (status: "draft" | "approved" | "retired") => call<Note[]>("GET", `/knowledge?status=${status}`),
   addNote: (n: NewNote) => call<Note>("POST", "/knowledge", n),
+  teach: (owner_id: string, messages: TeachMessage[]) =>
+    call<TeachTurn>("POST", "/knowledge/teach", { owner_id, messages }),
   approve: (id: string, signed_by: string) => call<ApproveResult>("POST", `/knowledge/${enc(id)}/approve`, { signed_by }),
   link: (id: string, doc_id: string, rel: "extends" | "contradicts") =>
     call<Note>("POST", `/knowledge/${enc(id)}/link`, { doc_id, rel }),

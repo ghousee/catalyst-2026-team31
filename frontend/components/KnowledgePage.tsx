@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { admin, subName, type ApproveResult, type DocRow, type Note, type Person } from "@/lib/admin";
 import { ConsoleProvider } from "@/lib/store";
 import { SplitPane } from "./SplitPane";
+import { TeachChat } from "./TeachChat";
 import { TopBar } from "./TopBar";
 
 const EMPTY = { trigger_text: "", call_text: "", why_text: "", not_when_text: "" };
@@ -188,6 +189,10 @@ function Inner() {
       {err && <p role="alert" className="border-b border-crit/60 bg-crit/10 px-4 py-2 text-[13px] text-crit">{err}</p>}
       <main className="flex min-h-0 flex-1">
         <SplitPane direction="horizontal" id="knowledge-main" label="form and notes" initial={0.38} minFirst={300} minSecond={360}>
+          <SplitPane direction="vertical" id="knowledge-left" label="teach and add form" initial={0.55} minFirst={160} minSecond={160}>
+          <Pane title="Teach">
+            <TeachChat persons={persons} subs={subs} onSaved={refresh} />
+          </Pane>
           <Pane title="Add knowledge">
             <form onSubmit={submit} className="space-y-3">
               <Field label="Owner (whose knowledge it is; only they can sign it)">{personSelect(owner, setOwner, "Owner")}</Field>
@@ -222,6 +227,7 @@ function Inner() {
               {msg && <p role="status" className="text-[12.5px] text-ok">{msg}</p>}
             </form>
           </Pane>
+          </SplitPane>
           <SplitPane direction="vertical" id="knowledge-right" label="pending and approved notes" initial={0.5} minFirst={120} minSecond={120}>
             <Pane title="Pending sign-off">
               {results.map((r) => (
