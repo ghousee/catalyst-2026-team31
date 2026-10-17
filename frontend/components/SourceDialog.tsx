@@ -64,6 +64,12 @@ function Veteran({ s }: { s: HeuristicSource }) {
         <span className="block text-[11px] uppercase tracking-wide text-muted">Why</span>
         {s.why}
       </p>
+      {s.not_when && (
+        <p className="mt-2 rounded border border-warn/60 bg-warn/10 p-3 text-[13px]">
+          <span className="block text-[11px] uppercase tracking-wide text-muted">Does not apply when</span>
+          {s.not_when}
+        </p>
+      )}
       <dl className="mt-2 divide-y divide-line">
         {s.scope && <Row k="Scope">{s.scope}</Row>}
         {s.captured_via && <Row k="Captured via">{s.captured_via}</Row>}

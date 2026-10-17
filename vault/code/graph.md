@@ -7,6 +7,7 @@ Content is **fictional/illustrative** (see `kg/seed/README.md`); every edge cite
 - `backend/graph/query.py:129` `resolve(conn, text, ctx)` — alias/name/event-number match (`match_entities` :86, `tokens` :45). No LLM.
   `subsystem` comes from the matched entities only (never copied from ctx); two subsystems tied -> `None` (caller clarifies).
 - `backend/graph/query.py:206` `lookup(conn, entity_ids, ctx, k)` — 2-hop `walk` (:162) then context-filtered notes, docs, commands, experts, path.
+- `query.py` `note_search` (vector search over approved notes, context-scoped), `fetch_notes` (notes by id, same filter), `note_dict` (one note's shape; `disagrees_with` = in-context partners only).
 - `backend/graph/load.py:144` `python -m backend.graph.load [--no-embed]` — upsert + validation (`validate` :48) + embeddings for notes.
 - `backend/graph/migrate.py` applies `sql/migrations/*.sql`. `scripts/graph_smoke.py` (DB check, \PROD vs \DR), `scripts/export_graph.py` -> `docs/knowledge_graph.html`.
 - Seed: `entities.yaml` (events, objects, metrics, 17 command templates, aliases), `heuristics.yaml` (10 notes), `edges.yaml`, `persons.yaml`.

@@ -51,3 +51,12 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 Refer/expert UI is **reference only**: `components/ExpertList.tsx` shows name, availability badge, role ·
 team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.refer` / `referExpert` in
 `lib/store.tsx` are unused until the capture loop is built. Expert fields: `lib/types.ts` `Expert`.
+
+## Verbatim / conflict fields (2026-10-17, additive in `lib/types.ts`)
+- `Claim.verbatim?` (veteran's own words; ClaimList shows "verbatim" instead of a score), `Claim.conflict_with?` (other veteran's source id),
+  `Claim.contradicts?` (doc id the note contradicts), `HeuristicSource.not_when?` (SourceDialog "Does not apply when" box).
+- `components/ConflictBox.tsx`: groups flagged claims into "Veterans disagree: A vs B" / "Veteran contradicts the manual: A vs <manual>";
+  `AnswerCard` renders flagged claims there and the rest in `ClaimList`.
+- Edition line in `AnswerCard`: if a doc source's `applies_to` lacks `<series>-series` (series from `context.version`), shows
+  "Manual citations come from older H/J-series editions; L-series behaviour not verified."
+- Mocks unchanged (fields optional). Checked with `tsc --noEmit` + `lint` only.

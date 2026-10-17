@@ -22,6 +22,9 @@ export interface Claim {
   source_id: string;
   verified: boolean;
   score: number;
+  verbatim?: boolean; // veteran claim is the note's own words, not a model paraphrase
+  conflict_with?: string; // source id of the veteran this claim disagrees with
+  contradicts?: string; // doc id the veteran note contradicts
 }
 
 export interface DocSource {
@@ -49,6 +52,7 @@ export interface HeuristicSource {
   why: string;
   provenance?: string; // v1 field
   relation?: string; // e.g. "contradicts:doc:TMF-Reference:ch121.187"
+  not_when?: string; // when the advice does NOT apply
 }
 
 export interface LiveSource {

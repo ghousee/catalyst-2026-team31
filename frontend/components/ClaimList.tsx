@@ -15,7 +15,11 @@ export function ClaimList({ claims, sources }: { claims: Claim[]; sources?: Sour
             <p className="text-[13.5px] leading-snug">{c.text}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <CitationChip sourceId={c.source_id} lane={c.lane} sources={sources} />
-              {c.verified ? (
+              {c.verbatim ? (
+                <span className="text-[11px] text-muted" title="The veteran's own words, not rephrased">
+                  verbatim
+                </span>
+              ) : c.verified ? (
                 <span className="text-[11px] text-muted" title={`Verifier score ${c.score}`}>
                   verified · {Math.round(c.score * 100)}%
                 </span>

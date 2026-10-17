@@ -25,7 +25,7 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
 - Qwen sometimes writes the node as `\PROD` or a stray Cyrillic letter before PROD; `_clean` repairs it before verification.
 - Context `confidence` is not a model output: 0.9 when the subsystem came from the graph, 1.0 with an override.
 - `/sources/{id}` does not apply session context (it is a card lookup by id).
-- MiniCheck checks a claim against its source only, so a claim that misreads a veteran note ("the manual recommends X" when the note says not to) can pass. Seen on `maria:h11`.
+- MiniCheck checks a claim against its source only, so a paraphrase that inverts a note can pass (seen on `maria:h11`); veteran claims are now verbatim, see the last section.
 - A vague question that resolves to one subsystem ("the disk is acting up" -> Storage) is not clarified; the gate refers it.
 - Tests: `tests/unit/test_answer.py` fakes every stage.
 
@@ -41,3 +41,19 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
   named veteran). MiniCheck scored such an inverted claim 0.97. "Don't rely on the manual's X" stays allowed.
 - Ollama `keep_alive: 60m` + `warm()` loads Qwen and the embedder at startup (cold reload cost ~20 s).
 - Measured warm, 5 questions: 8-12.5 s per answer; all 5 cite both a manual section and a veteran.
+
+## Verbatim veterans, note search, conflicts (2026-10-17)
+- Veteran-lane claims are never Qwen's wording. Each veteran note Qwen cites (relevance signal) becomes ONE claim =
+  the note's `call_text` verbatim (`answer.verbatim`, cut to 2 sentences above 300 chars), `verified: true`, `score: 1.0`,
+  `verbatim: true`. Qwen's claims about that note are discarded (MiniCheck passed an inverted paraphrase at 0.97).
+  Veteran claims come first, then the verified doc claims. `dropped_claims` now counts dropped Qwen claims only.
+- Negation guard on doc claims (`verify.negation_mismatch`, why `negation` in `debug.dropped`): drop a claim that negates
+  something the source does not negate nearby, or that mentions the 2 words right after a source "not" without negating
+  them. Same-sentence windows. Real run: 1 borderline drop in 5 questions; if it drops good claims, loosen it.
+- `graph.query.note_search(conn, qvec, ctx, k)`: brute-force cosine over approved, context-scoped `heuristic.embedding`
+  (same `context_where`), merged with `lookup` notes (lookup's top 2, then search hits, then the rest; max `MAX_NOTES`).
+- Conflicts: a used note's in-context `disagrees_with` partner is added as its own verbatim claim; both claims get
+  `conflict_with: <other id>`. A note with relation `contradicts:doc:X` gets `contradicts: "doc:X"` on its claim.
+- Source card for notes has `not_when`. The MANUAL header in the Qwen prompt carries the edition string.
+- Gotcha: `disagrees_with` in note dicts only lists partners that are approved and in context (an unfiltered id leaked
+  a \PROD note id on \DR; caught by `test_prod_only_note_never_returned_for_dr`).
