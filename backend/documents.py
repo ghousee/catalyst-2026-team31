@@ -3,7 +3,8 @@
 Same key (the title, non-alphanumerics -> '-') = same document: unchanged chunks keep their id, changed ones are replaced in
 place, vanished ones get valid_to = today (retrieval excludes valid_to <= today). Approved notes linked to a changed or
 removed chunk get needs_review = TRUE (answers still show them, flagged). New chunks get `mentions` edges to the entities
-whose names/aliases they contain. A subsystem name the graph does not know creates a 'system' entity.
+whose names/aliases they contain. A subsystem name the graph does not know creates a 'system' entity. The subsystem's commands and numbered messages are
+then re-derived from the section titles (backend/graph/from_docs.py, `sync`).
 """
 import hashlib
 import re
@@ -12,6 +13,7 @@ from datetime import date, datetime, timezone
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from backend import settings
+from backend.graph import from_docs
 from backend.graph.query import _entities, tokens
 from backend.ingest import embedder
 from backend.ingest.chunker import MAX_TOKENS, TARGET_TOKENS, Chunk, chunk_manual, est_tokens, slugify
@@ -164,6 +166,7 @@ def load_document(conn, title, system_id, edition, text, source_file, embed=None
             (c.id, source_file, c.section, c.text, system_id, today, _vec(v), label, edition, new[c.id]))
     if d["removed"]:
         conn.execute("UPDATE doc_chunk SET valid_to = %s WHERE id = ANY(%s::text[])", (today, d["removed"]))
+    graph = from_docs.sync(conn, system_id)  # commands/messages named by the section titles; stale auto-docs rows pruned
     redo = d["added"] + d["changed"] + d["removed"]
     conn.execute("DELETE FROM edge WHERE src = ANY(%s::text[]) AND rel = 'mentions' AND created_by = 'auto'", (redo,))
     aliases = alias_tokens(_entities(conn), system_id)
@@ -175,7 +178,8 @@ def load_document(conn, title, system_id, edition, text, source_file, embed=None
     retrieve._df_cache.clear()  # keyword idf cache would otherwise ignore terms that only the new text contains
     return {"key": key, "title": title, "edition": edition, "subsystem": system_id,
             "added": len(d["added"]), "changed": len(d["changed"]), "unchanged": len(d["unchanged"]),
-            "removed": len(d["removed"]), "changed_ids": d["changed"], "removed_ids": d["removed"], "notes_flagged": flagged}
+            "removed": len(d["removed"]), "graph": {k: v for k, v in graph.items() if k != "merges"} | {"merges": len(graph["merges"])},
+            "changed_ids": d["changed"], "removed_ids": d["removed"], "notes_flagged": flagged}
 
 
 def flag_notes(conn, chunk_ids):

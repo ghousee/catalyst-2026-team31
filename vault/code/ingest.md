@@ -37,5 +37,6 @@ Tested by [[tests]] -> `test_chunker.py`.
 - `diff_chunks` (pure): added / changed (same id, new hash) / unchanged / removed. Only added+changed are embedded. Removed -> `valid_to = today`.
 - `mentions` edges (`created_by='auto'`) from new chunks to entities whose name/alias occurs (`alias_tokens` / `mentioned`, pure).
 - `flag_notes`: approved notes linked (edge src/dst/source_id) to a changed/removed chunk -> `needs_review = TRUE`. No endpoint clears the flag yet.
+- After the chunks are written, `from_docs.sync` re-derives the subsystem's auto commands/messages from the section titles and prunes stale ones (see [[graph]]); response has `graph{...}`.
 - Clears `retrieve._df_cache` (keyword idf cache would ignore terms only the new text has). Unknown subsystem name -> new `sub:<NAME>` system entity (alias = the name).
 - A question must name the subsystem (e.g. "Gadget Test System") for `resolve` to find a new one.
