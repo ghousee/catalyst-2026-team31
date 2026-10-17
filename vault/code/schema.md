@@ -34,3 +34,6 @@ person `team/years/expertise/availability`; heuristic `kind` (note|warning_patte
 `captured_via/at`, `signed_by/at`; edge `source_id` (every link citable) + `created_by` + rels `depends_on|diagnosed_by|mentions|applies_to`;
 doc_chunk `edition|doc_version|content_hash`. Manual chunks are now `all_versions = TRUE` ([[ADR-005 manual editions apply to all series]]).
 Graph content and loader: [[graph]].
+
+## 003 knowledge capture (2026-10-17)
+`sql/migrations/003_knowledge_capture.sql` (idempotent, folded into `schema.sql`): `heuristic.entered_by` (who typed it), `heuristic.needs_review`, `doc_chunk.loaded_at`.

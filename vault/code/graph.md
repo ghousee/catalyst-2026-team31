@@ -32,3 +32,10 @@ Walk is undirected over about/symptom_of/fixed_by/precedes/depends_on/diagnosed_
 - Merged message chunks carry the id of the first message (`msg-3209` holds 3209 and 3210).
 - Loader deletes and re-inserts all `created_by = 'seed'` edges each run; edit the YAML, not the table.
 - `query.py` also runs on SQLite (tests): SQL stays portable (`%(x)s` params, IN lists built by `_in`), JSON columns parsed by `_j`.
+
+## Knowledge capture (2026-10-17) — `backend/knowledge.py`
+- draft (`POST /knowledge`) -> owner signs (`/approve`, 403 for anyone else) -> approved. Embedding = same text as the seed loader (`doc_text(trigger[:80], trigger+call+why)`, CPU).
+- Auto-link on approve (`autolink_edges`, pure): `about` subsystem + entities named in trigger+call (via `resolve`, same subsystem only), `applies_to` node(s)
+  (all nodes -> both), owner `expert_in` +1 (`created_by='auto'`; the seed loader re-inserts seed edges and would reset a seed expert_in weight). Human links via `/link` (`created_by='human'`).
+- Suggested manual sections = `hybrid_search` top 3 in the subsystem. Scope of a new note: all series, one node or all.
+- Removed doc chunks (`valid_to <= today`) are excluded: `retrieve.CURRENT`, `query.DOC_CURRENT`.

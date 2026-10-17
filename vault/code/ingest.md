@@ -30,3 +30,12 @@ Results and rationale: [[rag spike]] / `docs/RAG_SPIKE.md`.
 - Windows: `.txt` read as UTF-8 with `errors="replace"`; use `PYTHONIOENCODING=utf-8` when printing.
 
 Tested by [[tests]] -> `test_chunker.py`.
+
+## Document upload (2026-10-17) — `backend/documents.py`
+- `POST /documents` saves to `data/raw/uploads/` (gitignored), `chunk_text` = HPE chunker if its chunks cover >= 60% of the text, else `generic_chunks`
+  (short single-line paragraph = heading; ids `doc:<key>:<heading slug>`, stable across re-uploads). Key = title with non-alphanumerics -> `-`.
+- `diff_chunks` (pure): added / changed (same id, new hash) / unchanged / removed. Only added+changed are embedded. Removed -> `valid_to = today`.
+- `mentions` edges (`created_by='auto'`) from new chunks to entities whose name/alias occurs (`alias_tokens` / `mentioned`, pure).
+- `flag_notes`: approved notes linked (edge src/dst/source_id) to a changed/removed chunk -> `needs_review = TRUE`. No endpoint clears the flag yet.
+- Clears `retrieve._df_cache` (keyword idf cache would ignore terms only the new text has). Unknown subsystem name -> new `sub:<NAME>` system entity (alias = the name).
+- A question must name the subsystem (e.g. "Gadget Test System") for `resolve` to find a new one.

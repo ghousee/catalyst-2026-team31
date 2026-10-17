@@ -57,3 +57,17 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
 - Source card for notes has `not_when`. The MANUAL header in the Qwen prompt carries the edition string.
 - Gotcha: `disagrees_with` in note dicts only lists partners that are approved and in context (an unfiltered id leaked
   a \PROD note id on \DR; caught by `test_prod_only_note_never_returned_for_dr`).
+
+## Veteran relevance, knowledge capture, documents (2026-10-17)
+- A veteran note is offered to Qwen only if its cosine to the question is >= `NOTE_MIN_SIM` (0.5; `answer.relevant_notes`; calibrated: off-topic
+  notes scored 0.31-0.49, on-topic 0.55-0.79). Unknown similarity = not offered. It is used only if Qwen cited it AND Qwen's claim about it passes
+  MiniCheck against the note's plain text (trigger+call+why+not_when) >= `VERIFY_THRESHOLD`, OR cosine >= `NOTE_STRONG_SIM` (0.7): MiniCheck scores a
+  faithful negation paraphrase ("do not start with X") at 0.02, so a close match overrides it (`answer.note_ok`). Then the claim is the verbatim call_text.
+- `contradicts` is set on a veteran claim only if that manual section is in the answer's cited docs (`veteran_claims(doc_cited=...)`).
+- `needs_review` notes still answer; the claim carries `needs_review: true`.
+- `verify.negation_mismatch`: a source negation only counts for claim words the source never uses un-negated (it dropped a good TACL claim because
+  of an unrelated "does not exist, TACL returns").
+- `generate.SYSTEM`: keep conditions, exact command/option names, name option combinations together.
+- Routers: `backend/knowledge.py` (`/persons`, `/knowledge*`), `backend/documents.py` (`/documents`) included in `main.py`. Contract: `docs/API_CONTRACT.md` v3.
+- Expert card "author of N approved note(s) that apply here" = the owner's approved notes in the context (`graph.query.lookup`).
+- `answer.clean_title` repairs the TACL kerning glitch ("Com m and(s)") in section titles shown on source cards.

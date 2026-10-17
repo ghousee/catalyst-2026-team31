@@ -60,3 +60,12 @@ team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.r
 - Edition line in `AnswerCard`: if a doc source's `applies_to` lacks `<series>-series` (series from `context.version`), shows
   "Manual citations come from older H/J-series editions; L-series behaviour not verified."
 - Mocks unchanged (fields optional). Checked with `tsc --noEmit` + `lint` only.
+
+## Knowledge + documents screens (2026-10-17)
+- `/knowledge` (`components/KnowledgePage.tsx`) and `/documents` (`DocumentsPage.tsx`): plain screens that call the real API directly via `lib/admin.ts` (no mocks; errors shown in a red bar).
+  Knowledge: add form | pending sign-off (Approve & sign -> auto links + suggested sections with agrees/contradicts/skip) | approved list with the needs-review flag.
+  Documents: upload form, last diff summary, documents list, notes needing re-check.
+- `components/SplitPane.tsx`: tiny draggable divider (pointer events, arrow keys, size saved in localStorage, `role="separator"`); used only on these two pages.
+  The console is NOT resizable here (feat/ui-redesign owns Console.tsx); `Console.tsx` is untouched.
+- `TopBar.tsx` got nav links (Console / Knowledge / Documents). `ClaimList.tsx` and `SourceDialog.tsx` show the needs-review warning (`needs_review?` in `lib/types.ts`).
+- Command cards stay mocked (the command workflow lives on the teammate's branch).

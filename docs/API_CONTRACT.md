@@ -177,3 +177,49 @@ Referrals are **reference only** for now: the UI shows who to talk to, it does n
 ```
 `availability`: `on_shift` | `on_call` | `off_shift` | `retired`. All fields beyond id/name/reason/active are optional.
 `POST /refer` stays in the contract for the later capture loop but the UI doesn't call it.
+
+---
+# v3 additions — knowledge capture, documents, persons
+Implemented in `backend/knowledge.py` and `backend/documents.py`. Errors are `{"detail": "..."}` (403 wrong signer, 404 unknown id,
+409 wrong state, 422 bad input). `/commands/*` is NOT part of v3 (owned by the command-workflow branch).
+
+## GET /persons
+`→ [ { "id": "lena", "name": "Lena Kowalski", "role": "...", "team": "...", "years": 19, "expertise": [...], "availability": "on_shift", "active": true } ]`
+
+## GET /knowledge?status=draft|approved|retired
+`→ [ Note ]` (all statuses when omitted). Note:
+```json
+{ "id": "lena:h5", "owner_id": "lena", "owner_name": "Lena Kowalski", "entered_by": "lena", "kind": "note",
+  "trigger_text": "...", "call_text": "...", "why_text": "...", "not_when_text": "...", "node": "DR",
+  "subsystem": "sub:SCF-STORAGE", "status": "approved", "captured_via": "interview", "captured_at": "2026-10-17",
+  "signed_by": "lena", "signed_at": "2026-10-17", "needs_review": false,
+  "links": [ { "rel": "about", "dst": "sub:SCF-STORAGE", "created_by": "auto" } ] }
+```
+
+## POST /knowledge  → Note (status `draft`)
+`{ "owner_id", "entered_by", "kind": "note"|"warning_pattern", "trigger_text", "call_text", "why_text", "not_when_text", "node": "PROD"|"DR"|"ALL", "subsystem": "sub:TMF" }`
+`captured_via` = `interview` if `entered_by == owner_id`, else `referral`. Id = `<owner>:h<N>`. A draft is never retrieved.
+
+## POST /knowledge/{id}/approve  `{ "signed_by": "lena" }`
+`signed_by` must equal the note's owner (else 403). Embeds the note and auto-links (code, no LLM): `about` the subsystem and the graph
+entities the text names (same subsystem), `applies_to` the node(s), owner's `expert_in` weight +1. The note is usable by `/chat` at once.
+`→ { "note": Note, "auto_links": [ { "rel", "dst" } ], "suggested_sections": [ { "id": "doc:...", "section", "snippet" } ] }`
+
+## POST /knowledge/{id}/link  `{ "doc_id": "doc:...", "rel": "extends" | "contradicts" }`  → Note
+Human-confirmed link to a manual section (`created_by = 'human'`). `contradicts` makes the answer show the "Veteran contradicts the manual"
+box, but only when that section is itself cited in the answer.
+
+## POST /knowledge/{id}/retire → Note (status `retired`, no longer retrieved)
+
+## POST /documents  (multipart: `file` .pdf|.txt, `title`, `subsystem`, `edition`)
+Same title = same document. Unchanged chunks keep their id, changed chunks are replaced, vanished ones get `valid_to = today` and are no longer
+retrieved. Approved notes linked to a changed/removed chunk get `needs_review: true`. An unknown `subsystem` name creates a `system` entity.
+`→ { "key", "title", "edition", "subsystem", "subsystem_created", "added", "changed", "unchanged", "removed", "changed_ids": [], "removed_ids": [], "notes_flagged": ["raj:h9"] }`
+
+## GET /documents
+`→ [ { "key", "title", "edition", "subsystem", "chunks", "removed", "last_loaded" } ]`
+
+## `/chat` additions
+- Veteran claim: `"needs_review": true` when the note's manual section changed since signing (UI: "manual changed since this note was signed - needs re-check"). Source card has the same field.
+- `claims[].contradicts` is only set when that doc section is among the answer's cited sources.
+- `debug.note_sims` / `debug.notes_below_cutoff`: cosine of the notes offered to / withheld from Qwen.

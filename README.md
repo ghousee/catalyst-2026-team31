@@ -212,6 +212,15 @@ cd frontend; npm install; npm run dev    # http://localhost:3000
 Schema changed? The init script only runs on an empty volume: `docker compose rm -sf db; docker volume rm veteran-kg_pgdata; docker compose up -d db`
 (wipes the DB, keeps the Ollama models). Don't run `npm run build` while `npm run dev` is running.
 
+### Add knowledge and documents (no developer needed)
+With the API and `npm run dev` running:
+- http://localhost:3000/knowledge: a veteran (or a colleague for them) fills in the form; the note is a draft until the owner picks themselves
+  under "Pending sign-off" and clicks Approve & sign. It then answers in the console immediately; confirm the suggested manual sections
+  (agrees / contradicts / skip).
+- http://localhost:3000/documents: upload a .pdf/.txt with a title, subsystem (type a new name to create one) and edition. Uploading the same
+  title again shows what changed; veteran notes tied to changed sections are flagged "needs re-check".
+Panels on these pages can be dragged to resize (arrow keys work on the divider). After pulling this change run `python -m backend.graph.migrate` once and `pip install -r requirements.txt`.
+
 ### Run the backend
 ```powershell
 python -m backend.graph.load             # once: graph + veteran notes into the DB
