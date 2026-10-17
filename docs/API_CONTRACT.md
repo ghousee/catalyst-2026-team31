@@ -6,8 +6,11 @@ Base: `http://localhost:8000`
 Request:
 ```json
 { "user_id": "newhire1", "question": "pump on line 2 is surging, what do I check?",
-  "context_override": { "system": null, "version": null, "site": null } }
+  "context_override": { "system": null, "version": null, "site": null },
+  "ablation": 4 }
 ```
+`ablation` is optional (default `4`), used by the eval: `1` plain vector RAG · `2` + context resolution/filter ·
+`3` + sufficiency gate · `4` + MiniCheck verifier (full pipeline). The UI never sends it.
 
 Response is ONE of three `type`s:
 
@@ -40,12 +43,15 @@ Response is ONE of three `type`s:
   "options": [ { "label": "P-201 · v3", "value": {"system":"sys:P-201","version":"ver:P-201:v3"} },
                { "label": "P-305 · v1", "value": {"system":"sys:P-305","version":"ver:P-305:v1"} } ] }
 ```
-UI resends `/chat` with `context_override` set.
+UI resends `/chat` with `context_override` set. `clarify` has no `context` (it is unresolved by definition).
+
+`context` has the same shape in `answer` and `refer`: `system`, `version`, `site` (entity ids), `display`, `confidence`.
 
 ### type = "refer"
 ```json
 { "type": "refer", "reason": "No verified answer for P-305 v1.",
-  "context": { "display": "P-305 · v1 · Plant 2" },
+  "context": { "system": "sys:P-305", "version": "ver:P-305:v1", "site": "site:plant-2",
+               "display": "P-305 · v1 · Plant 2", "confidence": 0.88 },
   "experts": [ { "id": "ravi", "name": "Ravi", "reason": "12 resolved cases", "active": false },
                { "id": "priya", "name": "Priya", "reason": "Doc owner", "active": true } ] }
 ```

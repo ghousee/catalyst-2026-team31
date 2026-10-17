@@ -33,8 +33,9 @@ def score(item, resp):
         "expect": expect,
         "got": got,
         "behaviour_ok": got == expect,
-        "context_ok": (item["system"] is None) or (ctx.get("system") == item["system"]
-                                                    and ctx.get("version") == item["version"]),
+        # clarify items have no gold context; answer/refer must resolve the gold system+version
+        "context_ok": None if item["system"] is None else (ctx.get("system") == item["system"]
+                                                           and ctx.get("version") == item["version"]),
         "retrieval_hit": bool(gold & set(cited)) if gold else None,
         # contamination: any citation tied to a different system than gold (heuristic: id prefix check is
         # project-specific; replace with a lookup of each source's system_id)
