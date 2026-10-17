@@ -76,6 +76,8 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
   const [hidden, setHidden] = useState<Set<Kind>>(new Set(["version"]));
   const [focusIds, setFocusIds] = useState<Set<string> | null>(null);
   const [q, setQ] = useState("");
+  const [labels, setLabels] = useState(false); // relation labels on links (off by default: they clutter)
+  const [ready, setReady] = useState(false); // vis-network loads asynchronously; re-sync once it exists
   const graph = useMemo(() => buildGraph(data), [data]);
   const graphRef = useRef(graph);
   graphRef.current = graph;
@@ -98,6 +100,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         edges: { arrows: { to: { enabled: true, scaleFactor: 0.5 } }, font: { size: 9, color: `rgb(${fg})`, strokeWidth: 0, align: "middle" },
                  smooth: { enabled: true, type: "continuous", roundness: 0.4 }, width: 1 },
       });
+      net.once("stabilizationIterationsDone", () => net.fit({ animation: { duration: 400, easingFunction: "easeInOutQuad" } }));
       net.on("click", (p: { nodes: string[] }) => setSelected(p.nodes[0] ?? null));
       net.on("doubleClick", (p: { nodes: string[] }) => {
         if (!p.nodes[0]) { setFocusIds(null); return; }
@@ -106,7 +109,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         setFocusIds(ids);
       });
       vis.current = { net, nodes, edges };
-      setPhysics(true);
+      setReady(true);
     });
     return () => {
       alive = false;
@@ -118,10 +121,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
   // sync data + filters into the DataSets (add / update / remove; layout is kept)
   useEffect(() => {
     const v = vis.current;
-    if (!v) {
-      const t = setTimeout(() => setPhysics((p) => p), 300); // network still loading: retry shortly
-      return () => clearTimeout(t);
-    }
+    if (!v) return;
     const ns = [...graph.nodes.values()].filter(visible).map((n) => ({
       id: n.id, label: n.label, shape: STYLE[n.kind].shape, size: STYLE[n.kind].size,
       color: { background: STYLE[n.kind].color, border: STYLE[n.kind].color, highlight: { background: STYLE[n.kind].color, border: "#111827" } },
@@ -130,7 +130,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
     }));
     const ids = new Set(ns.map((n) => n.id));
     const es = graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e) => ({
-      id: e.id, from: e.from, to: e.to, label: e.label, dashes: e.auto,
+      id: e.id, from: e.from, to: e.to, label: labels ? e.label : undefined, dashes: e.auto,
       color: { color: REL_COLOR[e.rel] ?? "#9ca3af", highlight: "#111827" }, width: e.auto ? 2 : 1,
       title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.auto ? " · auto-created" : ""}`,
     }));
@@ -141,7 +141,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
     v.nodes.update(ns);
     v.edges.update(es);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, hidden, focusIds, physics]);
+  }, [graph, hidden, focusIds, ready, labels]);
 
   useEffect(() => {
     vis.current?.net.setOptions({ physics: { enabled: physics } });
@@ -178,6 +178,9 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <button type="button" className="btn" onClick={() => vis.current?.net.fit({ animation: { duration: 400 } })}><Maximize2 size={13} aria-hidden="true" /> Fit</button>
         <button type="button" className="btn" onClick={() => setPhysics((p) => !p)} aria-pressed={!physics}>
           {physics ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />} {physics ? "Freeze layout" : "Resume layout"}
+        </button>
+        <button type="button" className="btn" onClick={() => setLabels((l) => !l)} aria-pressed={labels}>
+          {labels ? "Hide link labels" : "Show link labels"}
         </button>
         {focusIds && <button type="button" className="btn" onClick={() => setFocusIds(null)}><Expand size={13} aria-hidden="true" /> Show whole graph</button>}
         <span className="ml-auto text-muted">Drag to move · scroll to zoom · click for details · double-click to isolate</span>
