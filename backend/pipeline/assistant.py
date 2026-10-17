@@ -106,6 +106,9 @@ steps, in plain short sentences. Put the source number in brackets after every s
 VETERAN sources are field experience from named senior operators: when you use one, say whose advice it is
 (e.g. "Maria Rossi's advice:") and keep its meaning exactly, including every "do not". MANUAL sources are HPE manual
 sections; manual editions may be older than the operator's system.
+Use a source only if it directly answers the question; ignore sources that are merely related. Using no source
+at all is fine. If the question is vague (no system, symptom or error named), do not list general advice: ask one
+short question about what they are seeing.
 If the sources do not answer the question, say plainly that the manuals and captured knowledge don't cover it,
 do not guess, and suggest who to ask: {experts}.
 If the question is too vague to answer, ask one short clarifying question.

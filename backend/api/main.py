@@ -31,7 +31,7 @@ async def lifespan(app):
 
 
 # "assistant" = standard RAG (rerank + one cited answer, docs/ARCHITECTURE_V2.md); "classic" = claims pipeline
-ANSWER_MODE = os.getenv("ANSWER_MODE", "classic")
+ANSWER_MODE = os.getenv("ANSWER_MODE", "assistant")
 
 
 app = FastAPI(title="NonStop Copilot", lifespan=lifespan)

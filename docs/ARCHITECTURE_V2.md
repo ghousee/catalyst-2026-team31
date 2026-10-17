@@ -1,6 +1,6 @@
 # Answer architecture v2: assistant mode
 
-Status: built 2026-10-17 behind `ANSWER_MODE=assistant` (default still `classic` until the bake-off says otherwise).
+Status: built 2026-10-17 behind `ANSWER_MODE=assistant` (default since the 2026-10-17 bake-off: 80% behaviour, 89-93% key facts, 2% false refusals, 0 leaks).
 Code: `backend/pipeline/assistant.py`. The classic pipeline (`backend/pipeline/answer.py`) is unchanged.
 
 ## Why
