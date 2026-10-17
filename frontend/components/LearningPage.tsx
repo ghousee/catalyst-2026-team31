@@ -57,6 +57,10 @@ export function LearningPage() {
   );
 }
 
+/** [{id, owner}] -> [[owner, count]], most notes first (one line per veteran instead of one per note). */
+const byOwner = (notes: { owner: string }[]) =>
+  Object.entries(notes.reduce<Record<string, number>>((m, n) => ({ ...m, [n.owner]: (m[n.owner] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]);
+
 const LEVEL_TEXT: Record<Level, string> = { new: "New to it", some: "Know some", confident: "Confident" };
 
 /** A junior writes down something they found; it goes to a senior as a draft, and only goes live once that senior signs. */
@@ -134,7 +138,9 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
                     </td>
                     <td className="px-4 py-2 tabular-nums">{s.questions}</td>
                     <td className="px-4 py-2 tabular-nums">{s.sections_cited}</td>
-                    <td className="px-4 py-2 text-xs">{s.notes.length ? s.notes.map((n) => <p key={n.id}><span className="font-mono text-[11px]">{n.id}</span> <span className="text-muted">{n.owner}</span></p>) : <span className="text-muted">none</span>}</td>
+                    <td className="whitespace-nowrap px-4 py-2 text-xs" title={s.notes.map((n) => `${n.id} (${n.owner})`).join(", ")}>
+                      {s.notes.length ? byOwner(s.notes).map(([owner, n]) => <p key={owner}>{owner} <span className="text-muted">· {n} note{n > 1 ? "s" : ""}</span></p>) : <span className="text-muted">none</span>}
+                    </td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2" role="img" aria-label={`${pct(s.coverage)} covered`}>
                         <div className="h-2 w-28 overflow-hidden rounded-full bg-panel2"><div className="bar-grow h-full rounded-full bg-gradient-to-r from-sky to-navy2 transition-[width] duration-700" style={{ width: pct(s.coverage) }} /></div>
