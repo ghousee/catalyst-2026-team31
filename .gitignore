@@ -16,3 +16,7 @@ node_modules/
 pgdata/
 models/
 .claude/settings.local.json
+# obsidian per-user state
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
+vault/.trash/

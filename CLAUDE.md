@@ -2,6 +2,13 @@
 
 Read this first, every session. Full context lives in `docs/`.
 
+**Navigation (saves context):** read `vault/00 Index.md` next, then only the vault notes for the area
+you're touching; jump to the `file:line` they give instead of scanning folders. When you change code,
+update its vault note in the same commit (new module → new note + link from the index). Notes stay short.
+
+**Domain:** the sponsor is **CAIL**; the target is **HPE NonStop** operations (banking/ATM, POS, telecom).
+Placeholder examples in docs (P-201 pumps, Ravi, valve Y) predate this and are being replaced — see `vault/todo.md`.
+
 ## What we're building (1 paragraph)
 A **local, citation-mandatory chatbot + proactive watcher** that captures long-tenured
 employees' domain knowledge ("warning patterns") and guides new hires. Two halves share
@@ -50,6 +57,7 @@ eval/         golden.jsonl, run_eval.py, results/
 data/raw/     COMPANY DOCS — gitignored, never commit
 tests/unit/   fast tests the Stop hook runs
 docs/         PLAN, RESEARCH, SCHEMA, API_CONTRACT, EVAL, TEAM_AND_SCHEDULE, PITCH
+vault/        Obsidian vault: code map, decisions, glossary, todo (read 00 Index.md first)
 ```
 
 ## Commands (Windows / PowerShell — no `&&` in PS 5.1; one command per line)
