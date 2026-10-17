@@ -239,8 +239,8 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
         <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium text-muted">Evidence window: last 60 minutes</span>
       </div>
 
-      <section className="grid min-h-[610px] overflow-hidden rounded-2xl border border-line bg-panel shadow-sm lg:grid-cols-[310px_minmax(0,1fr)]">
-        <aside className="border-b border-line bg-panel2/35 lg:border-b-0 lg:border-r" aria-label="Investigation queue">
+      <section className="grid min-h-[610px] overflow-hidden rounded-2xl border border-line bg-bg shadow-sm lg:grid-cols-[310px_minmax(0,1fr)]">
+        <aside className="border-b border-line bg-panel2 lg:border-b-0 lg:border-r" aria-label="Investigation queue">
           <div className="border-b border-line px-4 py-4">
             <h3 className="font-semibold">Investigation queue</h3>
             <p className="mt-0.5 text-xs text-muted">Cases requiring operator attention</p>
@@ -263,7 +263,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
           </div>
         </aside>
 
-        <div className="min-w-0 bg-panel2/20">
+        <div className="min-w-0 bg-bg">
           {selected ? (
             <>
               <header className="border-b border-line bg-panel px-4 py-4 sm:px-5">
@@ -275,9 +275,9 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
                   <button type="button" className="btn btn-primary" onClick={() => onNavigate("assistant")}><AppIcon name="assistant" size={16} /> Open in AI Assistant <ChevronRight size={14} /></button>
                 </div>
                 <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-[minmax(260px,1.5fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)]">
-                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-semibold text-fg">Master audit trail nearing overflow threshold</dd></div>
-                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-semibold text-fg">Pathway-02</dd></div>
-                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-semibold text-fg">2 minutes ago</dd></div>
+                  <div className="rounded-xl border border-line bg-panel2 px-3 py-2"><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-semibold text-fg">Master audit trail nearing overflow threshold</dd></div>
+                  <div className="rounded-xl border border-line bg-panel2 px-3 py-2"><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-semibold text-fg">Pathway-02</dd></div>
+                  <div className="rounded-xl border border-line bg-panel2 px-3 py-2"><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-semibold text-fg">2 minutes ago</dd></div>
                 </dl>
               </header>
 
@@ -285,7 +285,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
                 <InvestigationSection id="incident" label="Incident" preview="Audit capacity is rising toward the overflow threshold." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
                   <p className="text-base font-semibold">Audit capacity is approaching its configured limit.</p>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">The active audit trail is filling and matches a previously observed quarter-end pattern. No outage or root cause has been confirmed.</p>
-                  <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3"><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Current usage</span><strong className="mt-1 block text-lg text-fg">{selected.evidence.find((item) => item.metric)?.value ?? 62}%</strong></div><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Configured limit</span><strong className="mt-1 block text-lg text-fg">80%</strong></div><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Estimated lead time</span><strong className="mt-1 block text-lg text-warn">~{selected.lead_time_min} min</strong></div></div>
+                  <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3"><div className="rounded-lg border border-line/70 bg-panel2 p-3"><span className="block text-muted">Current usage</span><strong className="mt-1 block text-lg text-fg">{selected.evidence.find((item) => item.metric)?.value ?? 62}%</strong></div><div className="rounded-lg border border-line/70 bg-panel2 p-3"><span className="block text-muted">Configured limit</span><strong className="mt-1 block text-lg text-fg">80%</strong></div><div className="rounded-lg border border-line/70 bg-panel2 p-3"><span className="block text-muted">Estimated lead time</span><strong className="mt-1 block text-lg text-warn">~{selected.lead_time_min} min</strong></div></div>
                 </InvestigationSection>
 
                 <InvestigationSection id="systems" label="Affected systems" preview="Pathway-02, TMF, and Primary Production context" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 systems</span>} open={openSections.has("systems")} onToggle={toggle}>
