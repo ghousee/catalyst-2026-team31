@@ -91,3 +91,25 @@ def test_mentions_match_names_and_aliases_of_own_subsystem_only():
     al = D.alias_tokens(ents, "sub:W")
     assert D.mentioned(al, "Run WIDGET RESTART on prod, TMF is unaffected") == ["cmd:w.restart", "sub:W"]
     assert D.mentioned(al, "nothing relevant") == []
+
+
+# ---------------------------------------------------------------- GET /graph shaping
+def test_shape_graph_counts_caps_and_recent():
+    from backend.graph.view import shape_graph
+    ents = [{"id": "sub:TMF", "kind": "system", "name": "TMF", "aliases": None},
+            {"id": "node:PROD", "kind": "site", "name": "PROD", "aliases": ["prod"]}]
+    edges = [{"src": "a", "rel": "about", "dst": "sub:TMF", "source_id": "a", "created_by": "seed"},
+             {"src": "lena:h5", "rel": "about", "dst": "sub:TMF", "source_id": "lena:h5", "created_by": "auto"},
+             {"src": "lena:h5", "rel": "applies_to", "dst": "node:PROD", "source_id": "lena:h5", "created_by": "auto"}]
+    note = {"id": "lena:h5", "owner_name": "Lena", "kind": "note", "scope": "TMF / PROD", "status": "approved",
+            "needs_review": True, "signed_at": "2026-10-17", "captured_at": "2026-10-16", "call_text": "x"}
+    docs = [{"title": "TMF Ref", "chunks": 7, "last_loaded": "2026-10-15"}]
+    g = shape_graph(ents, edges, [note], 3, docs, link_cap=2)
+    assert g["counts"]["entities"] == {"site": 1, "system": 1}
+    assert g["counts"]["links"] == {"about": 2, "applies_to": 1}
+    assert g["counts"]["notes"] == {"approved": 1, "draft": 0, "retired": 0, "needs_review": 1}
+    assert (g["counts"]["persons"], g["counts"]["doc_sections"], g["counts"]["documents"]) == (3, 7, 1)
+    assert [e["links"] for e in g["entities"]] == [2, 1] and g["entities"][0]["aliases"] == []
+    assert len(g["links"]) == 2 and g["links_total"] == 3
+    assert all(x["created_by"] == "auto" for x in g["links"])  # auto links survive the cap, seed is cut
+    assert [r["type"] for r in g["recent"]] == ["note_signed", "links_auto", "document_loaded"]

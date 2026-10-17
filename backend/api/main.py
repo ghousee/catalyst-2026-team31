@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend import documents, knowledge, settings
+from backend.graph import view as graph_view
 from backend.commands.service import command_service
 from backend.pipeline import answer as pipeline
 from backend.pipeline import verify
@@ -26,7 +27,7 @@ async def lifespan(app):
 
 
 app = FastAPI(title="NonStop Copilot", lifespan=lifespan)
-for r in (knowledge.router, documents.router):  # /persons /knowledge* /documents
+for r in (knowledge.router, documents.router, graph_view.router):  # /persons /knowledge* /documents /graph
     app.include_router(r)
 # any local UI port (Next.js moves to 3001+ when 3000 is busy); still local-only
 app.add_middleware(CORSMiddleware, allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
