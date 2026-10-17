@@ -335,10 +335,10 @@ function AssistantPage() {
           <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">INC-1042</h3><span className="status-chip status-warning">Warning</span><span className="status-chip bg-accent/10 text-accent">Under investigation</span></div>
-              <dl className="mt-3 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-3">
-                <div><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-medium text-fg">Master audit trail nearing overflow threshold</dd></div>
-                <div><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-medium text-fg">Pathway-02</dd></div>
-                <div><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-medium text-fg">2 minutes ago</dd></div>
+              <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-[minmax(260px,1.5fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)]">
+                <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-semibold text-fg">Master audit trail nearing overflow threshold</dd></div>
+                <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-semibold text-fg">Pathway-02</dd></div>
+                <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-semibold text-fg">2 minutes ago</dd></div>
               </dl>
             </div>
             <span className="text-xs text-muted">Evidence window: last 60 minutes</span>
