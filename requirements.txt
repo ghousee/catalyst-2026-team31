@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+psycopg[binary]
+pgvector
+pydantic
+httpx
+ollama
+pypdf
+python-docx
+torch            # CPU build is fine for MiniCheck
+transformers
+sentencepiece
+pytest
+python-dotenv
