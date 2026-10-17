@@ -166,3 +166,14 @@ Context dimensions (ADR-004): `system` = subsystem (`sub:TMF`), `version` = seri
 `→ { "series": [ { "metric": "audit-capacity-pct", "points": [[ "2026-10-17T01:10:00Z", 41 ], ...] }, ... ] }`
 
 ## POST /simulator/scenario  `{ "scenario": "audit_trail_fill" | "disk_revive_stall" | "pathway_no_server" | "cpu_down", "speed": 10 }` → `{ "status": "running" }`
+
+## Expert objects (v2) — used in answer/refer `experts` and alert `backup_expert`
+Referrals are **reference only** for now: the UI shows who to talk to, it does not send messages.
+```json
+{ "id": "raj", "name": "Raj Patel", "active": true, "availability": "on_call",
+  "role": "NonStop Systems Specialist", "team": "Production Operations", "years": 15,
+  "expertise": ["Pathway", "TMF"], "reason": "Resolved 12 TMF/Pathway incidents on \PROD and \DR",
+  "contact": "ext. 4417 · on-call pager 555-0142" }
+```
+`availability`: `on_shift` | `on_call` | `off_shift` | `retired`. All fields beyond id/name/reason/active are optional.
+`POST /refer` stays in the contract for the later capture loop but the UI doesn't call it.

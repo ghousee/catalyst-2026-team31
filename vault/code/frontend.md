@@ -40,3 +40,8 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 10. `/chat` `answer` has `experts` but no flag saying "veteran lane empty because of scope"; UI infers "documentation only" from claims.
 11. `/feedback` is not wired in the UI yet.
 12. Errors: no error body schema; UI shows raw text.
+
+## Referrals (changed 2026-10-17, Ghouse)
+Refer/expert UI is **reference only**: `components/ExpertList.tsx` shows name, availability badge, role ·
+team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.refer` / `referExpert` in
+`lib/store.tsx` are unused until the capture loop is built. Expert fields: `lib/types.ts` `Expert`.

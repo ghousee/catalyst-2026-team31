@@ -30,7 +30,7 @@ function Message({ m }: { m: ChatMsg }) {
     case "clarify":
       return <ClarifyCard msg={m} />;
     case "refer":
-      return <ReferCard data={m.data} question={m.question} />;
+      return <ReferCard data={m.data} />;
     case "observation":
       return <ObservationCard msg={m} />;
     case "proposals":

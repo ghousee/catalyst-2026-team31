@@ -8,7 +8,7 @@ import { ProposalCard } from "./ProposalCard";
 type AnswerMsg = Extract<ChatMsg, { kind: "answer" }>;
 
 export function AnswerCard({ msg }: { msg: AnswerMsg }) {
-  const { data, proposals, noTemplate, question } = msg;
+  const { data, proposals, noTemplate } = msg;
   const hasVeteran = data.claims.some((c) => c.lane === "veteran");
   return (
     <div className="space-y-2.5">
@@ -30,9 +30,9 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
       {data.experts.length > 0 && (
         <section aria-label="Experts" className="space-y-1.5">
           <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-            {hasVeteran ? "Ask a veteran" : "Not covered by veterans here? Ask one"}
+            {hasVeteran ? "Who knows this" : "Not covered by veterans here? Who knows this"}
           </h4>
-          <ExpertList experts={data.experts} question={question} />
+          <ExpertList experts={data.experts} />
         </section>
       )}
       {proposals === null && (

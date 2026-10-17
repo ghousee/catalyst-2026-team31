@@ -362,7 +362,7 @@ function alerts(): Alert[] {
       ],
       next_commands: [toProposal(CATALOG["cmd-17"], "node:PROD")],
       backtest: { hits: 3, of: 3, avg_lead_min: 41 },
-      backup_expert: { id: "raj", name: "Raj Patel" },
+      backup_expert: E_RAJ,
     },
   ];
 }

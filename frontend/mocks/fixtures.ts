@@ -174,9 +174,26 @@ export const ALL_STATIC_SOURCES: Source[] = [...DOC_SOURCES, ...HEURISTIC_SOURCE
 
 export const sourceById = (id: string): Source | undefined => ALL_STATIC_SOURCES.find((s) => s.id === id);
 
-export const E_MARIA: Expert = { id: "maria", name: "Maria Rossi", reason: "24 yrs · retired 2026-09 · \\PROD TMF owner", active: false };
-export const E_RAJ: Expert = { id: "raj", name: "Raj Patel", reason: "15 yrs · Pathway/TMF · on call", active: true };
-export const E_LENA: Expert = { id: "lena", name: "Lena Kowalski", reason: "19 yrs · Storage", active: true };
+export const E_MARIA: Expert = {
+  id: "maria", name: "Maria Rossi", active: false, availability: "retired",
+  role: "Senior NonStop Operator", team: "Production Operations", years: 24,
+  expertise: ["TMF", "Audit trails", "Quarter-end batch"],
+  reason: "Author of 6 captured TMF patterns for \\PROD. Retired 2026-09; her knowledge is cited above.",
+};
+export const E_RAJ: Expert = {
+  id: "raj", name: "Raj Patel", active: true, availability: "on_call",
+  role: "NonStop Systems Specialist", team: "Production Operations", years: 15,
+  expertise: ["Pathway", "TMF", "\\PROD + \\DR"],
+  reason: "Resolved 12 TMF/Pathway incidents on \\PROD and \\DR; on-call backup for Maria's patterns.",
+  contact: "ext. 4417 · on-call pager 555-0142",
+};
+export const E_LENA: Expert = {
+  id: "lena", name: "Lena Kowalski", active: true, availability: "on_shift",
+  role: "Storage Administrator", team: "Infrastructure", years: 19,
+  expertise: ["SCF Storage", "Disk mirrors", "Revives"],
+  reason: "Owns disk mirror and revive procedures for both nodes.",
+  contact: "ext. 4302 · Infrastructure desk",
+};
 
 export const claim = (text: string, lane: Claim["lane"], source_id: string, score = 0.93): Claim => ({
   text,

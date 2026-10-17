@@ -72,8 +72,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
           {firstName} is unavailable? Backup expert
         </h4>
         <ExpertList
-          experts={[{ id: a.backup_expert.id, name: a.backup_expert.name, reason: `Backup for ${a.pattern_id}`, active: true }]}
-          question={a.message}
+          experts={[{ reason: `Backup for ${a.pattern_id}`, active: true, ...a.backup_expert }]}
         />
       </section>
     </article>

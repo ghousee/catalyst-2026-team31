@@ -65,8 +65,14 @@ export type Source = DocSource | HeuristicSource | LiveSource;
 export interface Expert {
   id: string;
   name: string;
-  reason: string;
+  reason: string; // why this person, e.g. "Owns 6 captured TMF patterns for \PROD"
   active: boolean;
+  role?: string; // designation, e.g. "Senior NonStop Operator"
+  team?: string;
+  years?: number;
+  expertise?: string[]; // e.g. ["TMF", "Pathway"]
+  availability?: "on_shift" | "off_shift" | "on_call" | "retired";
+  contact?: string; // how to reach them, e.g. "ext. 4417 · #nonstop-ops"
 }
 
 export interface ChatRequest {
@@ -200,7 +206,7 @@ export interface Alert {
   fix_claims: Claim[];
   next_commands: Proposal[];
   backtest: { hits: number; of: number; avg_lead_min: number };
-  backup_expert: { id: string; name: string };
+  backup_expert: Pick<Expert, "id" | "name"> & Partial<Expert>;
 }
 
 export interface MetricSeries {
