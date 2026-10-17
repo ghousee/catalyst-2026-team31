@@ -234,8 +234,10 @@ function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           {rows.map((system) => {
             const active = selected?.id === system.id;
             return <article key={system.id} className={`border-l-2 p-4 ${active ? "border-accent bg-accent/[0.045]" : "border-transparent"}`}>
-              <div className="flex items-start justify-between gap-3"><button type="button" className="text-left" onClick={() => setSelectedId(system.id)}><span className="font-semibold text-fg">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem} · {system.environment}</span></button><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span></div>
-              <div className="mt-3 flex items-center gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold">{system.expert.name.split(" ").map((part) => part[0]).join("")}</span><div className="min-w-0"><p className="text-sm font-medium">{system.expert.name}</p><p className="truncate text-xs text-muted">{system.expert.title}</p></div></div>
+              <button type="button" className="w-full text-left" onClick={() => setSelectedId(system.id)} aria-label={`View ${system.id}`}>
+                <span className="flex items-start justify-between gap-3"><span><span className="font-semibold text-fg">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem} · {system.environment}</span></span><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span></span>
+                <span className="mt-3 flex items-center gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold">{system.expert.name.split(" ").map((part) => part[0]).join("")}</span><span className="min-w-0"><span className="block text-sm font-medium">{system.expert.name}</span><span className="block truncate text-xs text-muted">{system.expert.title}</span></span></span>
+              </button>
               <div className="mt-3 flex items-center justify-between gap-3 text-xs"><span className="text-muted">{system.incidents > 0 ? `${system.incidents} active ${system.incidents === 1 ? "incident" : "incidents"}` : "No active incidents"} · signal {system.lastSignal.toLowerCase()}</span><button type="button" className="shrink-0 font-medium text-accent" onClick={() => system.incidents > 0 ? onNavigate("investigations") : setSelectedId(system.id)}>{system.incidents > 0 ? "Review" : "View"}</button></div>
             </article>;
           })}
@@ -247,14 +249,14 @@ function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
             <tbody className="divide-y divide-line">
               {rows.map((system) => {
                 const active = selected?.id === system.id;
-                return <tr key={system.id} className={active ? "bg-accent/[0.045]" : "hover:bg-panel2/40"}>
-                  <td className={`border-l-2 px-4 py-3 pl-5 ${active ? "border-accent" : "border-transparent"}`}><button type="button" className="text-left" onClick={() => setSelectedId(system.id)}><span className="block font-semibold text-fg hover:text-accent">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem}</span></button></td>
+                return <tr key={system.id} tabIndex={0} aria-selected={active} className={`cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${active ? "bg-accent/[0.045]" : "hover:bg-panel2/40"}`} onClick={() => setSelectedId(system.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(system.id); } }}>
+                  <td className={`border-l-2 px-4 py-3 pl-5 ${active ? "border-accent" : "border-transparent"}`}><span className="block font-semibold text-fg">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem}</span></td>
                   <td className="px-4 py-3 text-muted">{system.environment}</td>
                   <td className="px-4 py-3"><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span></td>
                   <td className="px-4 py-3">{system.incidents > 0 ? <span className="status-chip status-warning">{system.incidents} {system.incidents === 1 ? "warning" : "warnings"}</span> : <span className="text-muted">None</span>}</td>
                   <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold text-fg">{system.expert.name.split(" ").map((part) => part[0]).join("")}</span><span><strong className="block font-medium text-fg">{system.expert.name}</strong><span className="block text-xs text-muted">{system.expert.title}</span></span></div></td>
                   <td className="px-4 py-3 text-muted">{system.lastSignal}</td>
-                  <td className="px-5 py-3 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => system.incidents > 0 ? onNavigate("investigations") : setSelectedId(system.id)}>{system.incidents > 0 ? "Review incident" : "View system"}</button></td>
+                  <td className="px-5 py-3 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={(event) => { event.stopPropagation(); if (system.incidents > 0) onNavigate("investigations"); else setSelectedId(system.id); }}>{system.incidents > 0 ? "Review incident" : "View system"}</button></td>
                 </tr>;
               })}
               {rows.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-muted">No systems match the selected filters.</td></tr>}
