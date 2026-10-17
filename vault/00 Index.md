@@ -11,7 +11,8 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 
 ## Code
 - [[schema]] — Postgres tables, context fingerprint, constraints
-- [[retrieve]] — context filter (`context_where`), retrieval
+- [[retrieve]] — context filter (`context_where`), vector/keyword/hybrid search, generate/gate/verify stages
+- [[ingest]] — manual chunker, embedder, loader (HPE manuals -> doc_chunk)
 - [[eval harness]] — golden set scoring, contamination, ablation
 - [[stop hook]] — blocks Claude while unit tests fail
 - [[tests]] — what each unit test proves
@@ -27,6 +28,9 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[ADR-002 eval trusts DB not API]]
 - [[ADR-003 python stop hook]]
 - [[ADR-004 context dimensions]] (proposed)
+
+## Research
+- [[rag spike]] — RAG feasibility on the HPE manuals: numbers and decisions (docs/RAG_SPIKE.md)
 
 ## Domain
 - [[glossary]] — NonStop / project terms (to be filled)

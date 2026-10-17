@@ -23,5 +23,6 @@ File: `sql/schema.sql`. Loaded by Docker on **first** start of an empty volume o
 
 ## Gotchas
 - IDE shows T-SQL errors on the CHECKs — false positive, it's valid Postgres.
-- Vector dim 768 = embeddinggemma; unverified against the model actually pulled.
+- Vector dim 768 = embeddinggemma; **verified** against the pulled model (2026-10-17, [[rag spike]]).
+- Indexes created after load by `backend/ingest/loader.py:42` (GIN FTS on `to_tsvector('english', text)`, HNSW cosine); also listed in the schema.sql footer.
 - Verified loading in pgvector/pg16 on 2026-10-16 (all 9 tables, constraints reject bad rows).
