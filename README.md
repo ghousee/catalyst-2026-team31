@@ -42,6 +42,7 @@ Schema changed? The init script only runs on an empty volume: `docker compose do
 | `docs/API_CONTRACT.md` | Exact JSON for /chat, /refer, /feedback, /alerts, /risk |
 | `docs/EVAL.md` | How to build the golden set, metrics, ablation table |
 | `docs/TEAM_AND_SCHEDULE.md` | Roles, weekend schedule, git + Claude Code usage plan |
+| `docs/SYSTEM_DESIGN.md` | **NonStop/CAIL architecture (current)** — read before PLAN.md |
 | `docs/PITCH.md` | 5-minute demo script |
 | `sql/schema.sql` | Entity backbone + doc/person overlays + edges |
 | `eval/` | Golden-set template + scoring harness |

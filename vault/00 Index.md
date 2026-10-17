@@ -18,13 +18,14 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 
 ## Design
 - [[core requirements]] — non-negotiables from Ghouse + CAIL (read before designing)
-- [[system design]] — architecture (to be written)
+- [[system design]] — NonStop copilot architecture (docs/SYSTEM_DESIGN.md, draft)
 - [[api contract]] — pointer to `docs/API_CONTRACT.md` + gotchas
 
 ## Decisions
 - [[ADR-001 explicit all-versions]]
 - [[ADR-002 eval trusts DB not API]]
 - [[ADR-003 python stop hook]]
+- [[ADR-004 context dimensions]] (proposed)
 
 ## Domain
 - [[glossary]] — NonStop / project terms (to be filled)

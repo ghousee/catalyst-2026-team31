@@ -68,3 +68,31 @@
 - 6GB models: https://localaimaster.com/vram/best-ollama-models-6gb-vram · https://www.promptquorum.com/prompt-bites/best-local-llm-6gb-vram · https://canitrun.dev/guides/6gb-vram-llms/ · https://insiderllm.com/guides/best-local-llms-rag/
 - Costs: https://neo4j.com/cloud/aura/pricing/ · https://computeprices.com/providers/runpod/gpus/l40s · https://www.bytebase.com/dbcost/rds/instance/db.t4g.medium/
 - Claude Code: https://code.claude.com/docs/en/model-config.md · https://code.claude.com/docs/en/best-practices · https://code.claude.com/docs/en/remote-control · https://infoq.com/news/2026/01/claude-code-creator-workflow/ · https://github.com/anthropics/claude-code/issues/43869
+
+## G. Added 2026-10-17 for the NonStop/CAIL domain (all verified on arXiv/publisher pages)
+| Paper | Finding | Use |
+|---|---|---|
+| VersionRAG, arXiv 2510.08109 | Version-aware graph RAG 90% vs plain RAG 58% (GraphRAG 64%) on version-sensitive questions | Context lock; pitch evidence |
+| Ciena multi-release QA, SANER 2026, arXiv 2601.02345 | Explicit release handling +16.5 pts over baseline RAG (88.5%) | Industry precedent |
+| AMBROSIA, NeurIPS 2024 D&B, arXiv 2406.19073 | Strong LLMs fail to notice/resolve ambiguity | Software-driven clarify |
+| RCACopilot, EuroSys 2024, arXiv 2305.15778 | Alert-type handlers collect diagnostics before LLM; up to 0.766 accuracy | Watcher → diagnostics → LLM |
+| Ahmed et al., ICSE 2023, arXiv 2301.03797 | LLM root-cause/mitigation recommendation on 40k incidents | Tag incidents by context |
+| Xpert, ICSE 2024, arXiv 2312.11988 | NL→KQL query recommendation from past incidents, deployed | Closest analogue to NL→command |
+| AutoTSG, arXiv 2205.13457 | TSGs siloed/incomplete; workflow synthesis 0.94 P / 0.91 R | Structured, versioned playbooks |
+| Nissist, arXiv 2402.17531 (WIP) | TSG + incident copilot reduces mitigation time | Same |
+| LLexus, SIGOPS OSR 2024 | TSG → deterministic executable workflows | Fixed workflows, LLM plans |
+| FLASH (MSR 2024) | Status-tracked step execution, +13.2% accuracy | Step-by-step with status |
+| Westenfelder, NAACL 2025 | Execution-based equivalence; constrained decoding etc. up to +32% NL→Bash | Catalog-constrained commands + dry run |
+| IBM NL2Bash/PowerShell remediation, arXiv 2405.06807 | Execution-based eval suite (125 cases) | Command eval pattern |
+| InterCode, NeurIPS 2023 D&B, arXiv 2306.14898 | Execution feedback helps; Docker sandboxes | Simulator dry run |
+| ToolEmu, ICLR 2024, arXiv 2309.15817 | Safest agent still fails 23.9% of high-stakes cases | Mandatory approval |
+| Self-RAG (ICLR 2024, 2310.11511) / CRAG (2401.15884) | Self-critique / corrective retrieval | Retrieval quality gate |
+| LogPrompt, ICPC 2024, arXiv 2308.07610 | Zero-shot log interpretation, practitioners rate 4.42/5 | Explain EMS events |
+| Klein et al., IEEE SMC 1989, doi 10.1109/21.31053 | Critical Decision Method | Teach-mode interview |
+
+**Jev update:** independent benchmark (Deußer, arXiv 2609.37647, preprint) — 95–99% on simple tasks,
+calibrated, but weaker on fine-grained/rubric judgments; critique (Sun, arXiv 2609.26758) — typed output
+≠ correct decision (AUC 93.8% → 23.2% with relabelled options). Decision: not used for safety calls.
+
+**Competitor:** IR "Iris for HPE NonStop" (Jun 2026) — NL Q&A over Prognosis telemetry, advisory.
+**CAIL:** CAIL/Suite — 6530 emulation (Windows/browser/Java), Security Facility (SSL/SSH), ActiveX/.NET embedding (cail.com).
