@@ -18,6 +18,9 @@ import type {
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+// Comma list of endpoint groups served by the real API while everything else stays mocked: session,chat,sources
+const REAL = new Set((process.env.NEXT_PUBLIC_REAL_ENDPOINTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));
+const mocked = (group?: "session" | "chat" | "sources") => USE_MOCKS && !(group && REAL.has(group));
 
 export class ApiError extends Error {
   constructor(
@@ -50,30 +53,30 @@ const mock = () => import("@/mocks/server").then((m) => m.mockApi);
 const enc = encodeURIComponent;
 
 export const api = {
-  getSession: (): Promise<Session> => (USE_MOCKS ? mock().then((m) => m.getSession()) : http("GET", "/session")),
+  getSession: (): Promise<Session> => (mocked("session") ? mock().then((m) => m.getSession()) : http("GET", "/session")),
   setSession: (node: string): Promise<Session> =>
-    USE_MOCKS ? mock().then((m) => m.setSession(node)) : http("POST", "/session", { node }),
+    mocked("session") ? mock().then((m) => m.setSession(node)) : http("POST", "/session", { node }),
   chat: (req: ChatRequest): Promise<ChatResponse> =>
-    USE_MOCKS ? mock().then((m) => m.chat(req)) : http("POST", "/chat", req),
+    mocked("chat") ? mock().then((m) => m.chat(req)) : http("POST", "/chat", req),
   refer: (req: ReferRequest): Promise<ReferResponse> =>
-    USE_MOCKS ? mock().then((m) => m.refer(req)) : http("POST", "/refer", req),
+    mocked() ? mock().then((m) => m.refer(req)) : http("POST", "/refer", req),
   propose: (req: ProposeRequest): Promise<ProposeResponse> =>
-    USE_MOCKS ? mock().then((m) => m.propose(req)) : http("POST", "/commands/propose", req),
+    mocked() ? mock().then((m) => m.propose(req)) : http("POST", "/commands/propose", req),
   dryrun: (id: string): Promise<DryRun> =>
-    USE_MOCKS ? mock().then((m) => m.dryrun(id)) : http("POST", `/commands/${enc(id)}/dryrun`),
+    mocked() ? mock().then((m) => m.dryrun(id)) : http("POST", `/commands/${enc(id)}/dryrun`),
   approve: (id: string, body: ApproveRequest): Promise<ApproveResponse> =>
-    USE_MOCKS ? mock().then((m) => m.approve(id, body)) : http("POST", `/commands/${enc(id)}/approve`, body),
+    mocked() ? mock().then((m) => m.approve(id, body)) : http("POST", `/commands/${enc(id)}/approve`, body),
   execute: (id: string): Promise<ExecuteResponse> =>
-    USE_MOCKS ? mock().then((m) => m.execute(id)) : http("POST", `/commands/${enc(id)}/execute`),
-  getAlerts: (): Promise<Alert[]> => (USE_MOCKS ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts")),
+    mocked() ? mock().then((m) => m.execute(id)) : http("POST", `/commands/${enc(id)}/execute`),
+  getAlerts: (): Promise<Alert[]> => (mocked() ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts")),
   getMetrics: (node: string, window = "60m"): Promise<MetricsResponse> =>
-    USE_MOCKS
+    mocked()
       ? mock().then((m) => m.getMetrics(node))
       : http("GET", `/metrics?node=${enc(node)}&window=${enc(window)}`),
   runScenario: (req: ScenarioRequest): Promise<{ status: string }> =>
-    USE_MOCKS ? mock().then((m) => m.runScenario(req)) : http("POST", "/simulator/scenario", req),
+    mocked() ? mock().then((m) => m.runScenario(req)) : http("POST", "/simulator/scenario", req),
   // NOT in the contract: citation chips for ids that arrive without an inline `sources` entry
   // (proposal.source_id, alert fix_claims). Assumed endpoint; see vault/code/frontend.md.
   getSource: (id: string): Promise<Source> =>
-    USE_MOCKS ? mock().then((m) => m.getSource(id)) : http("GET", `/sources/${enc(id)}`),
+    mocked("sources") ? mock().then((m) => m.getSource(id)) : http("GET", `/sources/${enc(id)}`),
 };

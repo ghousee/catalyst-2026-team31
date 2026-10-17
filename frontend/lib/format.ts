@@ -27,9 +27,9 @@ export const initials = (name: string): string =>
 
 export const SUBSYSTEM_OPTIONS = [
   { id: "sub:TMF", label: "TMF" },
-  { id: "sub:STORAGE", label: "Storage" },
+  { id: "sub:SCF-STORAGE", label: "Storage" },
   { id: "sub:PATHWAY", label: "Pathway" },
-  { id: "sub:CPU", label: "CPU" },
+  { id: "sub:PEEK", label: "CPU" },
   { id: "sub:TACL", label: "TACL" },
 ];
 export const SERIES_OPTIONS = [

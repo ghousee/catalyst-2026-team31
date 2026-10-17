@@ -13,6 +13,12 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - `frontend/components/AlertsPanel.tsx`, `HealthPanel.tsx` — polling (alerts 2 s, metrics 4 s) via `lib/hooks.ts` `usePolling`
 - `frontend/components/SourceDialog.tsx`, `CitationChip.tsx` — doc / veteran / live source cards
 
+## Real backend + answer checks (2026-10-17)
+- `lib/api.ts`: `NEXT_PUBLIC_REAL_ENDPOINTS=session,chat,sources` sends only those groups to [[api]]; the rest stays mocked (`.env.local.example`). Mocked propose tracks the mock's node, not the real session's.
+- Subsystem override ids now match the graph (`sub:SCF-STORAGE`, `sub:PEEK`; were `sub:STORAGE`, `sub:CPU`) in `lib/format.ts` and mocks.
+- `quality?` on answer/refer (`lib/types.ts` `Quality`) -> one-line strip `components/AnswerChecks.tsx` at the bottom of the answer card (warn tone if dropped > 0, support min < 60% or gate failed). Mock answers carry a fake `quality`.
+- Header badge `components/AccuracyBadge.tsx` reads `lib/pilotStats.ts` (pilot-set numbers; update after the next eval run).
+
 ## How mocks map to the contract
 - `mocks/fixtures.ts` — sources (doc, maria:h7, maria:h11 `contradicts`, raj:h3, lena:h4), command catalog (cmd-17 audit trail, cmd-18 STATUS TRANSACTION, cmd-19 ABORT, cmd-20 SCF, cmd-21 PATHCOM, cmd-22 PEEK, cmd-23 STATUS TMF, cmd-24 TACL).
 - `mocks/server.ts` — stateful in-browser backend: session node, executed runs, approvals, scenario clock. Responses are the contract shapes. Keyword routing in `topicOf`.

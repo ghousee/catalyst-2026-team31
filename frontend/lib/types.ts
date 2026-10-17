@@ -82,6 +82,21 @@ export interface ChatRequest {
   ablation?: number;
 }
 
+// Per-answer self-check numbers (backend `quality`; optional, the UI works without it)
+export interface Quality {
+  claims_total: number;
+  claims_verified: number;
+  dropped: number;
+  support_avg: number; // 0-1, mean MiniCheck score of kept claims
+  support_min: number;
+  gate: { sufficient: boolean; reason: string };
+  context_confidence: number;
+  context_source: "session+graph" | "override";
+  sources_by_lane: { doc: number; veteran: number };
+  latency_ms: number;
+  stages_ms: Record<string, number>;
+}
+
 export interface ChatAnswer {
   type: "answer";
   answer_log_id: number;
@@ -90,6 +105,7 @@ export interface ChatAnswer {
   sources: Source[];
   dropped_claims: number;
   experts: Expert[];
+  quality?: Quality;
 }
 
 export interface ClarifyOption {
@@ -108,6 +124,7 @@ export interface ChatRefer {
   reason: string;
   context: Context;
   experts: Expert[];
+  quality?: Quality;
 }
 
 export type ChatResponse = ChatAnswer | ChatClarify | ChatRefer;

@@ -28,7 +28,11 @@ $env:NEXT_PUBLIC_API_URL = "http://localhost:8000"
 npm run dev
 ```
 
-Or copy `.env.example` to `.env.local` and edit it. Restart `npm run dev` after changing env.
+Or copy `.env.example` to `.env.local` and edit it.
+
+**Real backend for some endpoints only:** set `NEXT_PUBLIC_REAL_ENDPOINTS=session,chat,sources` (see `.env.local.example`).
+Listed groups call the real API at `NEXT_PUBLIC_API_URL`; alerts, metrics, commands, simulator stay mocked. Start the backend with
+`uvicorn backend.api.main:app --port 8000`. Caveat: the mocked command proposals track the mock's own node, not the real session's. Restart `npm run dev` after changing env.
 
 ## Demo script (mock mode)
 

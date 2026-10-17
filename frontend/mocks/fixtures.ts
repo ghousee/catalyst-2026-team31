@@ -8,9 +8,9 @@ export const NODES = [
 
 export const SUBSYSTEMS: Record<string, string> = {
   "sub:TMF": "TMF",
-  "sub:STORAGE": "Storage",
+  "sub:SCF-STORAGE": "Storage",
   "sub:PATHWAY": "Pathway",
-  "sub:CPU": "CPU",
+  "sub:PEEK": "CPU",
   "sub:TACL": "TACL",
 };
 

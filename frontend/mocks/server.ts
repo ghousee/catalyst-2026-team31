@@ -7,6 +7,7 @@ import type {
   ChatRequest,
   ChatResponse,
   Claim,
+  Quality,
   Context,
   DryRun,
   ExecuteResponse,
@@ -111,6 +112,26 @@ function collectSources(claims: Claim[]): Source[] {
   return out;
 }
 
+function mockQuality(claims: Claim[], dropped: number): Quality {
+  const scores = claims.map((c) => c.score);
+  return {
+    claims_total: claims.length + dropped,
+    claims_verified: claims.length,
+    dropped,
+    support_avg: scores.reduce((a, b) => a + b, 0) / (scores.length || 1),
+    support_min: Math.min(...scores),
+    gate: { sufficient: true, reason: "Sources answer the question." },
+    context_confidence: 0.94,
+    context_source: "session+graph",
+    sources_by_lane: {
+      doc: claims.filter((c) => c.lane === "doc").length,
+      veteran: claims.filter((c) => c.lane === "veteran").length,
+    },
+    latency_ms: 4200,
+    stages_ms: { resolve: 5, lookup: 8, search: 300, gate: 800, generate: 2000, verify: 1100 },
+  };
+}
+
 function answer(ctx: Context, claims: Claim[], experts: Expert[], dropped = 0): ChatResponse {
   return {
     type: "answer",
@@ -120,6 +141,7 @@ function answer(ctx: Context, claims: Claim[], experts: Expert[], dropped = 0): 
     sources: collectSources(claims),
     dropped_claims: dropped,
     experts,
+    quality: mockQuality(claims, dropped),
   };
 }
 
@@ -147,7 +169,7 @@ function chat(req: ChatRequest): ChatResponse {
       type: "clarify",
       question: "Which disk do you mean — a data volume (SCF Storage) or the TMF audit trail disks?",
       options: [
-        { label: "Data volume · Storage", value: { system: "sub:STORAGE", version, site: siteId } },
+        { label: "Data volume · Storage", value: { system: "sub:SCF-STORAGE", version, site: siteId } },
         { label: "Audit trail disks · TMF", value: { system: "sub:TMF", version, site: siteId } },
       ],
     };
@@ -195,7 +217,7 @@ function chat(req: ChatRequest): ChatResponse {
   }
 
   if (topic === "disk") {
-    const ctx = context("sub:STORAGE", siteId, version);
+    const ctx = context("sub:SCF-STORAGE", siteId, version);
     const claims = [
       claim(
         "STATUS DISK, DETAIL shows primary and mirror drive state, path state and revive status for a volume.",
@@ -224,7 +246,7 @@ function chat(req: ChatRequest): ChatResponse {
   }
   if (topic === "cpu")
     return answer(
-      context("sub:CPU", siteId, version),
+      context("sub:PEEK", siteId, version),
       [claim("PEEK /CPU n/ displays busy time and queue lengths for the named processor.", "doc", "doc:PEEK-Ref:ch2.cpu")],
       [E_RAJ],
     );
@@ -278,7 +300,7 @@ function propose(req: ProposeRequest): ProposeResponse {
     const t = topicOf(req.question);
     const byTopic: Record<Topic, string[]> = {
       audit: ["cmd-17"],
-      disk: req.context.system === "sub:STORAGE" ? ["cmd-20"] : req.context.system === "sub:TMF" ? ["cmd-17"] : [],
+      disk: req.context.system === "sub:SCF-STORAGE" ? ["cmd-20"] : req.context.system === "sub:TMF" ? ["cmd-17"] : [],
       pathway: ["cmd-21"],
       cpu: ["cmd-22"],
       tmf: ["cmd-23"],

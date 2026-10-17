@@ -1,5 +1,6 @@
 import { ShieldAlert } from "lucide-react";
 import type { ChatMsg } from "@/lib/store";
+import { AnswerChecks } from "./AnswerChecks";
 import { ClaimList } from "./ClaimList";
 import { ContextChip } from "./ContextChip";
 import { ExpertList } from "./ExpertList";
@@ -26,6 +27,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
             Documentation only. No captured veteran knowledge applies to {data.context.display}.
           </p>
         )}
+        {data.quality && <AnswerChecks q={data.quality} />}
       </section>
       {data.experts.length > 0 && (
         <section aria-label="Experts" className="space-y-1.5">

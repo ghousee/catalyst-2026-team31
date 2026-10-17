@@ -2,6 +2,7 @@
 
 import { RefreshCw, ServerCrash } from "lucide-react";
 import { useConsole } from "@/lib/store";
+import { AccuracyBadge } from "./AccuracyBadge";
 import { DemoMenu } from "./DemoMenu";
 import { NodeBadge } from "./NodeBadge";
 import { NodeSwitcher } from "./NodeSwitcher";
@@ -43,6 +44,7 @@ export function TopBar() {
         <span className="text-[13px] text-muted">Connecting to session…</span>
       )}
       <div className="ml-auto flex items-center gap-3">
+        <AccuracyBadge />
         <NodeSwitcher />
         <DemoMenu />
         <ThemeToggle />
