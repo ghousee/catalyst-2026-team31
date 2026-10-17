@@ -25,6 +25,7 @@ export interface Claim {
   verbatim?: boolean; // veteran claim is the note's own words, not a model paraphrase
   conflict_with?: string; // source id of the veteran this claim disagrees with
   contradicts?: string; // doc id the veteran note contradicts
+  needs_review?: boolean; // the manual changed since the veteran signed this note
 }
 
 export interface DocSource {
@@ -53,6 +54,7 @@ export interface HeuristicSource {
   provenance?: string; // v1 field
   relation?: string; // e.g. "contradicts:doc:TMF-Reference:ch121.187"
   not_when?: string; // when the advice does NOT apply
+  needs_review?: boolean; // linked manual section changed since signing
 }
 
 export interface LiveSource {

@@ -29,6 +29,9 @@ export function ClaimList({ claims, sources }: { claims: Claim[]; sources?: Sour
                 </span>
               )}
             </div>
+            {c.needs_review && (
+              <p className="mt-1 text-[11.5px] font-medium text-warn">⚠ manual changed since this note was signed — needs re-check</p>
+            )}
           </div>
         </li>
       ))}

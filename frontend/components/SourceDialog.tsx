@@ -64,6 +64,9 @@ function Veteran({ s }: { s: HeuristicSource }) {
         <span className="block text-[11px] uppercase tracking-wide text-muted">Why</span>
         {s.why}
       </p>
+      {s.needs_review && (
+        <p className="mt-2 text-[12.5px] font-medium text-warn">⚠ manual changed since this note was signed — needs re-check</p>
+      )}
       {s.not_when && (
         <p className="mt-2 rounded border border-warn/60 bg-warn/10 p-3 text-[13px]">
           <span className="block text-[11px] uppercase tracking-wide text-muted">Does not apply when</span>

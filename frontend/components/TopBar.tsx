@@ -1,6 +1,8 @@
 "use client";
 
 import { RefreshCw, ServerCrash } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CHAT_IS_MOCK } from "@/lib/api";
 import { useConsole } from "@/lib/store";
 import { AccuracyBadge } from "./AccuracyBadge";
@@ -10,14 +12,33 @@ import { NodeBadge } from "./NodeBadge";
 import { NodeSwitcher } from "./NodeSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 
+const PAGES = [
+  { href: "/", label: "Console" },
+  { href: "/knowledge", label: "Knowledge" },
+  { href: "/documents", label: "Documents" },
+];
+
 export function TopBar() {
   const { session, sessionError, retrySession } = useConsole();
+  const path = usePathname();
   const prod = session?.node_display.toUpperCase().includes("PROD");
   return (
     <header
       className={`flex h-14 shrink-0 items-center gap-4 border-b-[3px] bg-panel px-4 ${session ? (prod ? "border-prod" : "border-dr") : "border-line"}`}
     >
       <h1 className="text-[15px] font-bold tracking-tight">NonStop Copilot</h1>
+      <nav aria-label="Pages" className="flex items-center gap-1 text-[13px]">
+        {PAGES.map((p) => (
+          <Link
+            key={p.href}
+            href={p.href}
+            aria-current={path === p.href ? "page" : undefined}
+            className={`rounded px-2 py-1 ${path === p.href ? "bg-accent/15 font-semibold text-accent" : "text-muted hover:text-fg"}`}
+          >
+            {p.label}
+          </Link>
+        ))}
+      </nav>
       <div className="h-6 w-px bg-line" aria-hidden="true" />
       {session ? (
         <div className="flex items-center gap-3" aria-label="Session context">
