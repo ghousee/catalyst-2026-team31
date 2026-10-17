@@ -6,12 +6,13 @@ import { ConflictBox } from "./ConflictBox";
 import { ContextChip } from "./ContextChip";
 import { ExpertList } from "./ExpertList";
 import { ProposalCard } from "./ProposalCard";
+import { ReplyText } from "./ReplyText";
 
 type AnswerMsg = Extract<ChatMsg, { kind: "answer" }>;
 
 export function AnswerCard({ msg }: { msg: AnswerMsg }) {
   const { data, proposals, noTemplate } = msg;
-  const hasVeteran = data.claims.some((c) => c.lane === "veteran");
+  const hasVeteran = data.claims.some((c) => c.lane === "veteran") || data.sources.some((s) => s.kind === "heuristic");
   const flagged = data.claims.filter((c) => c.conflict_with || c.contradicts);
   const plain = data.claims.filter((c) => !c.conflict_with && !c.contradicts);
   // manual editions that do not mention the session series (e.g. "H-series edition" on an L-series node)
@@ -28,6 +29,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
     <div className="space-y-2.5">
       <ContextChip display={data.context.display} confidence={data.context.confidence} />
       <section aria-label="Answer" className="card space-y-3 p-3">
+        {data.reply && <ReplyText reply={data.reply} cites={data.reply_citations ?? {}} sources={data.sources} />}
         <ConflictBox claims={flagged} sources={data.sources} />
         {observedClaims.length > 0 && (
           <div>
@@ -59,7 +61,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
             {data.dropped_claims} {data.dropped_claims === 1 ? "claim" : "claims"} dropped (unverified)
           </p>
         )}
-        {!hasVeteran && (
+        {!hasVeteran && data.sources.length > 0 && (
           <p className="rounded border border-line bg-panel2 px-2.5 py-1.5 text-[12.5px] text-muted">
             Documentation only. No captured veteran knowledge applies to {data.context.display}.
           </p>

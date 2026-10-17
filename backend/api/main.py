@@ -2,6 +2,7 @@
 Endpoints: /health /session /chat /sources/{id}; command/simulator demo (/commands/*, /simulator/scenario,
 /metrics, backend/commands + backend/simulator); routers backend/knowledge.py (/persons, /knowledge*) and
 backend/documents.py (/documents)."""
+import os
 from contextlib import asynccontextmanager
 
 import httpx
@@ -13,6 +14,7 @@ from backend import documents, knowledge, settings
 from backend.graph import view as graph_view
 from backend.commands.service import command_service
 from backend.pipeline import answer as pipeline
+from backend.pipeline import assistant
 from backend.pipeline import verify
 from backend.simulator.service import simulator
 
@@ -23,7 +25,13 @@ SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-
 @asynccontextmanager
 async def lifespan(app):
     pipeline.warm()  # MiniCheck loads once, here, not on the first question
+    if ANSWER_MODE == "assistant":
+        assistant.warm()
     yield
+
+
+# "assistant" = standard RAG (rerank + one cited answer, docs/ARCHITECTURE_V2.md); "classic" = claims pipeline
+ANSWER_MODE = os.getenv("ANSWER_MODE", "classic")
 
 
 app = FastAPI(title="NonStop Copilot", lifespan=lifespan)
@@ -48,6 +56,7 @@ class ChatIn(BaseModel):
     question: str
     context_override: dict | None = None
     ablation: int | None = None  # accepted, ignored (eval-only flag in the contract)
+    history: list[dict] | None = None  # last turns [{question, reply}] for follow-ups (assistant mode)
 
 
 class CommandContext(BaseModel):
@@ -104,7 +113,10 @@ def set_session(body: SessionIn):
 @app.post("/chat")
 def chat(body: ChatIn):
     # sync def: FastAPI runs it in a worker thread, so the event loop is not blocked by Ollama/MiniCheck
-    return pipeline.answer(body.question, {**SESSION, "user": body.user_id}, body.context_override)
+    session = {**SESSION, "user": body.user_id}
+    if ANSWER_MODE == "assistant":
+        return assistant.answer(body.question, session, body.context_override, body.history or [])
+    return pipeline.answer(body.question, session, body.context_override)
 
 
 @app.get("/sources/{source_id:path}")

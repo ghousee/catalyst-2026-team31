@@ -52,7 +52,17 @@ def api_up():
 
 
 def cited_ids(resp):
-    return [c.get("source_id") for c in resp.get("claims", [])]
+    """Claim citations (classic mode) plus reply citations (assistant mode)."""
+    return [c.get("source_id") for c in resp.get("claims", [])] + list((resp.get("reply_citations") or {}).values())
+
+
+def effective_type(resp):
+    """Assistant mode always returns type 'answer' and declines in words. For scoring, an answer with no citations
+    counts as a clarify if it ends with a question, otherwise as a refer."""
+    t = resp.get("type")
+    if t == "answer" and resp.get("reply") is not None and not cited_ids(resp):
+        return "clarify" if resp["reply"].strip().endswith("?") else "refer"
+    return t
 
 
 def lookup_source_systems(ids, dsn):
@@ -85,7 +95,7 @@ def _norm(t):
 
 
 def claims_text(resp):
-    return _norm(" ".join(c.get("text", "") for c in resp.get("claims", [])))
+    return _norm(" ".join([c.get("text", "") for c in resp.get("claims", [])] + [resp.get("reply") or ""]))
 
 
 def includes_all(groups, text):
@@ -120,7 +130,7 @@ def contaminated(item, resp, source_systems):
 
 
 def score(item, resp, source_systems):
-    expect, got = item["expect"], resp.get("type")
+    expect, got = item["expect"], effective_type(resp)
     cited = cited_ids(resp)
     ctx = resp.get("context") or {}
     gold = set(item.get("gold_nodes") or [])

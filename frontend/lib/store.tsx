@@ -88,6 +88,8 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
   const overrideRef = useRef<ContextOverride>({});
   const cache = useRef(new Map<string, Source>());
   const cmdCount = useRef(1);
+  const msgsRef = useRef<ChatMsg[]>([]);
+  msgsRef.current = messages;
   sessionRef.current = session;
   overrideRef.current = override;
 
@@ -132,7 +134,12 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
       setBusy(true);
       const context_override = { ...overrideRef.current, ...ov };
       try {
-        const res = await api.chat({ user_id: USER_ID, question: q, context_override });
+        // last few answered turns, so follow-ups ("why?", "what about the commands?") have context
+        const history = msgsRef.current
+          .filter((m): m is Extract<ChatMsg, { kind: "answer" }> => m.kind === "answer")
+          .slice(-3)
+          .map((m) => ({ question: m.question, reply: m.data.reply }));
+        const res = await api.chat({ user_id: USER_ID, question: q, context_override, history });
         if (res.type === "clarify") {
           push({ kind: "clarify", question: q, data: res, resolved: null });
         } else if (res.type === "refer") {

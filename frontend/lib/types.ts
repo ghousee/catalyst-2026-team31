@@ -86,10 +86,14 @@ export interface ChatRequest {
   question: string;
   context_override?: ContextOverride;
   ablation?: number;
+  history?: Array<{ question: string; reply?: string }>; // last turns, for follow-ups (assistant mode)
 }
 
 // Per-answer self-check numbers (backend `quality`; optional, the UI works without it)
 export interface Quality {
+  mode?: "assistant" | "classic"; // assistant mode has no claim counts / gate (see AnswerChecks)
+  sources_considered?: number;
+  top_relevance?: number;
   claims_total: number;
   claims_verified: number;
   dropped: number;
@@ -112,6 +116,8 @@ export interface ChatAnswer {
   dropped_claims: number;
   experts: Expert[];
   quality?: Quality;
+  reply?: string; // assistant mode: natural answer with [n] markers
+  reply_citations?: Record<string, string>; // "n" -> source id
 }
 
 export interface ClarifyOption {
