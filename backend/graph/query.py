@@ -19,6 +19,8 @@ from backend.pipeline.retrieve import context_params, context_where
 STOP = set("is are was be been the a an of to in on at it its up my our this that we".split())
 EMS_PREFIXES = ("tmf", "disk", "pathway", "cpu")
 KIND_ORDER = {"event": 0, "metric": 1, "object": 2, "command": 3, "system": 4}
+# chunks removed by a document re-upload carry valid_to = the day they disappeared (exclusive end)
+DOC_CURRENT = "({0}valid_to IS NULL OR {0}valid_to > CURRENT_DATE)"
 HUBS = ("sub:", "node:", "rvu:")          # context anchors: reached, never expanded
 SHORT = {"sub:TMF": "TMF", "sub:PATHWAY": "Pathway", "sub:SCF-STORAGE": "Storage", "sub:TACL": "TACL",
          "sub:PEEK": "PEEK", "sub:MEASURE": "Measure", "sub:FUP": "FUP"}
@@ -182,10 +184,15 @@ def walk(edges, starts, max_depth=2):
 
 
 # ---------------------------------------------------------------- lookup
+def short(sub):
+    """Short display name of a subsystem id; a subsystem created from an upload falls back to its id suffix."""
+    return SHORT.get(sub, (sub or "").split(":", 1)[-1])
+
+
 def scope_text(h):
     node = "all nodes" if h["site_id"] is None else "\\" + h["site_id"].split(":", 1)[1]
     series = "all series" if h["version_id"] is None else h["version_id"].split(":", 1)[1] + "-series"
-    return f"{node} · {series} · {SHORT.get(h['system_id'], h['system_id'])}"
+    return f"{node} · {series} · {short(h['system_id'])}"
 
 
 def _captured(h):
@@ -209,7 +216,8 @@ def note_dict(h, rel, disagrees=()):
            "years": h["years"], "captured_via": _captured(h), "captured_at": str(h["captured_at"] or ""),
            "endorsements": h["endorsements"], "last_validated": str(h["last_validated"] or ""),
            "scope": scope_text(h), "why": h["why_text"], "call": h["call_text"], "trigger": h["trigger_text"],
-           "not_when": h["not_when_text"], "relation": rel, "disagrees_with": list(dict.fromkeys(disagrees))}
+           "not_when": h["not_when_text"], "relation": rel, "disagrees_with": list(dict.fromkeys(disagrees)),
+           "needs_review": bool(h.get("needs_review"))}
     out["text"] = render_heuristic({**out, "captured_via": h["captured_via"] or ""})
     return out
 
@@ -349,7 +357,7 @@ def lookup(conn, entity_ids, ctx, k=10):
         inl, p = _in("c", chunk_ids)
         got = {r["id"]: r for r in _rows(
             conn, f"SELECT d.id, d.section, d.text, d.system_id, d.edition FROM doc_chunk d "
-                  f"WHERE d.id IN {inl} AND {context_where('d')}", {**p, **params})}
+                  f"WHERE d.id IN {inl} AND {context_where('d')} AND {DOC_CURRENT.format('d.')}", {**p, **params})}
         docs = [got[i] for i in chunk_ids if i in got][:k]
     kept_d = {d["id"] for d in docs}
 
@@ -360,10 +368,12 @@ def lookup(conn, entity_ids, ctx, k=10):
         if e["rel"] == "expert_in" and e["dst"] in anchors:
             weights[e["src"]] = max(weights.get(e["src"], 0), e["weight"] or 0)
             why.setdefault(e["src"], []).append(ents[e["dst"]]["name"] if e["dst"] in ents else e["dst"])
-    authored = {}
-    for h in heuristics:
-        authored[h["owner"]] = authored.get(h["owner"], 0) + 1
-    ids = list(dict.fromkeys([*weights, *authored]))
+    returned_authors = {h["owner"] for h in heuristics}
+    # "author of N notes that apply here" counts the owner's approved notes in this context, not just the returned ones
+    authored = {r["owner_id"]: r["n"] for r in _rows(
+        conn, f"SELECT h.owner_id, count(*) AS n FROM heuristic h WHERE h.status = 'approved' AND {context_where('h')} "
+              f"GROUP BY h.owner_id", params)}
+    ids = list(dict.fromkeys([*weights, *returned_authors]))
     experts = []
     if ids:
         inl, p = _in("p", ids)
@@ -372,7 +382,7 @@ def lookup(conn, entity_ids, ctx, k=10):
             if r["id"] in weights:
                 parts.append(f"Resolved up to {int(weights[r['id']])} cases on " + ", ".join(dict.fromkeys(why[r["id"]])))
             if authored.get(r["id"]):
-                parts.append(f"author of {authored[r['id']]} captured note(s) that apply here")
+                parts.append(f"author of {authored[r['id']]} approved note(s) that apply here")
             if r["availability"] == "retired":
                 parts.append("retired; the captured knowledge is cited")
             experts.append({"id": r["id"], "name": r["name"], "role": r["role"], "team": r["team"], "years": r["years"],

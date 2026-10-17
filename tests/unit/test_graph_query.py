@@ -16,7 +16,7 @@ CREATE TABLE edge (src TEXT, rel TEXT, dst TEXT, weight REAL DEFAULT 1, source_i
 CREATE TABLE person (id TEXT PRIMARY KEY, name TEXT, role TEXT, team TEXT, years INT, expertise TEXT,
                      availability TEXT, active INT, contact TEXT);
 CREATE TABLE doc_chunk (id TEXT PRIMARY KEY, section TEXT, text TEXT, system_id TEXT, version_id TEXT, site_id TEXT,
-                        all_versions INT, all_sites INT, edition TEXT);
+                        all_versions INT, all_sites INT, edition TEXT, valid_to TEXT);
 CREATE TABLE heuristic (id TEXT PRIMARY KEY, owner_id TEXT, trigger_text TEXT, call_text TEXT, why_text TEXT,
                         not_when_text TEXT, system_id TEXT, version_id TEXT, site_id TEXT, all_versions INT, all_sites INT,
                         provenance TEXT, status TEXT, endorsements INT, last_validated TEXT, captured_via TEXT, captured_at TEXT,
@@ -103,7 +103,7 @@ def db():
     con.executemany("INSERT INTO entity VALUES (?,?,?,?,?,?)", ENTITIES)
     con.executemany("INSERT INTO edge (src, rel, dst, weight, source_id) VALUES (?,?,?,?,?)", EDGES)
     con.executemany("INSERT INTO person VALUES (?,?,?,?,?,?,?,?,?)", PERSONS)
-    con.executemany("INSERT INTO doc_chunk VALUES (?,?,?,?,?,?,?,?,?)", CHUNKS)
+    con.executemany("INSERT INTO doc_chunk (id,section,text,system_id,version_id,site_id,all_versions,all_sites,edition) VALUES (?,?,?,?,?,?,?,?,?)", CHUNKS)
     con.executemany("INSERT INTO heuristic VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", HEURISTICS)
     yield con
     con.close()
@@ -268,3 +268,20 @@ def test_validate_fails_on_missing_source():
     entities = [{"id": "cmd:x", "kind": "command", "props": {"source_id": "doc:nope"}}]
     problems = load.validate(entities, [], [], [("cmd:x", "about", "cmd:x", "doc:nope", 1.0)], {"doc:ok"}, set())
     assert any("doc:nope" in p for p in problems) and len(problems) == 2
+
+
+def test_expert_note_count_is_approved_notes_of_the_owner_in_context(db):
+    # maria has 3 notes (h7, h1 approved and \PROD; h9 draft): on \PROD the count is 2, on \DR (none in scope) 0
+    prod = lookup(db, ["evt:TMF-185"], PROD)
+    maria = next(x for x in prod["experts"] if x["id"] == "maria")
+    assert "author of 2 approved note(s) that apply here" in maria["reason"]
+    dr = lookup(db, ["evt:TMF-185"], DR)
+    assert all("author of" not in x["reason"] or x["id"] == "raj" for x in dr["experts"])
+    raj = next(x for x in dr["experts"] if x["id"] == "raj")
+    assert "author of 1 approved note(s)" in raj["reason"]
+
+
+def test_removed_chunks_are_not_returned(db):
+    db.execute("UPDATE doc_chunk SET valid_to = date('now') WHERE id = 'doc:T:status'")  # removed today (exclusive end)
+    ids_ = [d["id"] for d in lookup(db, ["evt:TMF-185"], PROD)["doc_chunks"]]
+    assert "doc:T:status" not in ids_ and "doc:T:abort" in ids_

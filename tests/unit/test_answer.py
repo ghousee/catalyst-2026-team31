@@ -42,7 +42,7 @@ def fake(monkeypatch):
     monkeypatch.setattr(A, "resolve", lambda conn, q, ctx: state["resolved"])
     monkeypatch.setattr(A, "lookup", lambda conn, ids, ctx: {
         "doc_chunks": [DOC], "heuristics": [HEUR], "experts": [EXPERT], "path": [], "commands": []})
-    monkeypatch.setattr(A, "note_search", lambda conn, qvec, ctx, k=3: state.get("found", []))
+    monkeypatch.setattr(A, "note_search", lambda conn, qvec, ctx, k=3: state.get("found", [{**HEUR, "score": 0.9}]))
     monkeypatch.setattr(A, "fetch_notes", lambda conn, ids, ctx: {i: state["extra"][i] for i in ids if i in state.get("extra", {})})
     monkeypatch.setattr(A, "embed_query", lambda q: [0.0])
     monkeypatch.setattr(A, "hybrid_search", lambda *a, **k: [])
@@ -171,11 +171,48 @@ def test_clean_restores_node_backslash():
     assert A._clean("♍PROD and УDR") == "\PROD and \DR"
 
 
-def test_inverted_veteran_paraphrase_is_replaced_by_verbatim(fake):
-    fake["claims"] = [{"claim": "Start with FILESPERVOLUME first.", "source_id": "maria:h7"}]
-    fake["scores"] = {}
+def test_supported_veteran_paraphrase_is_replaced_by_verbatim(fake):
+    fake["claims"] = [{"claim": "Experienced operators start by checking the pin.", "source_id": "maria:h7"}]
+    fake["scores"] = {"Experienced operators start by checking the pin.": 0.9}
     r = A.answer("q", SESSION)
     assert [(c["text"], c["verbatim"]) for c in r["claims"]] == [("Check the pin first.", True)]
+
+
+def test_veteran_note_dropped_when_qwens_claim_about_it_is_unsupported(fake):
+    # off-topic note cited out of habit: the claim is not supported by the note text -> the note is not used
+    fake["claims"] = [{"claim": "Operators should free audit space.", "source_id": "maria:h7"},
+                      {"claim": "b", "source_id": "doc:TMF-Reference:x"}]
+    fake["scores"] = {"Operators should free audit space.": 0.1, "b": 0.9}
+    r = A.answer("q", SESSION)
+    assert [c["lane"] for c in r["claims"]] == ["doc"]
+    assert any(d["why"] == "note_unsupported" for d in r["debug"]["dropped"])
+
+
+def test_relevance_cutoff_removes_off_topic_notes(fake):
+    fake["found"] = [{**HEUR, "score": 0.31}]  # cosine below NOTE_MIN_SIM: not even offered to Qwen
+    fake["claims"] = [{"claim": "a", "source_id": "maria:h7"}, {"claim": "b", "source_id": "doc:TMF-Reference:x"}]
+    fake["scores"] = {"a": 0.9, "b": 0.9}
+    r = A.answer("q", SESSION)
+    assert [c["lane"] for c in r["claims"]] == ["doc"]
+    assert r["debug"]["notes_below_cutoff"] == {"maria:h7": 0.31}
+
+
+def test_relevant_notes_pure():
+    assert A.relevant_notes(["a", "b", "c"], {"a": 0.8, "b": 0.49, "c": 0.5}, 0.5) == ["a", "c"]
+    assert A.relevant_notes(["x"], {}, 0.5) == []  # unknown similarity is not relevant
+
+
+def test_contradicts_flag_only_when_the_manual_section_is_cited():
+    n = {**HEUR, "relation": "contradicts:doc:T:abort", "needs_review": True}
+    out = A.veteran_claims(["maria:h7"], {"maria:h7": n}, {"maria:h7": n}, doc_cited={"doc:T:other"})
+    assert "contradicts" not in out[0] and out[0]["needs_review"] is True
+    out = A.veteran_claims(["maria:h7"], {"maria:h7": n}, {"maria:h7": n}, doc_cited={"doc:T:abort"})
+    assert out[0]["contradicts"] == "doc:T:abort"
+
+
+def test_clean_title():
+    assert A.clean_title("Com m and(s) > Com m ands") == "Command(s) > Commands"
+    assert A.clean_title("Lexical Elem ents > Com ments") == "Lexical Elem ents > Comments"
 
 
 def test_negation_guard_drops_doc_claim_that_inverts_source(fake):

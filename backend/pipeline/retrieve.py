@@ -71,10 +71,14 @@ def rrf_fuse(ranked_lists, k=60, top=None):
     return fused[:top] if top else fused
 
 
+# a chunk removed by a document re-upload has valid_to = that day (exclusive end): never retrievable
+CURRENT = "(valid_to IS NULL OR valid_to > CURRENT_DATE)"
+
+
 def _scope(ctx, table=""):
     if ctx is None:
-        return "TRUE", {}
-    return context_where(table), context_params(ctx)
+        return CURRENT, {}
+    return f"{context_where(table)} AND {CURRENT}", context_params(ctx)
 
 
 def vector_search(conn, qvec, ctx, k=5):

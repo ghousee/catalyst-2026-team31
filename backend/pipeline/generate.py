@@ -17,6 +17,9 @@ CLAIMS_SCHEMA = {
 SYSTEM = ("You answer NonStop operator questions using ONLY the numbered sources. "
           "Return a JSON array of short factual claims; each claim must cite the id of the single source that "
           "supports it in source_id (copy the id exactly). Do not state anything the sources do not say. "
+          "Keep every condition the source attaches to a statement (\"only if\", \"unless\", \"when\", \"provided that\"); "
+          "never state a rule without its condition. Use the exact command and option names from the source "
+          "(for example \"STATUS with the STOP and FORCED options\", not \"the STOP command\"). "
           "If the sources do not answer the question, return an empty array [].")
 # Added when sources carry a lane (MANUAL / VETERAN): answers must cite both kinds, and never put a veteran's
 # advice in the manual's mouth (seen in testing: "the manual recommends X" cited to a veteran note saying not-X).
