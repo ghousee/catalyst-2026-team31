@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { admin, type GraphSnapshot } from "@/lib/admin";
 import { usePolling } from "@/lib/hooks";
+import { GraphCanvas } from "./GraphCanvas";
 import { SplitPane } from "./SplitPane";
 
 /** Live graph snapshot (GET /graph), refreshed every 10 s. Shared with the Systems page. */
@@ -79,6 +80,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
   const c = data.counts;
   const ents = data.entities.filter((e) => has(e.id, e.kind, e.name, e.aliases.join(" ")));
   const links = data.links.filter((l) => has(l.src, l.rel, l.dst, l.source_id, l.created_by ?? "seed"));
+  const [view, setView] = useState<"graph" | "tables">("graph");
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -88,13 +90,16 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
         <Tile label="Expert notes" value={c.notes.approved} note={`approved · ${c.notes.draft} draft · ${c.notes.needs_review} needs review · ${c.notes.retired} retired`} />
         <Tile label="Manual sections" value={c.doc_sections} note={`in ${c.documents} documents`} />
       </div>
-      <details className="mt-3 rounded-xl border border-line bg-panel px-4 py-2 text-sm">
-        <summary className="cursor-pointer font-medium text-accent">Open visual graph snapshot</summary>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          For a picture of the graph, run <code className="rounded bg-panel2 px-1">python scripts/export_graph.py</code> in the repo. It writes
-          <code className="mx-1 rounded bg-panel2 px-1">docs/knowledge_graph.html</code>; open that file in a browser. It is a static snapshot, not live.
-        </p>
-      </details>
+      <div className="mt-3 flex gap-1" role="tablist" aria-label="Graph view">
+        {(["graph", "tables"] as const).map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={view === t} onClick={() => setView(t)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${view === t ? "bg-accent/10 text-accent" : "text-muted hover:text-fg"}`}>
+            {t === "graph" ? "Graph" : "Tables"}
+          </button>
+        ))}
+      </div>
+      {view === "graph" && <div className="mt-2 h-[78vh] min-h-[560px]"><GraphCanvas data={data} /></div>}
+      {view === "tables" && <>
       <label className="relative mt-3 block max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
         <input className="field h-10 w-full rounded-xl bg-panel pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter entities and links" aria-label="Filter entities and links" />
@@ -167,6 +172,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
           </SplitPane>
         </SplitPane>
       </div>
+      </>}
     </>
   );
 }
