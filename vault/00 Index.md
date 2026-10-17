@@ -26,6 +26,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[core requirements]] — non-negotiables from Ghouse + CAIL (read before designing)
 - [[system design]] — NonStop copilot architecture (docs/SYSTEM_DESIGN.md, draft)
 - [[api contract]] — pointer to `docs/API_CONTRACT.md` + gotchas
+- Answer architecture v2 (assistant mode): docs/ARCHITECTURE_V2.md
 
 ## Decisions
 - [[ADR-001 explicit all-versions]]

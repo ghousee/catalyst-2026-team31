@@ -78,3 +78,10 @@ Read-only snapshot for the UI's Knowledge graph page. `shape_graph` is pure (tes
 `{counts{entities by kind, links by rel, persons, notes{approved,draft,retired,needs_review}, doc_sections, documents}, entities[{id,kind,name,aliases,parent_id,links}],
 links[{src,rel,dst,source_id,created_by}] (cap 500, auto/human before seed), links_total, notes[{id,owner_name,kind,scope,status,needs_review,signed_at,call_text}] (cap 200),
 recent[...20]}`. Edges have no timestamp, so `recent` = notes signed/drafted, plus auto/human links dated by their note, plus document loads, newest first.
+
+## Answer modes (2026-10-17)
+`ANSWER_MODE` env: `classic` (default) = `backend/pipeline/answer.py` (claims JSON, gate, MiniCheck);
+`assistant` = `backend/pipeline/assistant.py` (hybrid search + node-scoped notes -> MiniLM rerank fused with search
+rank -> one cited Qwen answer with history). See docs/ARCHITECTURE_V2.md. `/chat` accepts `history`
+[{question, reply}]. Assistant responses carry `reply` + `reply_citations`, `claims` is empty; the UI's
+`ReplyText` renders it. The eval treats an assistant answer with no citations as refer (or clarify if it ends in "?").
