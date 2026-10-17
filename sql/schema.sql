@@ -51,6 +51,7 @@ CREATE TABLE doc_chunk (
   edition      TEXT,                        -- real edition, e.g. 'TMF Reference Manual, H-series edition (540138-001, July 2005)'
   doc_version  TEXT,                        -- publisher part number
   content_hash TEXT,                        -- sha256(text), for re-ingest diffing
+  loaded_at    TIMESTAMPTZ,                 -- last POST /documents load of this chunk (003)
   embedding    vector(768),                 -- embeddinggemma dim; adjust if needed
   CHECK ((version_id IS NULL) = all_versions),
   CHECK ((site_id IS NULL) = all_sites)
@@ -80,6 +81,8 @@ CREATE TABLE heuristic (
   captured_at   DATE,
   signed_by     TEXT REFERENCES person(id), -- nothing goes live unsigned (design 8)
   signed_at     DATE,
+  entered_by    TEXT REFERENCES person(id), -- who typed it (003); owner signs, a colleague may enter
+  needs_review  BOOLEAN NOT NULL DEFAULT FALSE,  -- linked manual section changed since signing (003)
   embedding     vector(768),
   CHECK ((version_id IS NULL) = all_versions),
   CHECK ((site_id IS NULL) = all_sites)

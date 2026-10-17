@@ -13,3 +13,4 @@ sentencepiece
 pytest
 python-dotenv
 pyyaml
+python-multipart  # POST /documents (multipart upload)
