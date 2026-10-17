@@ -32,6 +32,15 @@ def _neg_windows(text):
     return out
 
 
+def _positive_words(text):
+    """Words of the sentences that contain no negation."""
+    out = set()
+    for sent in re.split(r"(?<=[.!?;])\s+", text):
+        if not _neg_windows(sent):
+            out.update(_words(sent))
+    return out
+
+
 def negation_mismatch(claim, source):
     """True if the claim negates something near terms the source does not negate, or the source negates something
     (the 2 words after its "not") that the claim mentions without negating it. Simple on purpose; loosen on false drops."""
@@ -39,7 +48,8 @@ def negation_mismatch(claim, source):
     if any(not any(c & s for s, _ in sw) for c, _ in cw):
         return True
     claim_words = set(_words(claim))
-    return any(near & claim_words and not any(c & win for c, _ in cw) for win, near in sw)
+    pos = _positive_words(source)  # a term the source also uses un-negated (e.g. 'TACL') is not "only negated"
+    return any((near & claim_words) - pos and not any(c & win for c, _ in cw) for win, near in sw)
 
 
 def windows(doc, n=WINDOW_WORDS):

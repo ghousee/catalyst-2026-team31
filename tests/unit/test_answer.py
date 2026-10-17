@@ -180,6 +180,7 @@ def test_supported_veteran_paraphrase_is_replaced_by_verbatim(fake):
 
 def test_veteran_note_dropped_when_qwens_claim_about_it_is_unsupported(fake):
     # off-topic note cited out of habit: the claim is not supported by the note text -> the note is not used
+    fake["found"] = [{**HEUR, "score": 0.6}]  # relevant enough to be offered, not a close match
     fake["claims"] = [{"claim": "Operators should free audit space.", "source_id": "maria:h7"},
                       {"claim": "b", "source_id": "doc:TMF-Reference:x"}]
     fake["scores"] = {"Operators should free audit space.": 0.1, "b": 0.9}
@@ -243,3 +244,12 @@ def test_verbatim_cuts_very_long_call_to_two_sentences():
     long = " ".join(f"Sentence number {i} is here and padded out." for i in range(20))
     assert A.verbatim({"call": long}).count(".") == 2
     assert A.verbatim({"call": "Short one. Two. Three."}) == "Short one. Two. Three."
+
+
+def test_note_ok_close_match_overrides_a_weak_paraphrase_score():
+    assert A.note_ok(0.9, 0.55) and A.note_ok(0.1, 0.75) and not A.note_ok(0.1, 0.6) and not A.note_ok(0.1, None)
+
+
+def test_note_plain_has_no_card_header():
+    n = {"text": "[x] Maria (24 years) ...", "trigger": "T.", "call": "C.", "why": "W.", "not_when": ""}
+    assert A.note_plain(n) == "T. C. W."

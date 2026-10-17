@@ -26,6 +26,9 @@ MAX_NOTES = 3      # veteran notes per answer (lookup returns them most-relevant
 # a veteran note is a candidate only if its embedding is this close (cosine) to the question. Calibrated on the real
 # questions: off-topic notes scored 0.31-0.49, on-topic ones 0.55-0.79 (vault/code/api.md)
 NOTE_MIN_SIM = float(os.getenv("NOTE_MIN_SIM", "0.5"))
+# at or above this cosine the note is clearly about the question: MiniCheck is not asked (it scores a faithful
+# negation paraphrase like "do not start with X" at 0.02, so it is only a tie-breaker in the 0.5-0.7 band)
+NOTE_STRONG_SIM = float(os.getenv("NOTE_STRONG_SIM", "0.7"))
 SPECIFIC = {"event", "object", "command", "metric"}  # entity kinds that pin a question down
 VAGUE_TERMS = 5    # unmatched questions with this few content words get a clarifying question
 
@@ -47,6 +50,16 @@ def misattributed(text, lane, owner_names=()):
 def relevant_notes(ids, sims, min_sim=NOTE_MIN_SIM):
     """Candidate note ids whose cosine similarity to the question reaches min_sim (unknown similarity = not relevant)."""
     return [i for i in ids if sims.get(i, 0.0) >= min_sim]
+
+
+def note_ok(score, sim, verify_threshold=VERIFY_THRESHOLD):
+    """Keep a note Qwen cited: Qwen's claim about it is supported by the note text, or the note is a very close match."""
+    return score >= verify_threshold or (sim or 0.0) >= NOTE_STRONG_SIM
+
+
+def note_plain(n):
+    """The veteran's own words without the card header (owner, scope, ...): what a claim about the note is checked against."""
+    return " ".join(x for x in (n.get("trigger"), n.get("call"), n.get("why"), n.get("not_when")) if x) or n["text"]
 
 
 def clean_title(s):
@@ -328,11 +341,12 @@ def answer(question, session, override=None):
         doc_claims = [c for c in doc_claims if c not in wrong and c not in neg]
         kept = []
         # verify against the same text Qwen saw (GEN_CHARS), not the whole section: consistent and ~1 window per claim
-        scores = verify.support_probs([(seen[c["source_id"]], c["claim"]) for c in [*vet_claims, *doc_claims]])
+        scores = verify.support_probs([(note_plain(pool[c["source_id"]]), c["claim"]) for c in vet_claims] +
+                                      [(seen[c["source_id"]], c["claim"]) for c in doc_claims])
         vet_scores, scores = scores[:len(vet_claims)], scores[len(vet_claims):]
         cited_notes = []
         for c, score in zip(vet_claims, vet_scores):
-            if score >= VERIFY_THRESHOLD:
+            if note_ok(score, sims.get(c["source_id"])):
                 if c["source_id"] not in cited_notes:
                     cited_notes.append(c["source_id"])
             else:
