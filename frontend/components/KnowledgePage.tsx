@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { admin, subName, type ApproveResult, type DocRow, type Note, type Person } from "@/lib/admin";
+import { getMe, toUserId } from "@/lib/me";
 import { ConsoleProvider } from "@/lib/store";
 import { SplitPane } from "./SplitPane";
 import { TeachChat } from "./TeachChat";
@@ -94,6 +95,60 @@ function SignedResult({ r, onChanged }: { r: ApproveResult; onChanged: () => voi
   );
 }
 
+const NO_PERSON = { id: "", name: "", role: "", team: "", years: "", expertise: "", availability: "on_shift", contact: "" };
+
+/** Add a senior so they can teach and sign straight away (POST /persons). */
+function AddPerson({ onAdded }: { onAdded: () => Promise<void> }) {
+  const [p, setP] = useState(NO_PERSON);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const set = (k: keyof typeof NO_PERSON) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setP({ ...p, [k]: e.target.value });
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null);
+    setMsg(null);
+    try {
+      const added = await admin.addPerson({
+        id: p.id || toUserId(p.name), name: p.name, role: p.role || null, team: p.team || null,
+        years: p.years ? Number(p.years) : null, availability: p.availability, contact: p.contact || null,
+        expertise: p.expertise.split(",").map((x) => x.trim()).filter(Boolean),
+      });
+      setMsg(`${added.name} added. They can now teach and sign notes.`);
+      setP(NO_PERSON);
+      await onAdded();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Could not add");
+    }
+  };
+  const input = (k: keyof typeof NO_PERSON, label: string, req = false) => (
+    <Field label={label}><input className="field w-full" required={req} value={p[k]} onChange={set(k)} /></Field>
+  );
+  return (
+    <details className="mt-5 border-t border-line pt-3">
+      <summary className="cursor-pointer text-[13px] font-medium">Add a senior</summary>
+      <form onSubmit={submit} className="mt-3 grid grid-cols-2 gap-3">
+        {input("name", "Name", true)}
+        {input("id", "Id (optional, from the name)")}
+        {input("role", "Role")}
+        {input("team", "Team")}
+        {input("years", "Years on NonStop")}
+        <Field label="Availability">
+          <select className="field w-full" value={p.availability} onChange={set("availability")}>
+            {["on_shift", "on_call", "off_shift", "retired"].map((a) => <option key={a} value={a}>{a.replace("_", " ")}</option>)}
+          </select>
+        </Field>
+        {input("expertise", "Expertise (comma separated)")}
+        {input("contact", "Contact")}
+        <div className="col-span-2 flex items-center gap-3">
+          <button type="submit" className="btn btn-primary" disabled={!toUserId(p.name)}>Add senior</button>
+          {msg && <p role="status" className="text-[12.5px] text-ok">{msg}</p>}
+          {err && <p role="alert" className="text-[12.5px] text-crit">{err}</p>}
+        </div>
+      </form>
+    </details>
+  );
+}
+
 function Inner() {
   const [persons, setPersons] = useState<Person[]>([]);
   const [subs, setSubs] = useState<string[]>([]);
@@ -121,13 +176,16 @@ function Inner() {
     }
   }, []);
 
+  const loadPersons = useCallback(async () => setPersons(await admin.persons()), []);
+
   useEffect(() => {
     void (async () => {
       try {
         const [p, docs] = await Promise.all([admin.persons(), admin.documents()]);
+        const me = getMe();
         setPersons(p);
-        setOwner((o) => o || p[0]?.id || "");
-        setEnteredBy((o) => o || p[0]?.id || "");
+        setOwner((o) => o || (me.role === "senior" ? me.id : p[0]?.id) || "");
+        setEnteredBy((o) => o || me.id);
         const ids = [...new Set(docs.map((d: DocRow) => d.subsystem))].sort();
         setSubs(ids);
         setSubsystem((s) => s || ids[0] || "");
@@ -196,7 +254,9 @@ function Inner() {
           <Pane title="Add knowledge">
             <form onSubmit={submit} className="space-y-3">
               <Field label="Owner (whose knowledge it is; only they can sign it)">{personSelect(owner, setOwner, "Owner")}</Field>
-              <Field label="Entered by (who is typing it)">{personSelect(enteredBy, setEnteredBy, "Entered by")}</Field>
+              <Field label="Entered by (who is typing it: anyone, e.g. a junior writing down what a senior said)">
+                <input className="field w-full" aria-label="Entered by" required value={enteredBy} onChange={(e) => setEnteredBy(e.target.value)} />
+              </Field>
               <Field label="Kind">
                 <select className="field w-full" value={kind} onChange={(e) => setKind(e.target.value)}>
                   <option value="note">note</option>
@@ -226,6 +286,7 @@ function Inner() {
               <button type="submit" className="btn btn-primary" disabled={!owner || !subsystem}>Save as draft</button>
               {msg && <p role="status" className="text-[12.5px] text-ok">{msg}</p>}
             </form>
+            <AddPerson onAdded={loadPersons} />
           </Pane>
           </SplitPane>
           <SplitPane direction="vertical" id="knowledge-right" label="pending and approved notes" initial={0.5} minFirst={120} minSecond={120}>

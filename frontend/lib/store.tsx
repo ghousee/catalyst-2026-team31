@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { excerptOf, fmtTime } from "./format";
+import { getMe } from "./me";
 import type {
   ChatAnswer,
   ChatClarify,
@@ -18,7 +19,8 @@ import type {
   Source,
 } from "./types";
 
-export const USER_ID = "newhire1";
+/** The current user id, read at call time (the top-bar picker can change it). */
+export const userId = () => getMe().id;
 
 export interface TermLine {
   id: number;
@@ -139,7 +141,7 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
           .filter((m): m is Extract<ChatMsg, { kind: "answer" }> => m.kind === "answer")
           .slice(-3)
           .map((m) => ({ question: m.question, reply: m.data.reply }));
-        const res = await api.chat({ user_id: USER_ID, question: q, context_override, history });
+        const res = await api.chat({ user_id: userId(), question: q, context_override, history });
         if (res.type === "clarify") {
           push({ kind: "clarify", question: q, data: res, resolved: null });
         } else if (res.type === "refer") {
@@ -229,7 +231,7 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
   );
 
   const referExpert = useCallback(async (e: Expert, question: string) => {
-    const r = await api.refer({ expert_id: e.id, question, context: null, from_user: USER_ID });
+    const r = await api.refer({ expert_id: e.id, question, context: null, from_user: userId() });
     return r.referral_id;
   }, []);
 

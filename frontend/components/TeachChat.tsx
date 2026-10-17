@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { admin, subName, type Person, type TeachDraft, type TeachMessage } from "@/lib/admin";
+import { getMe } from "@/lib/me";
 
 const LABELS: [keyof TeachDraft, string][] = [
   ["trigger_text", "When you see this"],
@@ -19,7 +20,8 @@ export function TeachChat({ persons, subs, onSaved }: { persons: Person[]; subs:
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const owner = who || persons[0]?.id || "";
+  const me = getMe();
+  const owner = who || (me.role === "senior" && persons.some((p) => p.id === me.id) ? me.id : persons[0]?.id) || "";
 
   const reset = () => {
     setMsgs([]);

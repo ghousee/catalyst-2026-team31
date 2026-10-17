@@ -25,12 +25,16 @@ export interface LearningMap {
   veterans: { id: string; name: string; notes: number }[];
   gaps: { subsystems: string[]; events: { id: string; name: string; subsystem: string }[] };
   recent: { ts: string; question: string; outcome: string; subsystem: string | null }[];
+  /** the operator's own starting level per subsystem (self-reported) */
+  self_levels: Record<string, Level>;
 }
 
-async function get<T>(path: string): Promise<T> {
+export type Level = "new" | "some" | "confident";
+
+async function get<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`);
+    res = await fetch(`${API_URL}${path}`, init);
   } catch {
     throw new Error(`Cannot reach API at ${API_URL}`);
   }
@@ -44,4 +48,10 @@ async function get<T>(path: string): Promise<T> {
 export const learning = {
   users: () => get<LearningUser[]>("/learning/users"),
   map: (userId: string) => get<LearningMap>(`/learning/${encodeURIComponent(userId)}`),
+  setLevels: (userId: string, levels: Record<string, Level>) =>
+    get<LearningMap>(`/learning/${encodeURIComponent(userId)}/self`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ levels }),
+    }),
 };

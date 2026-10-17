@@ -4,7 +4,7 @@ import { FlaskConical, Play, TerminalSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { fmtTime } from "@/lib/format";
-import { USER_ID, useConsole } from "@/lib/store";
+import { useConsole, userId } from "@/lib/store";
 import type { DryRun, ExecuteResponse, Proposal } from "@/lib/types";
 import { ApprovalControls, type Stage } from "./ApprovalControls";
 import { Badge } from "./Badge";
@@ -54,7 +54,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
       setError(null);
       setStage("approving");
       try {
-        const r = await api.approve(p.id, { user_id: USER_ID, typed_node: typedNode, second_approver: second });
+        const r = await api.approve(p.id, { user_id: userId(), typed_node: typedNode, second_approver: second });
         setReason(r.reason);
         setStage(r.status === "approved" ? "approved" : r.status === "needs_second_approver" ? "waiting" : "rejected");
       } catch (e) {

@@ -230,9 +230,9 @@ retrieved. Approved notes linked to a changed/removed chunk get `needs_review: t
 - `debug.note_sims` / `debug.notes_below_cutoff`: cosine of the notes offered to / withheld from Qwen.
 
 ## GET /learning/users  → `[ { "user_id": "newhire1", "questions": 40, "last_seen": "2026-10-17 12:00:00+00" } ]`
-Operators seen in `answer_log`, most questions first; test/script ids (`eval`, `conncheck`, `check`, `t`, `test`, `cli`) are left out.
+Operators seen in `answer_log` or `self_level` (a new junior who only set a starting level shows with 0 questions), most questions first; test/script ids (`eval`, `conncheck`, `check`, `t`, `test`, `cli`) are left out.
 
-## GET /learning/{user_id}  → learning map (404 if the id is a test id or has no logged questions)
+## GET /learning/{user_id}  → learning map (404 only for a test id; a brand-new junior gets an empty map)
 What the operator has *encountered* through questions, not a test of knowledge.
 ```json
 { "user_id": "newhire1",
@@ -245,6 +245,11 @@ What the operator has *encountered* through questions, not a test of knowledge.
   "gaps": { "subsystems": ["FUP"], "events": [ { "id": "evt:TMF-187", "name": "...", "subsystem": "TMF (TMFCOM)" } ] },
   "recent": [ { "ts": "...", "question": "...", "outcome": "answer", "subsystem": "TMF (TMFCOM)" } ] }
 ```
+Also `"self_levels": { "sub:TMF": "some" }`: the junior's own starting level (self-reported, never used to answer).
+
+## PUT /learning/{user_id}/self  `{ "levels": { "sub:TMF": "new"|"some"|"confident" } }` → the learning map
+422 on an unknown subsystem or level. Upserts; leaving a subsystem out keeps its old level.
+
 Entities touched = entities the cited veteran notes and manual sections are linked to (`about` edges); coverage = touched / entities of that subsystem.
 
 ## POST /knowledge/teach  (Teach chat)

@@ -31,6 +31,7 @@ import { NodeSwitcher } from "./NodeSwitcher";
 import { SourceDialog } from "./SourceDialog";
 import { Sparkline } from "./Sparkline";
 import { ThemeToggle } from "./ThemeToggle";
+import { WhoAmI } from "./WhoAmI";
 
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph" | "learning";
 
@@ -357,7 +358,7 @@ function WorkspaceShell() {
         <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-panel px-4 sm:px-6">
           <button type="button" className="btn px-2 lg:hidden" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={17} /></button>
           <div className="hidden min-w-0 flex-1 sm:block"><label className="relative block max-w-md"><Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="field h-8 w-full pl-8" placeholder="Search systems, investigations, knowledge" aria-label="Global search" /></label></div>
-          <div className="ml-auto flex items-center gap-3"><span className="hidden text-xs text-warn md:inline">Demo mode</span><NodeSwitcher /><ThemeToggle /><button type="button" className="btn h-8 w-8 px-0" aria-label="Help"><CircleHelp size={15} /></button></div>
+          <div className="ml-auto flex items-center gap-3"><span className="hidden text-xs text-warn md:inline">Demo mode</span><WhoAmI onNewJunior={() => navigate("learning")} /><NodeSwitcher /><ThemeToggle /><button type="button" className="btn h-8 w-8 px-0" aria-label="Help"><CircleHelp size={15} /></button></div>
         </header>
         <div className="flex h-7 shrink-0 items-center gap-2 border-b border-line bg-panel2 px-4 text-[11.5px] text-muted sm:px-6"><span className="font-medium text-fg">Synthetic data</span><span className="hidden sm:inline">· no production infrastructure connected · suggestions are advisory</span><span className="num ml-auto hidden text-[11px] lg:inline">live: {live}{demo ? ` | demo: ${demo}` : ""}</span></div>
         <main className="scroll min-h-0 flex-1 overflow-y-auto">

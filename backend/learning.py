@@ -1,6 +1,7 @@
 """Learning map: what an operator has encountered through /chat (answer_log), per subsystem.
 Not a test of knowledge. `shape_map` and `real_users` are pure (unit-tested); the routes only run simple queries."""
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from backend.pipeline.answer import _rows, connect
 
@@ -84,25 +85,68 @@ def shape_map(user_id, logs, entities, notes, docs, edges):
     }
 
 
+LEVELS = ("new", "some", "confident")
+
+
+def check_levels(levels, known_subsystems):
+    """{sub_id: level} from the UI -> list of (sub_id, level); raises ValueError on an unknown subsystem or level."""
+    out = []
+    for sub, level in levels.items():
+        if sub not in known_subsystems:
+            raise ValueError(f"unknown subsystem {sub}")
+        if level not in LEVELS:
+            raise ValueError(f"level must be one of {', '.join(LEVELS)}")
+        out.append((sub, level))
+    return out
+
+
 router = APIRouter()
+
+
+class LevelsIn(BaseModel):
+    levels: dict[str, str]
+
+
+def _check_user(user_id):
+    if not user_id.strip() or user_id.strip().lower() in TEST_USERS:
+        raise HTTPException(404, "not an operator id")
 
 
 @router.get("/learning/users")
 def learning_users():
     with connect() as conn:
-        rows = _rows(conn, "SELECT user_id, count(*) AS questions, max(ts)::text AS last_seen FROM answer_log GROUP BY user_id")
+        rows = _rows(conn, "SELECT user_id, count(*) FILTER (WHERE q) AS questions, max(ts)::text AS last_seen FROM ("
+                           "  SELECT user_id, ts, TRUE AS q FROM answer_log"
+                           "  UNION ALL SELECT user_id, set_at, FALSE FROM self_level) x GROUP BY user_id")
     return real_users(rows)
+
+
+@router.put("/learning/{user_id}/self")
+def set_self_levels(user_id: str, body: LevelsIn):
+    """A junior's own starting level per subsystem (self-reported; never used to answer)."""
+    _check_user(user_id)
+    with connect() as conn:
+        subs = {r["id"] for r in _rows(conn, "SELECT id FROM entity WHERE kind = 'system'")}
+        try:
+            rows = check_levels(body.levels, subs)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        for sub, level in rows:
+            conn.execute("INSERT INTO self_level (user_id, system_id, level) VALUES (%s,%s,%s) ON CONFLICT (user_id, system_id) "
+                         "DO UPDATE SET level = EXCLUDED.level, set_at = now()", (user_id, sub, level))
+        conn.commit()
+    return learning(user_id)
 
 
 @router.get("/learning/{user_id}")
 def learning(user_id: str):
-    if user_id.strip().lower() in TEST_USERS:
-        raise HTTPException(404, "not an operator id")
+    """Always returns a map for an operator id; a brand-new junior gets an empty one (0 questions)."""
+    _check_user(user_id)
     with connect() as conn:
         logs = _rows(conn, "SELECT ts::text AS ts, question, outcome, context->>'system' AS system, citations "
                            "FROM answer_log WHERE user_id = %s ORDER BY ts DESC, id DESC", (user_id,))
-        if not logs:
-            raise HTTPException(404, f"no questions logged for {user_id}")
+        levels = {r["system_id"]: r["level"] for r in _rows(
+            conn, "SELECT system_id, level FROM self_level WHERE user_id = %s", (user_id,))}
         ids = sorted({c for lg in logs for c in lg["citations"] or []})
         ents = _rows(conn, "SELECT id, kind, name, parent_id FROM entity WHERE kind = 'system' OR parent_id IS NOT NULL ORDER BY id")
         notes = {r["id"]: r for r in _rows(
@@ -110,4 +154,4 @@ def learning(user_id: str):
                   "JOIN person p ON p.id = h.owner_id WHERE h.id = ANY(%s)", (ids,))}
         docs = {r["id"]: r["system_id"] for r in _rows(conn, "SELECT id, system_id FROM doc_chunk WHERE id = ANY(%s)", (ids,))}
         edges = _rows(conn, "SELECT src, dst FROM edge WHERE rel = 'about' AND src = ANY(%s)", (ids,))
-    return shape_map(user_id, logs, ents, notes, docs, edges)
+    return {**shape_map(user_id, logs, ents, notes, docs, edges), "self_levels": levels}

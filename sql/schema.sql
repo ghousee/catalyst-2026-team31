@@ -124,6 +124,15 @@ CREATE TABLE answer_log (
   referred_to TEXT REFERENCES person(id)
 );
 
+-- a junior's own starting level per subsystem (005); self-reported, shown on the Learning map, never used to answer
+CREATE TABLE self_level (
+  user_id   TEXT NOT NULL,
+  system_id TEXT NOT NULL REFERENCES entity(id),
+  level     TEXT NOT NULL CHECK (level IN ('new','some','confident')),
+  set_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, system_id)
+);
+
 -- ---------- Referral loop (POST /refer, POST /refer/{id}/answer) ----------
 CREATE TABLE referral (
   id            TEXT PRIMARY KEY,           -- 'q88'

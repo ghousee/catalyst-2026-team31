@@ -56,3 +56,16 @@ def test_test_ids_are_not_operators():
     with pytest.raises(HTTPException) as e:
         L.learning("eval")
     assert e.value.status_code == 404
+
+
+def test_self_levels_are_checked():
+    assert L.check_levels({"sub:TMF": "some"}, {"sub:TMF"}) == [("sub:TMF", "some")]
+    with pytest.raises(ValueError):
+        L.check_levels({"sub:NOPE": "some"}, {"sub:TMF"})
+    with pytest.raises(ValueError):
+        L.check_levels({"sub:TMF": "expert"}, {"sub:TMF"})
+
+
+def test_blank_id_is_not_an_operator():
+    with pytest.raises(HTTPException):
+        L.learning("  ")

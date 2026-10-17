@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from backend.pipeline.answer import _rows, connect
 
-LINK_CAP = 500
+LINK_CAP = 20000  # send every link (~3.5k today): a lower cap cut off manual-extracted links and left their nodes floating
 NOTE_CAP = 200
 RECENT_N = 20
 

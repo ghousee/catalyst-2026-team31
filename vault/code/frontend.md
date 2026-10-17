@@ -107,3 +107,10 @@ Direction: a calm, dense operator's console, closer to a terminal tool than a Sa
 - **Type helpers:** `.label` (small semibold muted section label, sentence case, no uppercase eyebrows), `.code` (inline code), `.num` (mono figures).
 - **Assistant replies** (`ReplyText.tsx`): `` `code` `` renders as `<code>`, `**bold**` as strong, citations as inline bracketed numerals `[1]` (buttons opening the source card), cited sources as a footnote list. Lane/risk/approval labels remain in text.
 - Copy: no emoji or sparkles, no filler subtitles; "Summary", "Investigate".
+
+## Who is using the app (lib/me.ts, WhoAmI.tsx)
+Top-bar picker, remembered in localStorage (`cail.me`). Seniors = person rows (Teach/owner default to them);
+"New here?" starts a junior under any name -> their own Learning map (keyed by `toUserId(name)`). Chat, refer and
+approve send `userId()` read at call time (store.tsx). Learning map: "Said they know" column (PUT /learning/{id}/self,
+table `self_level`, migration 005) and "Share something you found" (POST /knowledge, owner = a senior, entered_by = the
+junior; draft until that senior signs). Knowledge page: "Add a senior" (POST /persons).

@@ -10,6 +10,17 @@ export interface Person {
   active: boolean;
 }
 
+export interface NewPerson {
+  id: string;
+  name: string;
+  role: string | null;
+  team: string | null;
+  years: number | null;
+  expertise: string[];
+  availability: string | null;
+  contact: string | null;
+}
+
 export interface NoteLink {
   rel: string;
   dst: string;
@@ -151,6 +162,7 @@ const enc = encodeURIComponent;
 
 export const admin = {
   persons: () => call<Person[]>("GET", "/persons"),
+  addPerson: (p: NewPerson) => call<Person>("POST", "/persons", p),
   notes: (status: "draft" | "approved" | "retired") => call<Note[]>("GET", `/knowledge?status=${status}`),
   addNote: (n: NewNote) => call<Note>("POST", "/knowledge", n),
   teach: (owner_id: string, messages: TeachMessage[]) =>
