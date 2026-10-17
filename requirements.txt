@@ -12,3 +12,4 @@ transformers      # MiniCheck-Flan-T5-Large via backend/pipeline/verify.py (mode
 sentencepiece
 pytest
 python-dotenv
+pyyaml
