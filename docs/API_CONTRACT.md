@@ -186,6 +186,10 @@ Implemented in `backend/knowledge.py` and `backend/documents.py`. Errors are `{"
 ## GET /persons
 `→ [ { "id": "lena", "name": "Lena Kowalski", "role": "...", "team": "...", "years": 19, "expertise": [...], "availability": "on_shift", "active": true } ]`
 
+## POST /persons
+`{ "id": "omar", "name": "Omar Haddad", "role"?, "team"?, "years"?, "expertise"?: [...], "availability"?: "on_shift"|"on_call"|"off_shift"|"retired", "contact"? }`
+→ the person (as GET, plus `contact`). 409 if the id exists, 422 on a bad id/availability. The new person can own, teach and sign notes at once.
+
 ## GET /knowledge?status=draft|approved|retired
 `→ [ Note ]` (all statuses when omitted). Note:
 ```json
@@ -198,6 +202,7 @@ Implemented in `backend/knowledge.py` and `backend/documents.py`. Errors are `{"
 
 ## POST /knowledge  → Note (status `draft`)
 `{ "owner_id", "entered_by", "kind": "note"|"warning_pattern", "trigger_text", "call_text", "why_text", "not_when_text", "node": "PROD"|"DR"|"ALL", "subsystem": "sub:TMF" }`
+`owner_id` must be a person; `entered_by` can be any user id (a junior writing down "Raj told me"). Only the owner can sign.
 `captured_via` = `interview` if `entered_by == owner_id`, else `referral`. Id = `<owner>:h<N>`. A draft is never retrieved.
 
 ## POST /knowledge/{id}/approve  `{ "signed_by": "lena" }`

@@ -37,3 +37,4 @@ Graph content and loader: [[graph]].
 
 ## 003 knowledge capture (2026-10-17)
 `sql/migrations/003_knowledge_capture.sql` (idempotent, folded into `schema.sql`): `heuristic.entered_by` (who typed it), `heuristic.needs_review`, `doc_chunk.loaded_at`.
+`004_open_entered_by.sql` drops the `entered_by` FK: any user id may type a note for a veteran; the owner still signs. New veterans: `POST /persons`.

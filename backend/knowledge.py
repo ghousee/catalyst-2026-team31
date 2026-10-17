@@ -21,6 +21,8 @@ from backend.pipeline.retrieve import hybrid_search
 LINKABLE = {"event", "object", "metric", "command", "component", "symptom", "alarm", "procedure"}
 NODE_ID = {"PROD": "node:PROD", "DR": "node:DR", "ALL": None}
 STATUSES = ("draft", "approved", "retired")
+AVAILABILITY = ("on_shift", "on_call", "off_shift", "retired")
+PERSON_ID = re.compile(r"[a-z][a-z0-9_]{1,31}")
 
 
 # ---------------------------------------------------------------- pure parts (unit-tested)
@@ -132,6 +134,17 @@ class KnowledgeIn(BaseModel):
     subsystem: str
 
 
+class PersonIn(BaseModel):
+    id: str
+    name: str
+    role: str | None = None
+    team: str | None = None
+    years: int | None = None
+    expertise: list[str] = []
+    availability: str | None = None
+    contact: str | None = None
+
+
 class SignIn(BaseModel):
     signed_by: str
 
@@ -146,6 +159,29 @@ def persons():
     with connect() as conn:
         rows = _rows(conn, "SELECT id, name, role, team, years, expertise, availability, active FROM person ORDER BY name")
     return [{**r, "expertise": list(r["expertise"] or [])} for r in rows]
+
+
+@router.post("/persons")
+def add_person(body: PersonIn):
+    """Add a veteran so they can own, teach and sign notes."""
+    pid = body.id.strip().lower()
+    if not PERSON_ID.fullmatch(pid):
+        raise HTTPException(422, "id must be lowercase letters, digits or _ (e.g. 'omar')")
+    if not body.name.strip():
+        raise HTTPException(422, "name is required")
+    if body.availability is not None and body.availability not in AVAILABILITY:
+        raise HTTPException(422, f"availability must be one of {', '.join(AVAILABILITY)}")
+    with connect() as conn:
+        if _rows(conn, "SELECT 1 FROM person WHERE id = %s", (pid,)):
+            raise HTTPException(409, f"person {pid} already exists")
+        conn.execute("INSERT INTO person (id, name, role, team, years, expertise, availability, active, contact) "
+                     "VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,%s)",
+                     (pid, body.name.strip(), body.role, body.team, body.years, body.expertise, body.availability,
+                      body.contact))
+        conn.commit()
+        row = _rows(conn, "SELECT id, name, role, team, years, expertise, availability, active, contact FROM person "
+                          "WHERE id = %s", (pid,))[0]
+    return {**row, "expertise": list(row["expertise"] or [])}
 
 
 @router.get("/knowledge")
@@ -169,10 +205,11 @@ def create_knowledge(body: KnowledgeIn):
     if not body.trigger_text.strip() or not body.call_text.strip():
         raise HTTPException(422, "trigger_text and call_text are required")
     with connect() as conn:
-        people = {r["id"] for r in _rows(conn, "SELECT id FROM person")}
-        for who in (body.owner_id, body.entered_by):
-            if who not in people:
-                raise HTTPException(404, f"unknown person {who}")
+        # the owner must be a person (they sign it); whoever typed it can be any user, e.g. a junior ("Raj told me")
+        if not _rows(conn, "SELECT 1 FROM person WHERE id = %s", (body.owner_id,)):
+            raise HTTPException(404, f"unknown person {body.owner_id}")
+        if not body.entered_by.strip():
+            raise HTTPException(422, "entered_by is required")
         if not _rows(conn, "SELECT 1 FROM entity WHERE id = %s AND kind = 'system'", (body.subsystem,)):
             raise HTTPException(422, f"unknown subsystem {body.subsystem}")
         nid = next_note_id(body.owner_id, [r["id"] for r in _rows(

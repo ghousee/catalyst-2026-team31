@@ -81,7 +81,7 @@ CREATE TABLE heuristic (
   captured_at   DATE,
   signed_by     TEXT REFERENCES person(id), -- nothing goes live unsigned (design 8)
   signed_at     DATE,
-  entered_by    TEXT REFERENCES person(id), -- who typed it (003); owner signs, a colleague may enter
+  entered_by    TEXT,                      -- who typed it: any user id (003, 004); the owner signs
   needs_review  BOOLEAN NOT NULL DEFAULT FALSE,  -- linked manual section changed since signing (003)
   embedding     vector(768),
   CHECK ((version_id IS NULL) = all_versions),
