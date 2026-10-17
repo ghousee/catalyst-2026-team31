@@ -16,7 +16,7 @@ from backend import settings
 from backend.graph.query import SHORT, _captured, fetch_notes, lookup, note_search, resolve, scope_text
 from backend.ingest.embedder import embed_query
 from backend.pipeline import gate, generate, verify
-from backend.pipeline.retrieve import hybrid_search
+from backend.pipeline.retrieve import hybrid_search, query_terms
 
 VERIFY_THRESHOLD = float(os.getenv("VERIFY_THRESHOLD", "0.5"))
 GEN_CHARS = 1800   # per-source text handed to Qwen (MiniCheck sees the full text)
@@ -24,6 +24,7 @@ MAX_DOCS = 6
 MAX_CLAIMS = 4     # fewer claims = faster generation + verification
 MAX_NOTES = 3      # veteran notes per answer (lookup returns them most-relevant first)
 SPECIFIC = {"event", "object", "command", "metric"}  # entity kinds that pin a question down
+VAGUE_TERMS = 5    # unmatched questions with this few content words get a clarifying question
 
 # the manual as the speaker ("the manual recommends X", "according to the documentation"); a veteran saying
 # "don't rely on the manual's X" is legitimate (that is the contradicts-the-manual feature) and must pass
@@ -88,7 +89,8 @@ def warm():
 
 
 def _rows(conn, sql, params=()):
-    cur = conn.execute(sql, params)
+    # no params -> pass None, else psycopg reads a literal '%' (LIKE 'sub:%') as a placeholder and raises
+    cur = conn.execute(sql, params or None)
     cols = [d.name for d in cur.description]
     return [dict(zip(cols, r)) for r in cur.fetchall()]
 
@@ -158,18 +160,26 @@ def _clarify(conn, question, kind, current=None):
         return {"type": "clarify", "question": f"You are connected to {current} but mention another node. "
                                                "Which node do you mean?",
                 "options": [{"label": "\\" + r["name"], "value": {"site": r["id"]}} for r in rows]}
-    if kind == "vague":
-        # only a whole subsystem matched ("the disk is acting up"): ask for the symptom, offer that area first
-        ex = _rows(conn, "SELECT name FROM entity WHERE parent_id = %s AND kind IN ('event', 'object') "
-                         "ORDER BY kind, id LIMIT 3", (current,))
-        examples = "; ".join(r["name"] for r in ex)
-        rows = _rows(conn, "SELECT id, name FROM entity WHERE id = %s", (current,))
-        q = "Can you be more specific? What exactly are you seeing" + (f" (for example: {examples})" if examples else "")
-        return {"type": "clarify", "question": q + "? Rephrase with the symptom, or continue with the general area:",
-                "options": [{"label": r["name"], "value": {"system": r["id"]}} for r in rows]}
     rows = _rows(conn, "SELECT id, name FROM entity WHERE id LIKE 'sub:%' ORDER BY id")
-    return {"type": "clarify", "question": "Which subsystem is this about?",
+    q = ("Can you be more specific? Which system is this about, and what exactly are you seeing "
+         "(an EMS event number, an error text, a command output)?" if kind == "vague"
+         else "Which subsystem is this about?")
+    return {"type": "clarify", "question": q,
             "options": [{"label": r["name"], "value": {"system": r["id"]}} for r in rows]}
+
+
+def is_vague(question):
+    """Too little to go on ("its slow", "how do i fix it"): at most VAGUE_TERMS content words."""
+    return len(query_terms(question)) <= VAGUE_TERMS
+
+
+def subsystem_from_hits(hits, min_share=3):
+    """Subsystem most of the top manual hits agree on (>= min_share of them), else None."""
+    counts = {}
+    for h in hits:
+        counts[h["system_id"]] = counts.get(h["system_id"], 0) + 1
+    best = max(counts.items(), key=lambda kv: kv[1], default=(None, 0))
+    return best[0] if best[1] >= min_share else None
 
 
 # ---------------------------------------------------------------- the pipeline
@@ -185,20 +195,27 @@ def answer(question, session, override=None):
         if not override.get("site") and any(n != session["node"] for n in r["nodes_mentioned"]):
             return _clarify(conn, question, "node", current="\\" + session["node"].split(":", 1)[1])
         sub = override.get("system") or r["subsystem"]
+        qvec = None
+        if not sub and not r["entities"]:
+            # nothing in the graph matched: too vague -> ask; otherwise let the manuals say which subsystem it is
+            if is_vague(question):
+                return _clarify(conn, question, "vague")
+            t = time.perf_counter()
+            qvec = embed_query(question)
+            sub = subsystem_from_hits(hybrid_search(conn, question, qvec, None, k=5))
+            _ms(st, "infer_subsystem", t)
+            if not sub:
+                gate_info = {"sufficient": False, "reason": "no entity in the knowledge graph matches the question"}
+                return {"type": "refer", "reason": "Nothing in the knowledge base matches this question.",
+                        "context": {"system": "", "version": series, "site": node, "display": _display(node, series),
+                                    "confidence": 0.0},
+                        "experts": _all_experts(conn),
+                        "quality": _quality(st, t_start, gate_info, 0.0, "session+graph"),
+                        "debug": {"stages_ms": st, "entities": []}}
         if not sub:
-            if r["entities"]:
-                return _clarify(conn, question, "subsystem")
-            # nothing in the graph matches at all: out of scope -> refer, with a context that carries no subsystem
-            gate_info = {"sufficient": False, "reason": "no entity in the knowledge graph matches the question"}
-            return {"type": "refer", "reason": "Nothing in the knowledge base matches this question.",
-                    "context": {"system": "", "version": series, "site": node, "display": _display(node, series),
-                                "confidence": 0.0},
-                    "experts": _all_experts(conn),
-                    "quality": _quality(st, t_start, gate_info, 0.0, "session+graph"),
-                    "debug": {"stages_ms": st, "entities": []}}
+            return _clarify(conn, question, "subsystem")
+        # specific = the graph pinned an event/object/command/metric; subsystem-only matches go through the LLM gate
         specific = any(e["kind"] in SPECIFIC for e in r["entities"])
-        if not specific and not override.get("system"):
-            return _clarify(conn, question, "vague", current=sub)
         ctx = {"system": sub, "version": series, "site": node}
         context = {**ctx, "display": _display(node, series, sub),
                    "confidence": 1.0 if override.get("system") else 0.9}
@@ -209,7 +226,7 @@ def answer(question, session, override=None):
         _ms(st, "lookup", t)
 
         t = time.perf_counter()
-        qvec = embed_query(question)
+        qvec = qvec or embed_query(question)
         hits = hybrid_search(conn, question, qvec, {"system": sub, "version": None, "site": None}, k=5)
         _ms(st, "search", t)
 

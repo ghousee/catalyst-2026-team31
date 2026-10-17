@@ -111,11 +111,40 @@ def test_specific_graph_match_skips_gate(fake):
     assert r["type"] == "answer" and r["quality"]["gate"]["reason"].startswith("graph match")
 
 
-def test_vague_subsystem_only_question_clarifies(fake):
-    fake["resolved"] = {**fake["resolved"], "subsystem": "sub:SCF-STORAGE",
-                        "entities": [{"id": "sub:SCF-STORAGE", "kind": "system", "name": "SCF Storage", "matched": "disk"}]}
-    r = A.answer("the disk is acting up", SESSION)
+def test_subsystem_only_match_goes_through_gate(fake):
+    # "one txn shows up as HUNG in tmfcom" names only a subsystem but is specific: no clarify, the LLM gate decides
+    fake["resolved"] = {**fake["resolved"], "entities": [{"id": "sub:TMF", "kind": "system", "name": "TMF", "matched": "tmfcom"}]}
+    fake["gate"] = False
+    r = A.answer("one txn shows up as HUNG in tmfcom, what does that mean?", SESSION)
+    assert r["type"] == "refer" and r["quality"]["gate"]["reason"] == "why"
+
+
+def test_unmatched_short_question_clarifies(fake):
+    fake["resolved"] = {"subsystem": None, "nodes_mentioned": [], "entities": []}
+    r = A.answer("its slow", SESSION)
     assert r["type"] == "clarify" and "more specific" in r["question"]
+
+
+def test_unmatched_long_question_infers_subsystem_from_manuals(fake, monkeypatch):
+    fake["resolved"] = {"subsystem": None, "nodes_mentioned": [], "entities": []}
+    monkeypatch.setattr(A, "hybrid_search", lambda *a, **k: [{"id": f"doc:{i}", "text": "t", "system_id": "sub:TMF"} for i in range(4)])
+    fake["claims"] = [{"claim": "a", "source_id": "doc:TMF-Reference:x"}]
+    fake["scores"] = {"a": 0.9}
+    r = A.answer("abort of a txn just leaves it hung because of data errors on a file, what now", SESSION)
+    assert r["type"] == "answer" and r["context"]["system"] == "sub:TMF"
+
+
+def test_unmatched_long_question_without_agreement_refers(fake, monkeypatch):
+    fake["resolved"] = {"subsystem": None, "nodes_mentioned": [], "entities": []}
+    monkeypatch.setattr(A, "_all_experts", lambda conn: [EXPERT])
+    r = A.answer("how do i set up replication so dr copies everything from prod nightly", SESSION)
+    assert r["type"] == "refer"
+
+
+def test_subsystem_from_hits():
+    hits = [{"system_id": s} for s in ["sub:TMF", "sub:TMF", "sub:TMF", "sub:FUP", "sub:TACL"]]
+    assert A.subsystem_from_hits(hits) == "sub:TMF"
+    assert A.subsystem_from_hits(hits[2:]) is None
 
 
 def test_misattributed_claims_are_dropped(fake):
