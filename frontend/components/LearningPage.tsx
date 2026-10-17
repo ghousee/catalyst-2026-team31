@@ -1,40 +1,20 @@
 "use client";
 
+import { BookMarked, Compass, MessageCircleQuestion, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { admin, type Person } from "@/lib/admin";
 import { usePolling } from "@/lib/hooks";
 import { learning, type Level, type LearningMap, type LearningSubsystem } from "@/lib/learning";
 import { useMe } from "@/lib/me";
 import { SplitPane } from "./SplitPane";
+import { CountUp, PageHeader, Panel as UiPanel, Skeleton, StatCard, SubPill, hueStyle } from "./ui";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const when = (ts: string | null) => (ts ? ts.slice(0, 16).replace("T", " ") : "never");
 
-function Tile({ label, value, note }: { label: string; value: number | string; note: string }) {
-  return (
-    <div className="min-w-0 lg:px-5 lg:first:pl-0">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="num mt-0.5 text-xl font-medium leading-tight">{value}</dd>
-      <dd className="mt-0.5 text-[11.5px] leading-4 text-muted">{note}</dd>
-    </div>
-  );
-}
+const Strip = ({ children }: { children: ReactNode }) => <dl className="stagger grid grid-cols-2 gap-4 lg:grid-cols-4">{children}</dl>;
 
-function Strip({ cols, children }: { cols: string; children: ReactNode }) {
-  return <dl className={`grid grid-cols-2 gap-y-4 border-y border-line py-3 lg:gap-y-0 lg:divide-x lg:divide-line ${cols}`}>{children}</dl>;
-}
-
-function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
-  return (
-    <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded border border-line bg-panel">
-      <div className="flex shrink-0 items-baseline gap-3 border-b border-line px-4 py-2">
-        <h3 className="shrink-0 text-[13px] font-semibold">{title}</h3>
-        {sub && <p className="truncate text-xs text-muted" title={sub}>{sub}</p>}
-      </div>
-      <div className="scroll min-h-0 flex-1 overflow-auto">{children}</div>
-    </section>
-  );
-}
+const Panel = (p: Omit<Parameters<typeof UiPanel>[0], "flush">) => <UiPanel flush {...p} />;
 
 const Empty = ({ text }: { text: string }) => <p className="px-4 py-3 text-sm text-muted">{text}</p>;
 
@@ -52,10 +32,7 @@ export function LearningPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="mb-4">
-        <h2 className="text-xl font-semibold tracking-tight text-fg">Learning map</h2>
-        <p className="mt-1 max-w-3xl text-[13px] text-muted">What this operator has encountered through questions, next to the starting level they gave themselves. Not a test. Live from the question log.</p>
-      </header>
+      <PageHeader title="Learning map" icon={<Compass size={18} aria-hidden="true" />} description="What this operator has encountered through questions, next to the starting level they gave themselves. Not a test. Live from the question log." />
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm">
           <span className="font-medium">Operator</span>
@@ -67,11 +44,11 @@ export function LearningPage() {
       </div>
       {mine && sharing && data && <ShareFinding me={me.id} subs={data.subsystems} onDone={() => setSharing(false)} />}
       {(users.error || map.error) && (
-        <p role="alert" className="mb-3 border-l-2 border-crit pl-3 text-sm text-crit">Learning map unavailable: {map.error ?? users.error}</p>
+        <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/10 p-3 text-sm text-crit">Learning map unavailable: {map.error ?? users.error}</p>
       )}
-      {!data && map.loading && <p className="text-sm text-muted">Loading...</p>}
+      {!data && map.loading && <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" role="status" aria-label="Loading"><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /><Skeleton className="h-28 w-full" /></div>}
       {data && data.totals.questions === 0 && (
-        <p className="mb-3 border-l-2 border-accent pl-3 text-sm">
+        <p className="mb-3 rounded-xl border border-sky/30 bg-skysoft p-3 text-sm">
           {mine ? "Welcome. Set your starting level for each subsystem below, then ask the AI Assistant anything; this map fills in as you go." : `${user} has not asked anything yet.`}
         </p>
       )}
@@ -104,7 +81,7 @@ function ShareFinding({ me, subs, onDone }: { me: string; subs: LearningSubsyste
     }
   };
   return (
-    <form onSubmit={submit} className="mb-4 grid gap-3 rounded border border-line bg-panel p-4 text-[13px] md:grid-cols-2">
+    <form onSubmit={submit} className="card rise mb-4 grid gap-3 p-4 text-[13px] md:grid-cols-2">
       <p className="text-muted md:col-span-2">Found something that worked? Write it down and pick a senior to confirm it. Your name stays on it as the person who found it.</p>
       <label className="space-y-1"><span className="text-xs text-muted">When you see this</span><textarea required className="field min-h-[56px] w-full" value={f.trigger_text} onChange={set("trigger_text")} /></label>
       <label className="space-y-1"><span className="text-xs text-muted">What worked</span><textarea required className="field min-h-[56px] w-full" value={f.call_text} onChange={set("call_text")} /></label>
@@ -127,23 +104,23 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
   const levels = d.self_levels ?? {};
   return (
     <>
-      <Strip cols="lg:grid-cols-4">
-        <Tile label="Questions asked" value={t.questions} note="logged answers, referrals and clarifications" />
-        <Tile label="Subsystems touched" value={`${t.subsystems_touched} of ${t.subsystems_total}`} note="a manual section or veteran note was cited" />
-        <Tile label="Veteran notes seen" value={t.notes_seen} note={`from ${d.veterans.length} veteran(s) · ${t.sections_cited} manual sections cited`} />
-        <Tile label="Coverage" value={pct(t.coverage)} note={`${t.entities_touched} of ${t.entities_total} events, objects, metrics and commands`} />
+      <Strip>
+        <StatCard hue="sky" icon={<MessageCircleQuestion size={18} aria-hidden="true" />} label="Questions asked" value={<CountUp value={t.questions} />} note="logged answers, referrals and clarifications" />
+        <StatCard hue="teal" icon={<Compass size={18} aria-hidden="true" />} label="Subsystems touched" value={<span><CountUp value={t.subsystems_touched} /> <span className="text-lg font-medium text-muted">of {t.subsystems_total}</span></span>} note="a manual section or veteran note was cited" />
+        <StatCard hue="amber" icon={<Users size={18} aria-hidden="true" />} label="Veteran notes seen" value={<CountUp value={t.notes_seen} />} note={`from ${d.veterans.length} veteran(s) · ${t.sections_cited} manual sections cited`} />
+        <StatCard hue="green" icon={<BookMarked size={18} aria-hidden="true" />} label="Coverage" value={<CountUp value={Math.round(t.coverage * 100)} suffix="%" />} note={`${t.entities_touched} of ${t.entities_total} events, objects, metrics and commands`} />
       </Strip>
-      <div className="mt-3 flex h-[70vh] min-h-[520px]">
+      <div className="mt-4 flex h-[70vh] min-h-[520px]">
         <SplitPane direction="horizontal" id="learning-main" label="subsystem table and the other lists" initial={0.62} minFirst={360} minSecond={260}>
           <Panel title="By subsystem" sub="Coverage = entities touched through cited notes and manual sections / entities in the subsystem">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-panel2 text-xs text-muted">
+              <thead className="sticky top-0 bg-skysoft text-xs text-muted">
                 <tr>{["Subsystem", "Said they know", "Questions", "Sections", "Notes", "Coverage", "Last seen"].map((c) => <th key={c} className="px-4 py-2 font-medium">{c}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {d.subsystems.map((s) => (
-                  <tr key={s.id} className="align-top hover:bg-panel2/40">
-                    <td className="px-4 py-2"><p className="font-medium">{s.name}</p><p className="font-mono text-[11px] text-muted">{s.id}</p></td>
+                  <tr key={s.id} className="align-top transition-colors hover:bg-skysoft/50">
+                    <td className="px-4 py-2"><SubPill name={s.name} /><p className="mt-1 font-mono text-[11px] text-muted">{s.id}</p></td>
                     <td className="px-4 py-2 text-xs">
                       {editable ? (
                         <select className="field h-8" aria-label={`Your starting level in ${s.name}`} value={levels[s.id] ?? ""}
@@ -152,7 +129,7 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
                           {(Object.keys(LEVEL_TEXT) as Level[]).map((l) => <option key={l} value={l}>{LEVEL_TEXT[l]}</option>)}
                         </select>
                       ) : (
-                        <span className={levels[s.id] ? "" : "text-muted"}>{levels[s.id] ? LEVEL_TEXT[levels[s.id]] : "not set"}</span>
+                        <span className={levels[s.id] ? "pill" : "text-muted"} style={hueStyle(levels[s.id] === "confident" ? "green" : levels[s.id] === "some" ? "sky" : "amber")}>{levels[s.id] ? LEVEL_TEXT[levels[s.id]] : "not set"}</span>
                       )}
                     </td>
                     <td className="px-4 py-2 tabular-nums">{s.questions}</td>
@@ -160,7 +137,7 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
                     <td className="px-4 py-2 text-xs">{s.notes.length ? s.notes.map((n) => <p key={n.id}><span className="font-mono text-[11px]">{n.id}</span> <span className="text-muted">{n.owner}</span></p>) : <span className="text-muted">none</span>}</td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2" role="img" aria-label={`${pct(s.coverage)} covered`}>
-                        <div className="h-1.5 w-24 overflow-hidden bg-panel2"><div className="h-full bg-accent" style={{ width: pct(s.coverage) }} /></div>
+                        <div className="h-2 w-28 overflow-hidden rounded-full bg-panel2"><div className="bar-grow h-full rounded-full bg-gradient-to-r from-sky to-navy2 transition-[width] duration-700" style={{ width: pct(s.coverage) }} /></div>
                         <span className="text-xs tabular-nums text-muted">{s.entities_touched}/{s.entities_total}</span>
                       </div>
                     </td>

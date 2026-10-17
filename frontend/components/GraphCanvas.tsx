@@ -11,19 +11,19 @@ import type { GraphSnapshot } from "@/lib/admin";
 type Kind = "system" | "event" | "object" | "metric" | "command" | "site" | "version" | "person" | "note" | "doc" | "other";
 
 const STYLE: Record<Kind, { color: string; shape: string; size: number; label: string }> = {
-  system: { color: "#475569", shape: "dot", size: 26, label: "Subsystem" },
-  event: { color: "#dc2626", shape: "dot", size: 15, label: "Event" },
-  object: { color: "#2563eb", shape: "dot", size: 15, label: "Object" },
-  metric: { color: "#0891b2", shape: "dot", size: 13, label: "Metric" },
-  command: { color: "#16a34a", shape: "diamond", size: 13, label: "Command" },
-  site: { color: "#c2410c", shape: "hexagon", size: 20, label: "Node" },
+  system: { color: "#1b56b2", shape: "dot", size: 26, label: "Subsystem" },
+  event: { color: "#e5484d", shape: "dot", size: 15, label: "Event" },
+  object: { color: "#38a8f0", shape: "dot", size: 15, label: "Object" },
+  metric: { color: "#0e9aa7", shape: "dot", size: 13, label: "Metric" },
+  command: { color: "#2fa05b", shape: "diamond", size: 13, label: "Command" },
+  site: { color: "#d9480f", shape: "hexagon", size: 20, label: "Node" },
   version: { color: "#94a3b8", shape: "hexagon", size: 12, label: "Series" },
-  person: { color: "#7c3aed", shape: "star", size: 24, label: "Veteran" },
-  note: { color: "#d97706", shape: "dot", size: 16, label: "Veteran note" },
-  doc: { color: "#94a3b8", shape: "box", size: 10, label: "Manual section" },
+  person: { color: "#6a3fc4", shape: "star", size: 24, label: "Veteran" },
+  note: { color: "#e08a00", shape: "dot", size: 16, label: "Veteran note" },
+  doc: { color: "#a9bbd3", shape: "box", size: 10, label: "Manual section" },
   other: { color: "#9ca3af", shape: "dot", size: 10, label: "Other" },
 };
-const REL_COLOR: Record<string, string> = { contradicts: "#dc2626", disagrees_with: "#ea580c", expert_in: "#7c3aed", precedes: "#b45309" };
+const REL_COLOR: Record<string, string> = { contradicts: "#e5484d", disagrees_with: "#ea580c", expert_in: "#6a3fc4", precedes: "#b45309" };
 
 type GNode = { id: string; kind: Kind; label: string; detail: Record<string, string> };
 
@@ -217,8 +217,8 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2" style={{ borderColor: REL_COLOR.contradicts }} aria-hidden="true" />contradicts</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <div ref={box} className="min-h-0 flex-1 rounded border border-line bg-panel" aria-label="Knowledge graph canvas" role="img" />
-        <aside className="scroll w-72 shrink-0 overflow-auto rounded border border-line bg-panel p-3 text-sm" aria-label="Selected node details">
+        <div ref={box} className="min-h-0 flex-1 rounded-xl border border-line bg-panel shadow-soft" aria-label="Knowledge graph canvas" role="img" />
+        <aside className="scroll w-72 shrink-0 overflow-auto rounded-xl border border-line bg-panel shadow-soft p-3 text-sm" aria-label="Selected node details">
           {!sel && <p className="text-muted">Click a node to see what it is and how it connects. Double-click to show only its neighbours.</p>}
           {sel && (
             <div className="space-y-3">
