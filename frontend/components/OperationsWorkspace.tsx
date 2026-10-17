@@ -59,15 +59,15 @@ function SectionTitle({ eyebrow, title, description }: { eyebrow?: string; title
 }
 
 function MetricCard({ label, value, note, icon, tone = "neutral" }: { label: string; value: string; note: string; icon: AppIconName; tone?: "neutral" | "ok" | "warn" | "crit" }) {
-  const iconTone = tone === "ok" ? "text-ok bg-ok/10" : tone === "warn" ? "text-warn bg-warn/10" : tone === "crit" ? "text-crit bg-crit/10" : "text-accent bg-accent/10";
+  const iconTone = tone === "ok" ? "text-ok" : tone === "warn" ? "text-warn" : tone === "crit" ? "text-crit" : "text-accent";
   return (
-    <article className="rounded-2xl border border-line bg-panel p-4 shadow-sm">
+    <article className="rounded-xl border border-line bg-panel p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-muted">{label}</p>
           <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
         </div>
-        <span className={`grid h-9 w-9 place-items-center rounded-xl ${iconTone}`}><AppIcon name={icon} size={19} /></span>
+        <span className={`grid h-8 w-8 place-items-center ${iconTone}`}><AppIcon name={icon} size={18} /></span>
       </div>
       <p className="mt-3 text-xs text-muted">{note}</p>
     </article>
@@ -80,7 +80,7 @@ function HealthCharts() {
   const { data, error, loading } = usePolling(() => (node ? api.getMetrics(node, "60m") : Promise.resolve(null)), 4000, node);
 
   return (
-    <section className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
+    <section className="rounded-xl border border-line bg-panel p-5">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">System health</h3>
@@ -132,15 +132,15 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Monitored systems" value="24" note="6 connected data sources" icon="systems" />
         <MetricCard label="Healthy" value="19" note="79% reporting normally" icon="overview" tone="ok" />
-        <MetricCard label="Warnings" value="3" note="Capacity and performance signals" icon="investigations" tone="warn" />
-        <MetricCard label="Active investigations" value={String(Math.max(2, active))} note="1 investigation needs review" icon="assistant" tone="crit" />
+        <MetricCard label="Needs attention" value="3" note="Capacity and performance signals" icon="investigations" tone="warn" />
+        <MetricCard label="Active investigations" value={alerts ? String(active) : "—"} note={active === 1 ? "1 investigation needs review" : active > 1 ? `${active} investigations need review` : "No investigations need review"} icon="assistant" tone="warn" />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         <HealthCharts />
       </div>
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-xl border border-line bg-panel">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
             <h3 className="font-semibold">Needs attention</h3>
@@ -151,9 +151,9 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
         <div className="border-b border-line bg-accent/[0.045] px-5 py-4">
           <div className="grid items-center gap-4 lg:grid-cols-[minmax(220px,0.75fr)_minmax(360px,1.5fr)_auto]">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><AppIcon name="assistant" size={21} /></span>
+              <span className="grid h-8 w-8 place-items-center text-accent"><AppIcon name="assistant" size={19} /></span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">AI operational summary</p>
+                <p className="text-xs font-semibold text-accent">AI operational summary</p>
                 <p className="mt-0.5 text-xs text-muted">Evidence checked 2 minutes ago</p>
               </div>
             </div>
@@ -168,7 +168,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">System</th><th className="px-4 py-3 font-medium">Health</th><th className="px-4 py-3 font-medium">Observation</th><th className="px-4 py-3 font-medium">Source</th><th className="px-5 py-3 font-medium">Updated</th></tr></thead>
             <tbody className="divide-y divide-line">
-              <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Pathway-02</td><td className="px-4 py-4"><span className="status-chip status-critical">Critical</span></td><td className="px-4 py-4">Audit capacity rising; file may be pinned</td><td className="px-4 py-4 text-muted">EMS simulator</td><td className="px-5 py-4 text-muted">Now</td></tr>
+              <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Pathway-02</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Audit capacity rising; file may be pinned</td><td className="px-4 py-4 text-muted">EMS simulator</td><td className="px-5 py-4 text-muted">Now</td></tr>
               <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Storage-03</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Disk path errors above baseline</td><td className="px-4 py-4 text-muted">Metrics feed</td><td className="px-5 py-4 text-muted">4 min ago</td></tr>
               <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Reports-01</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Queue latency approaching limit</td><td className="px-4 py-4 text-muted">Application health</td><td className="px-5 py-4 text-muted">8 min ago</td></tr>
             </tbody>
@@ -181,7 +181,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
 
 const SYSTEM_ROWS = [
   ["Payments-01", "TMF", "Production", "Healthy", "0", "Now"],
-  ["Pathway-02", "Pathway", "Production", "Critical", "3", "1 min ago"],
+  ["Pathway-02", "Pathway", "Production", "Warning", "3", "1 min ago"],
   ["Storage-03", "SCF Storage", "Production", "Warning", "1", "4 min ago"],
   ["Reports-01", "Pathway", "Test", "Warning", "1", "8 min ago"],
   ["Recovery-01", "TMF", "DR", "Healthy", "0", "2 min ago"],
@@ -531,7 +531,7 @@ function WorkspaceShell() {
     <div className="flex h-screen min-w-0 bg-bg text-fg">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-panel transition-transform lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-16 items-center gap-3 border-b border-line px-5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-sm font-bold text-white">C</span><div><p className="font-semibold leading-tight">CAIL</p><p className="text-[11px] text-muted">Operations Assistant</p></div><button type="button" className="ml-auto p-1 text-muted lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
-        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><AppIcon name={item.icon} size={18} />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-crit/10 px-2 py-0.5 text-[11px] text-crit">1</span>}</button>; })}</nav>
+        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><AppIcon name={item.icon} size={18} />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-warn/10 px-2 py-0.5 text-[11px] text-warn">1</span>}</button>; })}</nav>
         <div className="border-t border-line p-4"><div className="rounded-xl bg-panel2 p-3"><p className="flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-ok" />Advisory mode</p><p className="mt-1 text-[11px] leading-4 text-muted">No production execution or credentials.</p></div><p className="mt-3 text-[10px] text-muted">CAIL Catalyst 2026 prototype</p><a className="mt-1 block text-[10px] text-muted underline-offset-2 hover:underline" href="https://freeicons.io/icon-list/business-%26-management-%28line-style%29" target="_blank" rel="noreferrer">Icons by Nine One · Freeicons.io</a></div>
       </aside>
       {mobileOpen && <button className="fixed inset-0 z-30 bg-black/30 lg:hidden" aria-label="Close navigation backdrop" onClick={() => setMobileOpen(false)} />}
@@ -544,7 +544,7 @@ function WorkspaceShell() {
         </header>
         <div className="flex min-h-10 shrink-0 items-center gap-2 border-b border-accent/20 bg-accent/7 px-4 text-xs text-muted sm:px-6"><FlaskConical size={14} className="text-accent" /><strong className="text-fg">Synthetic data</strong><span className="hidden sm:inline">• No production infrastructure connected • Suggestions are advisory</span><span className="ml-auto hidden text-[11px] lg:inline">{USE_MOCKS ? "Mock services active" : "API mode"}</span></div>
         <main className="scroll min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto min-h-full max-w-[1500px] p-4 sm:p-6 lg:p-8">
+          <div className="min-h-full w-full p-4 sm:p-6 lg:p-6 xl:p-8">
             {sessionError && <div role="alert" className="mb-4 rounded-xl border border-crit/30 bg-crit/8 p-3 text-sm text-crit"><TriangleAlert className="mr-2 inline" size={16} />Session unavailable: {sessionError}</div>}
             {!session && !sessionError && <p className="text-sm text-muted">Connecting to the simulated session...</p>}
             <div className="mb-4 flex items-center gap-2 text-xs text-muted lg:hidden"><span>CAIL</span><ChevronRight size={12} /><span>{current}</span></div>
