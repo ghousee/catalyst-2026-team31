@@ -5,17 +5,24 @@ Usage:
   python eval/run_eval.py --config 1           # ablation: 1=plain RAG ... 4=full
   python eval/run_eval.py --golden eval/golden_template.jsonl
 
-Expects the API at http://localhost:8000/chat (see docs/API_CONTRACT.md), which accepts
-an optional "ablation" int for configs 1-4.
+Expects the API at http://localhost:8000 (override with EVAL_API_BASE; see docs/API_CONTRACT.md).
+/chat accepts an optional "ablation" int for configs 1-4. Items may carry a "node" ("node:PROD" /
+"node:DR"); it is sent via POST /session before the item so the session node is honoured.
+
+Optional golden fields (see eval/README.md): must_include (list of strings or any-of lists),
+must_not_include, forbidden_sources (ids, fnmatch globs ok), both_sides (list of any-of id groups).
+Every rate is printed with n and a 95% Wilson confidence interval.
 
 Contamination is computed from the DB, not from the API's own claims: every cited
 source_id is looked up in doc_chunk/heuristic (DATABASE_URL) and compared with the
 item's gold system. A citation whose source isn't in the DB counts as contaminated.
 """
-import argparse, csv, json, os, pathlib, sys, time
-import urllib.request
+import argparse, csv, fnmatch, json, math, os, pathlib, re, sys, time
+import urllib.error, urllib.request
 
-API = "http://localhost:8000/chat"
+BASE = os.environ.get("EVAL_API_BASE", "http://localhost:8000").rstrip("/")
+API = BASE + "/chat"
+SESSION = BASE + "/session"
 
 
 def call(question, ablation):
@@ -23,6 +30,25 @@ def call(question, ablation):
     req = urllib.request.Request(API, data=body, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.loads(r.read())
+
+
+def set_node(node):
+    """Switch the API session to `node` (POST /session) so context comes from the session."""
+    body = json.dumps({"node": node}).encode()
+    req = urllib.request.Request(SESSION, data=body, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read())
+
+
+def api_up():
+    """False only when the API can't be reached at all (an HTTP error still means it is up)."""
+    try:
+        urllib.request.urlopen(SESSION, timeout=5).read()
+    except urllib.error.HTTPError:
+        return True
+    except Exception:
+        return False
+    return True
 
 
 def cited_ids(resp):
@@ -43,6 +69,46 @@ def lookup_source_systems(ids, dsn):
     return dict(rows)
 
 
+def wilson(k, n, z=1.96):
+    """95% Wilson score interval (lo, hi) for k successes of n; (None, None) if n == 0."""
+    if n == 0:
+        return (None, None)
+    p = k / n
+    d = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / d
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def _norm(t):
+    return re.sub(r"\s+", " ", (t or "").replace("’", "'").lower())
+
+
+def claims_text(resp):
+    return _norm(" ".join(c.get("text", "") for c in resp.get("claims", [])))
+
+
+def includes_all(groups, text):
+    """Every group must match; a group is a phrase or a list of alternatives (any-of). Case-insensitive."""
+    text = _norm(text)
+    return all(any(_norm(a) in text for a in ([g] if isinstance(g, str) else g)) for g in groups)
+
+
+def includes_any(phrases, text):
+    text = _norm(text)
+    return any(_norm(p) in text for p in phrases)
+
+
+def forbidden_hits(patterns, cited):
+    """Cited ids matching any forbidden id or fnmatch glob (e.g. 'maria:*')."""
+    return [c for c in cited if c and any(fnmatch.fnmatchcase(c, p) for p in patterns)]
+
+
+def both_sides_ok(groups, cited):
+    """Each group (any-of source ids) must have at least one citation."""
+    return all(any(g in set(cited) for g in grp) for grp in groups)
+
+
 def contaminated(item, resp, source_systems):
     """True if an answer cites any source outside the gold system; None if not applicable.
 
@@ -59,6 +125,13 @@ def score(item, resp, source_systems):
     ctx = resp.get("context") or {}
     gold = set(item.get("gold_nodes") or [])
     claims = resp.get("claims", [])
+    is_answer = got == "answer"
+    text = claims_text(resp)
+    must = item.get("must_include") or []
+    must_not = item.get("must_not_include") or []
+    forb = item.get("forbidden_sources") or []
+    both = item.get("both_sides") or []
+    node_bad = bool(item.get("node") and ctx.get("site") and ctx.get("site") != item["node"])
     return {
         "id": item["id"],
         "category": item["category"],
@@ -67,13 +140,20 @@ def score(item, resp, source_systems):
         "behaviour_ok": got == expect,
         # clarify items have no gold context; answer/refer must resolve the gold system+version
         "context_ok": None if item["system"] is None else (ctx.get("system") == item["system"]
-                                                           and ctx.get("version") == item["version"]),
+                                                           and ctx.get("version") == item.get("version")
+                                                           and not node_bad),
         "retrieval_hit": bool(gold & set(cited)) if gold else None,
         "contaminated": contaminated(item, resp, source_systems),
         "false_refusal": expect == "answer" and got == "refer",
         "correct_refusal": expect == "refer" and got == "refer",
         "expert_ok": (item.get("expert") is None) or any(
-            e.get("id") == item["expert"] for e in resp.get("experts", [])),
+            e.get("id") == item["expert"] for e in resp.get("experts", []))
+            or any((c or "").startswith(item["expert"] + ":") for c in cited),
+        # only meaningful for answers; a wrong behaviour on an answer item fails it
+        "must_include_ok": (is_answer and includes_all(must, text)) if (must and expect == "answer") else None,
+        "must_not_ok": (not includes_any(must_not, text)) if (must_not and is_answer) else None,
+        "forbidden_clean": (not forbidden_hits(forb, cited)) if (forb and is_answer) else None,
+        "both_sides_ok": (is_answer and both_sides_ok(both, cited)) if both else None,
         "n_claims": len(claims),
         "dropped_claims": resp.get("dropped_claims", 0),
         "error": resp.get("error", ""),
@@ -84,7 +164,9 @@ def rate(rows, key, subset=None):
     xs = [r[key] for r in rows if (subset is None or subset(r)) and r[key] is not None]
     if not xs:
         return "n/a (0 items)"
-    return f"{sum(xs)}/{len(xs)} ({100*sum(xs)/len(xs):.0f}%)"
+    k, n = sum(xs), len(xs)
+    lo, hi = wilson(k, n)
+    return f"{k}/{n} ({100*k/n:.0f}%) 95% CI [{100*lo:.0f}-{100*hi:.0f}%] n={n}"
 
 
 def load_items(path):
@@ -105,10 +187,18 @@ def main():
         print(f"no items in {a.golden}; nothing to evaluate")
         return
 
+    if not api_up():
+        sys.exit(f"API not reachable at {BASE}: start the backend (see docs/API_CONTRACT.md) "
+                 "or set EVAL_API_BASE. Nothing was evaluated.")
+
     results = []
+    node = None
     for it in items:
         t0 = time.time()
         try:
+            if it.get("node") and it["node"] != node:
+                set_node(it["node"])
+                node = it["node"]
             resp = call(it["q"], a.config)
         except Exception as e:  # keep going; record failure
             resp = {"type": "error", "error": str(e)}
@@ -152,6 +242,12 @@ def main():
     print("correct refusals  ", rate(rows, "correct_refusal", lambda r: r["expect"] == "refer"))
     print("false refusals    ", rate(rows, "false_refusal", lambda r: r["expect"] == "answer"))
     print("expert routing    ", rate(rows, "expert_ok"))
+    print("must_include      ", rate(rows, "must_include_ok"))
+    print("must_not_include  ", rate(rows, "must_not_ok"), " (ok = no banned phrase)")
+    print("forbidden clean   ", rate(rows, "forbidden_clean"), " (ok = no forbidden source cited)")
+    print("both sides (conflict)", rate(rows, "both_sides_ok"))
+    for cat in sorted({r["category"] for r in rows}):
+        print(f"  behaviour[{cat}]".ljust(20), rate(rows, "behaviour_ok", lambda r, c=cat: r["category"] == c))
     print(f"unsupported claims {dropped}/{total_claims}")
 
 
