@@ -21,3 +21,5 @@ models/
 vault/.obsidian/workspace*.json
 vault/.obsidian/cache
 vault/.trash/
+# Claude Code agent worktrees (nested git checkouts)
+.claude/worktrees/
