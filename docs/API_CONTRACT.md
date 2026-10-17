@@ -18,6 +18,7 @@ Response is ONE of three `type`s:
 ```json
 {
   "type": "answer",
+  "answer_log_id": 123,
   "context": { "system": "sys:P-201", "version": "ver:P-201:v3", "site": "site:plant-2",
                "display": "P-201 · v3 · Plant 2", "confidence": 0.91 },
   "claims": [
@@ -36,6 +37,7 @@ Response is ONE of three `type`s:
 }
 ```
 `lane`: `doc` (🟢) | `veteran` (🟡).
+`answer_log_id`: id of the `answer_log` row for this response; the UI sends it back on `/feedback`.
 
 ### type = "clarify"
 ```json
@@ -71,7 +73,9 @@ UI resends `/chat` with `context_override` set. `clarify` has no `context` (it i
 ## POST /feedback
 ```json
 { "answer_log_id": 123, "source_id": "ravi:h12", "action": "endorse|wrong|outdated", "user_id": "ravi" }
+→ { "feedback_id": 9, "status": "recorded" }
 ```
+`answer_log_id` comes from the `answer` response.
 
 ## GET /alerts   (watcher, poll every 2s or SSE /alerts/stream)
 ```json
