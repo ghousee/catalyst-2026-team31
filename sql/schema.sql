@@ -77,6 +77,7 @@ CREATE TABLE edge (
 CREATE TABLE answer_log (
   id          BIGSERIAL PRIMARY KEY,
   ts          TIMESTAMPTZ DEFAULT now(),
+  user_id     TEXT,                         -- asker, e.g. 'newhire1' (not necessarily a person row)
   question    TEXT,
   context     JSONB,                        -- resolved system/version/site
   outcome     TEXT CHECK (outcome IN ('answer','clarify','refer')),
@@ -85,9 +86,51 @@ CREATE TABLE answer_log (
   referred_to TEXT REFERENCES person(id)
 );
 
+-- ---------- Referral loop (POST /refer, POST /refer/{id}/answer) ----------
+CREATE TABLE referral (
+  id            TEXT PRIMARY KEY,           -- 'q88'
+  ts            TIMESTAMPTZ DEFAULT now(),
+  from_user     TEXT NOT NULL,              -- 'newhire1'
+  expert_id     TEXT NOT NULL REFERENCES person(id),
+  question      TEXT NOT NULL,
+  context       JSONB,                      -- resolved context sent with the question
+  answer_log_id BIGINT REFERENCES answer_log(id),   -- the refer response that triggered it
+  status        TEXT DEFAULT 'sent' CHECK (status IN ('sent','answered','closed')),
+  answer        TEXT,
+  answered_at   TIMESTAMPTZ,
+  heuristic_id  TEXT REFERENCES heuristic(id)       -- set when saved as knowledge
+);
+
+-- ---------- Corrections (POST /feedback) ----------
+CREATE TABLE feedback (
+  id            BIGSERIAL PRIMARY KEY,
+  ts            TIMESTAMPTZ DEFAULT now(),
+  answer_log_id BIGINT NOT NULL REFERENCES answer_log(id),
+  source_id     TEXT NOT NULL,              -- doc_chunk.id or heuristic.id
+  action        TEXT NOT NULL CHECK (action IN ('endorse','wrong','outdated')),
+  user_id       TEXT NOT NULL
+);
+
+-- ---------- Watcher alerts (GET /alerts) ----------
+CREATE TABLE alert (
+  id            TEXT PRIMARY KEY,           -- 'al-7'
+  ts            TIMESTAMPTZ DEFAULT now(),
+  entity_id     TEXT NOT NULL REFERENCES entity(id),  -- the version node the pattern fired on
+  pattern_id    TEXT NOT NULL REFERENCES heuristic(id),
+  probability   REAL NOT NULL,
+  message       TEXT NOT NULL,
+  fix_claims    JSONB DEFAULT '[]',         -- same shape as /chat claims
+  backup_expert_id TEXT REFERENCES person(id),
+  signal        JSONB,                      -- the log/alarm rows that matched
+  acknowledged  BOOLEAN DEFAULT FALSE
+);
+
 CREATE INDEX ON doc_chunk (system_id, version_id, site_id);
 CREATE INDEX ON heuristic (system_id, version_id, site_id);
 CREATE INDEX ON edge (dst, rel);
+CREATE INDEX ON referral (expert_id, status);
+CREATE INDEX ON feedback (source_id);
+CREATE INDEX ON alert (ts DESC);
 -- After loading data:
 -- CREATE INDEX ON doc_chunk USING hnsw (embedding vector_cosine_ops);
 -- CREATE INDEX ON heuristic USING hnsw (embedding vector_cosine_ops);
