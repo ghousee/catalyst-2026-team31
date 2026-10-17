@@ -26,3 +26,11 @@ File: `sql/schema.sql`. Loaded by Docker on **first** start of an empty volume o
 - Vector dim 768 = embeddinggemma; **verified** against the pulled model (2026-10-17, [[rag spike]]).
 - Indexes created after load by `backend/ingest/loader.py:42` (GIN FTS on `to_tsvector('english', text)`, HNSW cosine); also listed in the schema.sql footer.
 - Verified loading in pgvector/pg16 on 2026-10-16 (all 9 tables, constraints reject bad rows).
+
+## Knowledge-graph migration (002, 2026-10-17)
+`sql/migrations/002_knowledge_graph.sql` (idempotent; `python -m backend.graph.migrate`) is also folded into `schema.sql`
+(line numbers above are approximate after the fold). Changes: entity kinds `event|command|metric|object` + `props JSONB`;
+person `team/years/expertise/availability`; heuristic `kind` (note|warning_pattern), `pattern` JSONB, `not_when_text`,
+`captured_via/at`, `signed_by/at`; edge `source_id` (every link citable) + `created_by` + rels `depends_on|diagnosed_by|mentions|applies_to`;
+doc_chunk `edition|doc_version|content_hash`. Manual chunks are now `all_versions = TRUE` ([[ADR-005 manual editions apply to all series]]).
+Graph content and loader: [[graph]].

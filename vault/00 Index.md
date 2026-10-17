@@ -28,6 +28,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[ADR-002 eval trusts DB not API]]
 - [[ADR-003 python stop hook]]
 - [[ADR-004 context dimensions]] (proposed)
+- [[ADR-005 manual editions apply to all series]]
 
 ## Research
 - [[rag spike]] — RAG feasibility on the HPE manuals: numbers and decisions (docs/RAG_SPIKE.md)

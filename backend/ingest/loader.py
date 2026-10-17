@@ -3,9 +3,11 @@
     python -m backend.ingest.loader [--manual TMF-Reference ...] [--no-embed] [--cpu]
 
 Idempotent per manual: deletes that manual's doc_chunk rows (id prefix 'doc:<manual>:') then re-inserts.
-Docs are tagged all_sites = true (site_id NULL), version_id per manuals.py, all_versions = false.
+Docs are tagged all_sites = true (site_id NULL) and all_versions = true (version_id NULL, ADR-005); the real
+edition goes in doc_chunk.edition / doc_version, content_hash = sha256(text).
 """
 import argparse
+import hashlib
 import time
 
 import psycopg
@@ -59,9 +61,11 @@ def load_manual(conn, key, embed=True, cpu=False):
         for c, v in zip(chunks, vecs):
             cur.execute(
                 """INSERT INTO doc_chunk (id, source_file, section, text, system_id, version_id, site_id,
-                                          all_versions, all_sites, valid_from, embedding)
-                   VALUES (%s,%s,%s,%s,%s,%s,NULL,FALSE,TRUE,%s,%s)""",
-                (c.id, f"data/raw/hpe/{key}.txt", c.section, c.text, m.system_id, m.version_id, m.published, v))
+                                          all_versions, all_sites, valid_from, embedding,
+                                          edition, doc_version, content_hash)
+                   VALUES (%s,%s,%s,%s,%s,NULL,NULL,TRUE,TRUE,%s,%s,%s,%s,%s)""",
+                (c.id, f"data/raw/hpe/{key}.txt", c.section, c.text, m.system_id, m.published, v,
+                 m.edition_label, m.doc_version, hashlib.sha256(c.text.encode("utf-8")).hexdigest()))
     return {"manual": key, "chunks": len(chunks), "est_tokens": sum(c.est_tokens for c in chunks),
             "embed_prompt_tokens": toks, "embed_seconds": round(t_embed, 1)}
 
