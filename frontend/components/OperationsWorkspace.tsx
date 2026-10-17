@@ -239,24 +239,27 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
         <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium text-muted">Evidence window: last 60 minutes</span>
       </div>
 
-      <section className="grid min-h-[610px] overflow-hidden rounded-xl border border-line bg-bg lg:grid-cols-[310px_minmax(0,1fr)]">
-        <aside className="border-b border-line bg-panel2 lg:border-b-0 lg:border-r" aria-label="Investigation queue">
-          <div className="border-b border-line px-4 py-4">
-            <h3 className="font-semibold">Investigation queue</h3>
-            <p className="mt-0.5 text-xs text-muted">Cases requiring operator attention</p>
+      <section className="grid min-h-[610px] overflow-hidden rounded-xl border border-line bg-bg lg:grid-cols-[290px_minmax(0,1fr)]">
+        <aside className="border-b border-line bg-panel lg:border-b-0 lg:border-r" aria-label="Investigation queue">
+          <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-4">
+            <div>
+              <h3 className="font-semibold">Investigation queue</h3>
+              <p className="mt-0.5 text-xs text-muted">Cases requiring operator attention</p>
+            </div>
+            <span className="rounded-full bg-panel2 px-2 py-0.5 text-xs font-medium text-muted">{activeAlerts.length}</span>
           </div>
-          <div className="space-y-2 p-3">
-            {loading && <p className="rounded-xl border border-line bg-panel p-4 text-sm text-muted">Loading active investigations…</p>}
-            {error && <p role="alert" className="rounded-xl border border-crit/30 bg-crit/8 p-4 text-sm text-crit">Unable to load investigations: {error}</p>}
-            {!loading && !error && activeAlerts.length === 0 && <div className="rounded-xl border border-line bg-panel p-4"><p className="font-medium">No active investigations</p><p className="mt-1 text-xs text-muted">Watcher alerts will appear here with their evidence trail.</p></div>}
+          <div className="divide-y divide-line">
+            {loading && <p className="px-4 py-4 text-sm text-muted">Loading active investigations…</p>}
+            {error && <p role="alert" className="px-4 py-4 text-sm text-crit">Unable to load investigations: {error}</p>}
+            {!loading && !error && activeAlerts.length === 0 && <div className="px-4 py-4"><p className="font-medium">No active investigations</p><p className="mt-1 text-xs text-muted">Watcher alerts will appear here with their evidence trail.</p></div>}
             {activeAlerts.map((alert) => {
               const active = selected?.id === alert.id;
               return (
-                <button key={alert.id} type="button" className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-accent bg-accent/8" : "border-line bg-panel hover:border-accent/35"}`} onClick={() => selectAlert(alert)}>
-                  <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-muted">INC-1042</span><span className={`status-chip ${alert.severity === "critical" ? "status-critical" : "status-warning"}`}>{alert.severity === "critical" ? "Critical" : "Warning"}</span></div>
+                <button key={alert.id} type="button" className={`w-full border-l-2 px-4 py-3 text-left transition-colors ${active ? "border-accent bg-accent/8" : "border-transparent hover:bg-panel2/60"}`} onClick={() => selectAlert(alert)} aria-pressed={active}>
+                  <div className="flex items-center gap-2"><span className="text-xs font-semibold text-fg">INC-1042</span><span className={`status-chip ${alert.severity === "critical" ? "status-critical" : "status-warning"}`}>{alert.severity === "critical" ? "Critical" : "Warning"}</span></div>
                   <p className="mt-2 text-sm font-semibold leading-5">Master audit trail nearing overflow threshold</p>
                   <p className="mt-2 text-xs text-muted">Pathway-02 · detected 2 minutes ago</p>
-                  <div className="mt-3 flex items-center justify-between text-xs"><span className="font-medium text-warn">~{alert.lead_time_min} min lead time</span><ChevronRight size={14} className={active ? "text-accent" : "text-muted"} /></div>
+                  <div className="mt-2 flex items-center justify-between text-xs"><span className="font-medium text-warn">~{alert.lead_time_min} min lead time</span><ChevronRight size={14} className={active ? "text-accent" : "text-muted"} /></div>
                 </button>
               );
             })}
