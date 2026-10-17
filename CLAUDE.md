@@ -6,6 +6,8 @@ Read this first, every session. Full context lives in `docs/`.
 you're touching; jump to the `file:line` they give instead of scanning folders. When you change code,
 update its vault note in the same commit (new module → new note + link from the index). Notes stay short.
 
+**UI work:** follow `frontend/CLAUDE.md` (scope, fixed API contract, demo script, `feat/ui` branch).
+
 **Domain:** the sponsor is **CAIL**; the target is **HPE NonStop** operations (banking/ATM, POS, telecom).
 Placeholder examples in docs (P-201 pumps, Ravi, valve Y) predate this and are being replaced — see `vault/todo.md`.
 
