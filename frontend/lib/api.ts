@@ -16,7 +16,7 @@ import type {
   Source,
 } from "./types";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000"; // not localhost: on Windows it tries IPv6 first and adds ~2 s per request
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 // Comma list of endpoint groups served by the real API while everything else stays mocked: session,chat,sources
 const REAL = new Set((process.env.NEXT_PUBLIC_REAL_ENDPOINTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));

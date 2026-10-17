@@ -5,7 +5,7 @@ Usage:
   python eval/run_eval.py --config 1           # ablation: 1=plain RAG ... 4=full
   python eval/run_eval.py --golden eval/golden_template.jsonl
 
-Expects the API at http://localhost:8000 (override with EVAL_API_BASE; see docs/API_CONTRACT.md).
+Expects the API at http://127.0.0.1:8000 (override with EVAL_API_BASE; see docs/API_CONTRACT.md).
 /chat accepts an optional "ablation" int for configs 1-4. Items may carry a "node" ("node:PROD" /
 "node:DR"); it is sent via POST /session before the item so the session node is honoured.
 
@@ -20,7 +20,7 @@ item's gold system. A citation whose source isn't in the DB counts as contaminat
 import argparse, csv, fnmatch, json, math, os, pathlib, re, sys, time
 import urllib.error, urllib.request
 
-BASE = os.environ.get("EVAL_API_BASE", "http://localhost:8000").rstrip("/")
+BASE = os.environ.get("EVAL_API_BASE", "http://127.0.0.1:8000").rstrip("/")
 API = BASE + "/chat"
 SESSION = BASE + "/session"
 

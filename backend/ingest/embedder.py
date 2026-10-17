@@ -24,7 +24,7 @@ def embed(texts, cpu=False, batch=16, url=None, model=None, timeout=900):
     vecs, toks = [], 0
     for i in range(0, len(texts), batch):
         r = httpx.post(f"{url}/api/embed", timeout=timeout,
-                       json={"model": model, "input": texts[i:i + batch], "options": opts})
+                       json={"model": model, "input": texts[i:i + batch], "options": opts, "keep_alive": "60m"})
         r.raise_for_status()
         j = r.json()
         vecs.extend(j["embeddings"])
