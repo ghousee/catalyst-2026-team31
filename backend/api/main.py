@@ -151,6 +151,13 @@ def dryrun_command(proposal_id: str):
 
 @app.post("/commands/{proposal_id}/approve")
 def approve_command(proposal_id: str, body: ApproveIn):
+    # only veterans approve; emerging veterans (and any non-person user) can ask, dry-run and learn, not approve
+    with pipeline.connect() as conn:
+        veterans = {r[0] for r in conn.execute("SELECT id FROM person WHERE level = 'veteran' AND active").fetchall()}
+    if body.user_id not in veterans:
+        return {"status": "rejected", "reason": "Emerging Veterans can't approve commands. Ask a veteran to approve this one."}
+    if body.second_approver and body.second_approver not in veterans:
+        return {"status": "rejected", "reason": "The second approver must be a veteran."}
     try:
         return command_service.approve(
             proposal_id,
@@ -214,7 +221,8 @@ def post_event(body: EventIn):
 
 @app.get("/alerts")
 def get_alerts(node: str | None = None):
-    """Open alerts for a node (default: the session node), as alert cards with fix steps and next commands."""
+    """Open alerts for a node (default: the session node; `all` = every node), as alert cards with fix steps and
+    next commands. Each card carries its node, and its commands keep their node guard."""
     return watcher.alerts(node or SESSION["node"], command_service.propose_entity)
 
 

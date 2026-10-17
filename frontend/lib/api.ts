@@ -75,7 +75,7 @@ export const api = {
     mocked("commands") ? mock().then((m) => m.approve(id, body)) : http("POST", `/commands/${enc(id)}/approve`, body),
   execute: (id: string): Promise<ExecuteResponse> =>
     mocked("commands") ? mock().then((m) => m.execute(id)) : http("POST", `/commands/${enc(id)}/execute`),
-  getAlerts: (): Promise<Alert[]> => (mocked("alerts") ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts")),
+  getAlerts: (): Promise<Alert[]> => (mocked("alerts") ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts?node=all")),  // alerts are open to everyone; each card shows its node
   ackAlert: (id: string): Promise<{ id: string }> =>
     mocked("alerts") ? Promise.resolve({ id }) : http("POST", `/alerts/${enc(id)}/ack`),
   getMetrics: (node: string, window = "60m"): Promise<MetricsResponse> =>

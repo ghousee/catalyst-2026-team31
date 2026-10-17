@@ -6,10 +6,12 @@ import { admin, isVeteran, type Person } from "@/lib/admin";
 import { useDismiss } from "@/lib/hooks";
 import { learning, type LearningUser } from "@/lib/learning";
 import { roleLabel, setMe, toUserId, useMe } from "@/lib/me";
+import { useConsole } from "@/lib/store";
 
 /** Top-bar picker: who is using the app. Seniors are person rows; a junior is any name (their Learning map is keyed by it). */
 export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
   const me = useMe();
+  const { session, switchNode } = useConsole();
   const [open, setOpen] = useState(false);
   const [persons, setPersons] = useState<Person[]>([]);
   const [juniors, setJuniors] = useState<LearningUser[]>([]);
@@ -26,6 +28,9 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
   const pick = (id: string, label: string, role: "junior" | "senior") => {
     setMe({ id, name: label, role });
     setOpen(false);
+    // veterans work on \PROD, emerging veterans on \DR
+    const node = role === "senior" ? "node:PROD" : "node:DR";
+    if (session && session.node !== node) void switchNode(node);
   };
   const startNew = (e: React.FormEvent) => {
     e.preventDefault();

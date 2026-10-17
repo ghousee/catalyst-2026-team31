@@ -4,6 +4,7 @@ import { FlaskConical, Play, TerminalSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { fmtTime } from "@/lib/format";
+import { useMe } from "@/lib/me";
 import { useConsole, userId } from "@/lib/store";
 import type { DryRun, ExecuteResponse, Proposal } from "@/lib/types";
 import { ApprovalControls, type Stage } from "./ApprovalControls";
@@ -18,6 +19,7 @@ const SECOND_APPROVER = { id: "raj", name: "Raj Patel" };
 
 export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
   const { session, onExecuted } = useConsole();
+  const canApprove = useMe().role === "senior";  // Emerging Veterans can dry-run and learn, not approve
   const [dry, setDry] = useState<DryRun | null>(null);
   const [dryBusy, setDryBusy] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
@@ -126,6 +128,11 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
             <FlaskConical size={13} aria-hidden="true" />
             {dryBusy ? "Running…" : dry ? "Re-run dry run" : "Dry run"}
           </button>
+          {!canApprove ? (
+            <p className="self-center text-[12.5px] text-muted">
+              Emerging Veterans can run the dry run but can&rsquo;t approve. Ask a veteran to approve this command.
+            </p>
+          ) : (
           <ApprovalControls
             proposal={p}
             stage={stage}
@@ -137,6 +144,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
             onCancel={() => setStage("idle")}
             onExecute={execute}
           />
+          )}
         </div>
       )}
       {error && (

@@ -134,7 +134,8 @@ class Watcher:
     def alerts(self, node, propose):
         """Open alerts for a node, newest first, in the UI's Alert shape. `propose(entity_id, node)` -> proposal or None."""
         with connect() as conn:
-            rows = _rows(conn, "SELECT * FROM alert WHERE node_id = %s AND NOT acknowledged ORDER BY ts DESC", (node,))
+            rows = _rows(conn, "SELECT * FROM alert WHERE (node_id = %s OR %s = 'all') AND NOT acknowledged ORDER BY ts DESC",
+                         (node, node))
             return [self._card(conn, r, propose) for r in rows]
 
     def _card(self, conn, a, propose):

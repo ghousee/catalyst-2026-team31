@@ -39,12 +39,13 @@ import { Sparkline } from "./Sparkline";
 import { ThemeToggle } from "./ThemeToggle";
 import { CountUp, PageHeader, Panel, Skeleton, StatCard, SubPill, hueStyle, type Hue } from "./ui";
 import { WhoAmI } from "./WhoAmI";
+import { useMe } from "@/lib/me";
 
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph" | "learning";
 
 const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard; hue: Hue }> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, hue: "sky" },
-  { id: "investigations", label: "Investigations", icon: BellRing, hue: "amber" },
+  { id: "investigations", label: "Alerts", icon: BellRing, hue: "amber" },
   { id: "systems", label: "Systems", icon: Server, hue: "teal" },
   { id: "assistant", label: "AI Assistant", icon: Bot, hue: "indigo" },
   { id: "simulator", label: "Training Simulator", icon: GraduationCap, hue: "rose" },
@@ -132,6 +133,7 @@ const ROW = "transition-colors hover:bg-skysoft/50";
 
 function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const { session } = useConsole();
+  const firstName = useMe().name.split(" ")[0];
   const { data: alerts, error: watchError } = usePolling(() => api.getAlerts(), 2000, session?.node ?? "");
   const metrics = useNodeMetrics();
   const graph = useGraph();
@@ -144,7 +146,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
 
   return (
     <div>
-      <SectionTitle page="overview" title="Overview" description="Early warnings, system health and who to call, for the node you are on." aside={<WatcherStatus error={watchError} />} />
+      <SectionTitle page="overview" title={`Good day, ${firstName}`} description="Early warnings, system health and who to call, for the node you are on." aside={<WatcherStatus error={watchError} />} />
       <dl className="stagger grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard hue="sky" icon={<Server size={18} aria-hidden="true" />} label="Nodes monitored"
           value={session ? <CountUp value={session.nodes_available.length} /> : <Skeleton className="h-8 w-10" />}
@@ -176,7 +178,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
         </Block>
       </div>
 
-      <Panel className="mt-5" flush title={`Needs attention${demo}`} aside={<button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate("investigations")}>View investigations</button>}>
+      <Panel className="mt-5" flush title={`Needs attention${demo}`} aside={<button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate("investigations")}>View alerts</button>}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className={THEAD}><tr><th className={TH}>System</th><th className={TH}>Health</th><th className={TH}>Observation</th><th className={TH}>Source</th><th className={TH}>Updated</th></tr></thead>
@@ -242,7 +244,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
   ];
   return (
     <div>
-      <SectionTitle page="investigations" title="Investigations" description="Alerts as evidence-backed investigations. Observations, hypotheses and unknowns stay separate." />
+      <SectionTitle page="investigations" title="Alerts" description="Early warnings from the watcher, with the evidence, what to do and who to call. Open to everyone; only veterans approve commands." />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]">
         <Block title="Active watcher alerts"><AlertsPanel /></Block>
         <aside className="stagger space-y-4">
@@ -389,7 +391,7 @@ function WorkspaceShell() {
         <header className="relative z-40 flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-panel/95 px-4 backdrop-blur sm:px-6">
           <span aria-hidden="true" className="flow-band absolute inset-x-0 top-0 h-[3px]" />
           <button type="button" className="btn px-2 lg:hidden" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={17} /></button>
-          <div className="hidden min-w-0 flex-1 sm:block"><label className="relative block max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="field h-9 w-full rounded-full bg-skysoft/60 pl-9" placeholder="Search systems, investigations, knowledge" aria-label="Global search" /></label></div>
+          <div className="hidden min-w-0 flex-1 sm:block"><label className="relative block max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="field h-9 w-full rounded-full bg-skysoft/60 pl-9" placeholder="Search systems, alerts, knowledge" aria-label="Global search" /></label></div>
           <div className="ml-auto flex items-center gap-3"><WhoAmI onNewJunior={() => navigate("learning")} /><NodeSwitcher /><ThemeToggle /><button type="button" className="btn h-8 w-8 px-0" aria-label="Help"><CircleHelp size={15} /></button></div>
         </header>
         <main className="scroll sparkle-bg min-h-0 flex-1 overflow-y-auto">
