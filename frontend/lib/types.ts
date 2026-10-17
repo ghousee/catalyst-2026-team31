@@ -225,17 +225,19 @@ export interface Alert {
   ts: string;
   node: string;
   subsystem: string;
-  pattern_id: string;
-  owner: string;
-  owner_name: string;
+  /** pattern = a veteran's warning pattern; chain = the graph says this usually comes before worse; trend = metric heading for its limit */
+  kind?: "pattern" | "chain" | "trend";
+  pattern_id: string | null;
+  owner: string | null;
+  owner_name: string | null;
   severity: Severity;
-  lead_time_min: number;
+  lead_time_min: number | null;
   message: string;
   evidence: Array<{ event?: string; count?: number; metric?: string; value?: number; trend?: string }>;
   fix_claims: Claim[];
   next_commands: Proposal[];
-  backtest: { hits: number; of: number; avg_lead_min: number };
-  backup_expert: Pick<Expert, "id" | "name"> & Partial<Expert>;
+  backtest: { hits: number; of: number; avg_lead_min: number } | null;
+  backup_expert: (Pick<Expert, "id" | "name"> & Partial<Expert>) | null;
 }
 
 export interface MetricSeries {

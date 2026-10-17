@@ -17,6 +17,8 @@ from backend.pipeline import answer as pipeline
 from backend.pipeline import assistant
 from backend.pipeline import verify
 from backend.simulator.service import simulator
+from backend.watcher.engine import SCENARIO_REPLAY, parse_event, replays, watcher
+from backend.watcher.engine import series as watcher_series
 
 NODES = [{"id": "node:PROD", "display": "\\PROD"}, {"id": "node:DR", "display": "\\DR"}]
 SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-memory, single demo user
@@ -174,14 +176,82 @@ def execute_command(proposal_id: str):
 @app.post("/simulator/scenario")
 def run_scenario(body: ScenarioIn):
     try:
-        return simulator.start_scenario(body.scenario, body.speed)
+        out = simulator.start_scenario(body.scenario, body.speed)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    if body.scenario in SCENARIO_REPLAY:  # the same Start button also plays the recorded feed into the watcher
+        out["replay"] = watcher.start_replay(SCENARIO_REPLAY[body.scenario], speed=REPLAY_SPEED)
+    return out
+
+
+# ---------------------------------------------------------------- watcher: early warnings (backend/watcher)
+REPLAY_SPEED = 30.0  # a 40-minute incident plays in ~80 s
+
+
+class EventIn(BaseModel):
+    node: str
+    kind: str
+    entity: str
+    value: float | None = None
+    tool: str = "unknown"
+    text: str = ""
+    ts: str | None = None
+
+
+class ReplayIn(BaseModel):
+    name: str
+    speed: float = REPLAY_SPEED
+
+
+@app.post("/events")
+def post_event(body: EventIn):
+    """One normalised event from any source (Prognosis REST poller, MOMI export reader, a script). Returns new alert ids."""
+    try:
+        return {"alerts": watcher.ingest(parse_event(body.model_dump()))}
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.get("/alerts")
+def get_alerts(node: str | None = None):
+    """Open alerts for a node (default: the session node), as alert cards with fix steps and next commands."""
+    return watcher.alerts(node or SESSION["node"], command_service.propose_entity)
+
+
+@app.post("/alerts/{alert_id}/ack")
+def ack_alert(alert_id: str):
+    with pipeline.connect() as conn:
+        n = conn.execute("UPDATE alert SET acknowledged = TRUE WHERE id = %s", (alert_id,)).rowcount
+        conn.commit()
+    if not n:
+        raise HTTPException(404, f"unknown alert {alert_id}")
+    return {"id": alert_id, "acknowledged": True}
+
+
+@app.get("/watcher/replays")
+def list_replays():
+    return replays()
+
+
+@app.post("/watcher/replay")
+def start_replay(body: ReplayIn):
+    if not 0 < body.speed <= 600:
+        raise HTTPException(422, "speed must be between 0 and 600")
+    try:
+        return watcher.start_replay(body.name, body.speed)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @app.get("/metrics")
 def get_metrics(node: str, window: str = "60m"):
     try:
-        return simulator.metrics(node, window)
+        out = simulator.metrics(node, window)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    # a metric the watcher has received (replay or live source) wins over the simulator's curve, so charts and alerts agree
+    for s in out["series"]:
+        pts = watcher_series(node, f"met:{s['metric']}")
+        if len(pts) >= 2:
+            s["points"] = pts
+    return out

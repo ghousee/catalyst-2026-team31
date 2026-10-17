@@ -15,3 +15,10 @@
       multi-series manuals (exact `version_id` match cost 0.18 recall@5); larger independent eval set with real
       operator phrasing; near-miss sufficiency-gate cases; subtle MiniCheck negatives; wire `context.py`/`answer.py`.
 - [x] Decided: keep `qwen3.5:4b` (works, 100% GPU) - no need for the phi4-mini fallback.
+
+## Watcher (2026-10-17, built)
+backend/watcher/rules.py (pure detectors: pattern rule, stalled, trend) + engine.py (buffer, alerts, card, replay).
+Replays in data/replay/*.jsonl, started by the Training Simulator buttons. Next: Prognosis REST poller + MOMI export
+folder reader posting to the same `ingest`; Teach to capture `rule` fields; incident history for `backtest`.
+Graph audit: 6 curated nodes have no links (rvu:J, rvu:H, obj:TCP, obj:CPUs, met:cpu-qtime, met:request-qtime);
+2,645 of 3,777 manual sections are not linked to any node (titles name no command/message) - still searchable.

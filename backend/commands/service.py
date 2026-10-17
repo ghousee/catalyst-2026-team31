@@ -98,6 +98,14 @@ class CommandService:
         if entry is None:
             return {"proposals": [], "no_template": True}
 
+        return {"proposals": [self._make(entry, node_id, session_node, version)], "no_template": False}
+
+    def propose_entity(self, entity_id: str, node_id: str, version: str = "rvu:L") -> dict | None:
+        """A proposal for one catalog command by its graph id (the watcher's next steps); None if not in the catalog."""
+        entry = next((e for e in self.catalog if e.entity_id == entity_id), None)
+        return self._make(entry, node_id, node_id, version) if entry and node_id in NODES else None
+
+    def _make(self, entry: CatalogEntry, node_id: str, session_node: str, version: str) -> dict:
         command = self._render(entry, node_id)
         with self._lock:
             proposal_id = f"cmd-{self._counter}"
@@ -114,7 +122,7 @@ class CommandService:
                 "approval": {"required": RISK_APPROVAL[entry.risk]},
             }
             self._proposals[proposal_id] = ProposalState(public, entry, node_id)
-        return {"proposals": [public], "no_template": False}
+        return public
 
     def dryrun(self, proposal_id: str) -> dict:
         state = self._get(proposal_id)

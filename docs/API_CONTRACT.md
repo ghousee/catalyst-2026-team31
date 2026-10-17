@@ -259,3 +259,18 @@ One Qwen call per turn. `→ { "type": "question", "text": "..." }` (one short f
 After 3 assistant questions it drafts with what is known (unknown subsystem = `""`, node defaults to `ALL`; the editable form fixes them).
 Code guards: a text field not grounded in the veteran's own words is emptied, never invented; `subsystem` must be an existing `sub:*` entity.
 Nothing is saved: the UI posts the (edited) draft to `POST /knowledge` (entered_by = owner), then the normal approve flow signs and auto-links.
+
+## v5: watcher (early warnings) — backend/watcher
+- `POST /events` `{node, kind: "event"|"metric", entity: "evt:TMF-185"|"met:audit-capacity-pct", value?, tool?, text?, ts?}` → `{alerts: [ids]}`.
+  The one entry point for any source (replay, Prognosis REST poller, MOMI export reader).
+- `GET /alerts?node=node:PROD` (default: session node) → `[Alert]` (frontend `Alert` type). `kind`: `pattern` (a veteran's
+  warning-pattern note with a `rule` fired; `owner_name`, `pattern_id`, `lead_time_min` from the rule) | `chain` (graph
+  `precedes`: this event usually comes before worse) | `trend` (metric projected to hit its limit within 60 min).
+  `fix_claims` = the linked veteran notes verbatim (do / why / not when) + manual sections; `next_commands` = catalog
+  proposals for the `diagnosed_by` commands (normal approval flow); `backtest` is null (no incident history yet).
+  A pattern card replaces the chain/trend cards about the same event or metric.
+- `POST /alerts/{id}/ack` dismisses. `GET /watcher/replays`, `POST /watcher/replay {name, speed}` plays `data/replay/<name>.jsonl`.
+- `POST /simulator/scenario` also starts the matching replay (audit_trail_fill, disk_revive_stall, pathway_no_server).
+- `GET /metrics`: a metric the watcher has received replaces the simulator curve, so charts and alerts agree.
+- `POST /knowledge` accepts `rule` (warning_pattern only), e.g. `{"type":"count","event":"evt:TMF-185","count":2,"window_min":30,
+  "metric":"met:audit-capacity-pct","above":60,"rising":true,"lead_min":40}` or `{"type":"stalled","metric":"...","minutes":10}`.

@@ -83,6 +83,7 @@ CREATE TABLE heuristic (
   signed_at     DATE,
   entered_by    TEXT,                      -- who typed it: any user id (003, 004); the owner signs
   needs_review  BOOLEAN NOT NULL DEFAULT FALSE,  -- linked manual section changed since signing (003)
+  rule          JSONB,                     -- warning pattern's machine-checkable trigger (006)
   embedding     vector(768),
   CHECK ((version_id IS NULL) = all_versions),
   CHECK ((site_id IS NULL) = all_sites)
@@ -163,13 +164,17 @@ CREATE TABLE alert (
   id            TEXT PRIMARY KEY,           -- 'al-7'
   ts            TIMESTAMPTZ DEFAULT now(),
   entity_id     TEXT NOT NULL REFERENCES entity(id),  -- the version node the pattern fired on
-  pattern_id    TEXT NOT NULL REFERENCES heuristic(id),
+  pattern_id    TEXT REFERENCES heuristic(id),  -- the veteran pattern that fired (NULL for chain/trend alerts, 006)
   probability   REAL NOT NULL,
   message       TEXT NOT NULL,
   fix_claims    JSONB DEFAULT '[]',         -- same shape as /chat claims
   backup_expert_id TEXT REFERENCES person(id),
   signal        JSONB,                      -- the log/alarm rows that matched
-  acknowledged  BOOLEAN DEFAULT FALSE
+  acknowledged  BOOLEAN DEFAULT FALSE,
+  node_id       TEXT,                       -- (006) node the alert is for
+  kind          TEXT,                       -- (006) pattern | chain | trend
+  severity      TEXT,                       -- (006) info | warning | critical
+  lead_min      INT                         -- (006) expected minutes until the failure, if known
 );
 
 CREATE INDEX ON doc_chunk (system_id, version_id, site_id);

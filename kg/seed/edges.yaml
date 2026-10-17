@@ -80,6 +80,7 @@ edges:
   - ['evt:TMF-187', precedes, 'evt:TMF-109', 'doc:TMF-Reference:alter-audittrail-part-10']
   - ['evt:TMF-172', precedes, 'evt:TMF-174', 'doc:TMF-Reference:status-audittrail']
   - ['evt:DISK-5015', precedes, 'evt:DISK-5032', 'lena:h4']
+  - ['evt:PATHWAY-1038', precedes, 'evt:PATHWAY-1034', 'raj:h4']
   # ---- object -> object (depends_on): SETTLE-SC -> TMF -> MAT -> $AUDIT
   - ['obj:sc-SETTLE', depends_on, 'obj:TMF-subsystem', 'doc:Pathway:status-tcp-command-part-4']
   - ['obj:sc-SETTLE', depends_on, 'obj:PATHMON', 'doc:Pathway:pathmon-object']

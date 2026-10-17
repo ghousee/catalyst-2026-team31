@@ -20,12 +20,12 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 // Comma list of endpoint groups served by the real API while everything else stays mocked: session,chat,sources
 const REAL = new Set((process.env.NEXT_PUBLIC_REAL_ENDPOINTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));
-const mocked = (group?: "session" | "chat" | "sources" | "commands" | "metrics" | "simulator") => USE_MOCKS && !(group && REAL.has(group));
+const mocked = (group?: "session" | "chat" | "sources" | "commands" | "metrics" | "simulator" | "alerts") => USE_MOCKS && !(group && REAL.has(group));
 /** Endpoint groups the UI can route to the real API; the label in the workspace header is computed from this. */
-export const GROUPS = ["session", "chat", "sources", "commands", "metrics", "simulator"] as const;
+export const GROUPS = ["session", "chat", "sources", "commands", "metrics", "simulator", "alerts"] as const;
 export const liveGroups = () => GROUPS.filter((g) => !mocked(g));
-/** Alerts have no endpoint group yet (no watcher): they are the scripted mock whenever mocks are on. */
-export const ALERTS_ARE_MOCK = USE_MOCKS;
+/** Alerts come from the backend watcher (backend/watcher) when "alerts" is a real group; otherwise the scripted mock. */
+export const ALERTS_ARE_MOCK = mocked("alerts");
 /** True when chat answers come from the scripted mock, not the backend; the top bar shows a DEMO DATA badge. */
 export const CHAT_IS_MOCK = mocked("chat");
 
@@ -75,7 +75,9 @@ export const api = {
     mocked("commands") ? mock().then((m) => m.approve(id, body)) : http("POST", `/commands/${enc(id)}/approve`, body),
   execute: (id: string): Promise<ExecuteResponse> =>
     mocked("commands") ? mock().then((m) => m.execute(id)) : http("POST", `/commands/${enc(id)}/execute`),
-  getAlerts: (): Promise<Alert[]> => (mocked() ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts")),
+  getAlerts: (): Promise<Alert[]> => (mocked("alerts") ? mock().then((m) => m.getAlerts()) : http("GET", "/alerts")),
+  ackAlert: (id: string): Promise<{ id: string }> =>
+    mocked("alerts") ? Promise.resolve({ id }) : http("POST", `/alerts/${enc(id)}/ack`),
   getMetrics: (node: string, window = "60m"): Promise<MetricsResponse> =>
     mocked("metrics")
       ? mock().then((m) => m.getMetrics(node))

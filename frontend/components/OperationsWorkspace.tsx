@@ -166,7 +166,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           {top ? (
             <>
               <p className="text-sm leading-6">{top.message}</p>
-              <p className="mt-2 text-xs leading-5 text-muted">Owner {top.owner_name} · lead time {top.lead_time_min} min · <span className="num">{top.node}</span> · {subName(top.subsystem)}</p>
+              <p className="mt-2 text-xs leading-5 text-muted">{top.owner_name ? `Owner ${top.owner_name} · ` : ""}{top.lead_time_min != null ? `lead time ${top.lead_time_min} min · ` : ""}<span className="num">{top.node}</span> · {subName(top.subsystem)}</p>
             </>
           ) : (
             <p className="text-sm leading-6">No active warnings.</p>

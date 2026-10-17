@@ -1,0 +1,24 @@
+# Recorded-style feed (synthetic). t = seconds into the incident. Normalised event shape: backend/watcher/rules.py
+{"t": 0, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12.0, "text": "$DATA01 disk process request queue time 12.0 ms"}
+{"t": 60, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 13.5, "text": "$DATA01 disk process request queue time 13.5 ms"}
+{"t": 120, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 15.0, "text": "$DATA01 disk process request queue time 15.0 ms"}
+{"t": 180, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 16.5, "text": "$DATA01 disk process request queue time 16.5 ms"}
+{"t": 240, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 18.0, "text": "$DATA01 disk process request queue time 18.0 ms"}
+{"t": 300, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 19.5, "text": "$DATA01 disk process request queue time 19.5 ms"}
+{"t": 360, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 21.0, "text": "$DATA01 disk process request queue time 21.0 ms"}
+{"t": 360, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:PATHWAY-1038", "text": "PATHWAY 1038: SERVER CLASS SETTLE-SC, server process limit (MAXSERVERS 8) reached"}
+{"t": 420, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 22.5, "text": "$DATA01 disk process request queue time 22.5 ms"}
+{"t": 480, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 24.0, "text": "$DATA01 disk process request queue time 24.0 ms"}
+{"t": 540, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 25.5, "text": "$DATA01 disk process request queue time 25.5 ms"}
+{"t": 600, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 27.0, "text": "$DATA01 disk process request queue time 27.0 ms"}
+{"t": 660, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 28.5, "text": "$DATA01 disk process request queue time 28.5 ms"}
+{"t": 720, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 30.0, "text": "$DATA01 disk process request queue time 30.0 ms"}
+{"t": 780, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 31.5, "text": "$DATA01 disk process request queue time 31.5 ms"}
+{"t": 840, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 33.0, "text": "$DATA01 disk process request queue time 33.0 ms"}
+{"t": 900, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 34.5, "text": "$DATA01 disk process request queue time 34.5 ms"}
+{"t": 900, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:PATHWAY-1034", "text": "PATHWAY 1034: no server available for SERVER CLASS SETTLE-SC"}
+{"t": 960, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 36.0, "text": "$DATA01 disk process request queue time 36.0 ms"}
+{"t": 1020, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 37.5, "text": "$DATA01 disk process request queue time 37.5 ms"}
+{"t": 1080, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 39.0, "text": "$DATA01 disk process request queue time 39.0 ms"}
+{"t": 1140, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 40.5, "text": "$DATA01 disk process request queue time 40.5 ms"}
+{"t": 1200, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 42.0, "text": "$DATA01 disk process request queue time 42.0 ms"}

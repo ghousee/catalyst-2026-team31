@@ -17,6 +17,7 @@ from backend.ingest import embedder
 from backend.pipeline import llm
 from backend.pipeline.answer import _rows, clean_title, connect
 from backend.pipeline.retrieve import hybrid_search
+from backend.watcher.rules import check_rule_shape
 
 LINKABLE = {"event", "object", "metric", "command", "component", "symptom", "alarm", "procedure"}
 NODE_ID = {"PROD": "node:PROD", "DR": "node:DR", "ALL": None}
@@ -132,6 +133,7 @@ class KnowledgeIn(BaseModel):
     not_when_text: str = ""
     node: str = "ALL"
     subsystem: str
+    rule: dict | None = None  # warning patterns only: the machine-checkable trigger (backend/watcher/rules.py)
 
 
 class PersonIn(BaseModel):
@@ -204,6 +206,13 @@ def create_knowledge(body: KnowledgeIn):
         raise HTTPException(422, "node must be PROD, DR or ALL")
     if not body.trigger_text.strip() or not body.call_text.strip():
         raise HTTPException(422, "trigger_text and call_text are required")
+    if body.rule is not None:
+        if body.kind != "warning_pattern":
+            raise HTTPException(422, "only a warning_pattern can have a rule")
+        try:
+            check_rule_shape(body.rule)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
     with connect() as conn:
         # the owner must be a person (they sign it); whoever typed it can be any user, e.g. a junior ("Raj told me")
         if not _rows(conn, "SELECT 1 FROM person WHERE id = %s", (body.owner_id,)):
@@ -218,10 +227,11 @@ def create_knowledge(body: KnowledgeIn):
         prov = f"{via}:{today}" if via == "interview" else f"referral:{body.entered_by}"
         conn.execute(
             "INSERT INTO heuristic (id, owner_id, trigger_text, call_text, why_text, not_when_text, system_id, version_id, "
-            "site_id, all_versions, all_sites, provenance, status, kind, captured_via, captured_at, entered_by) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,NULL,%s,TRUE,%s,%s,'draft',%s,%s,%s,%s)",
+            "site_id, all_versions, all_sites, provenance, status, kind, captured_via, captured_at, entered_by, rule) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,NULL,%s,TRUE,%s,%s,'draft',%s,%s,%s,%s,%s)",
             (nid, body.owner_id, body.trigger_text.strip(), body.call_text.strip(), body.why_text.strip(),
-             body.not_when_text.strip(), body.subsystem, site, site is None, prov, body.kind, via, today, body.entered_by))
+             body.not_when_text.strip(), body.subsystem, site, site is None, prov, body.kind, via, today, body.entered_by,
+             json.dumps(body.rule) if body.rule else None))
         conn.commit()
         return _view(_note_row(conn, nid), [])
 

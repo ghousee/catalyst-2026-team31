@@ -1,0 +1,23 @@
+# Recorded-style feed (synthetic). t = seconds into the incident. Normalised event shape: backend/watcher/rules.py
+{"t": 0, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 1000, "text": "$DATA01 revive current logical sector 1000"}
+{"t": 60, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 1400, "text": "$DATA01 revive current logical sector 1400"}
+{"t": 120, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 1800, "text": "$DATA01 revive current logical sector 1800"}
+{"t": 180, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 2200, "text": "$DATA01 revive current logical sector 2200"}
+{"t": 185, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:DISK-5015", "text": "DISK 5015: path error on $DATA01 mirror path"}
+{"t": 240, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 2600, "text": "$DATA01 revive current logical sector 2600"}
+{"t": 300, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 360, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 420, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 480, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 540, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 600, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 660, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 720, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 780, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 840, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 900, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 960, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 1020, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 1080, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 1140, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}
+{"t": 1200, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:revive-current-sector", "value": 3000, "text": "$DATA01 revive current logical sector 3000"}

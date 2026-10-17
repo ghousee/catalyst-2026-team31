@@ -49,7 +49,7 @@ export function AlertsPanel() {
                 ? latest.message
                 : `No active alerts for ${session?.node_display ?? "this node"}. Watcher is running.`}
         </span>
-        {latest && <Badge tone="warn">~{latest.lead_time_min} min</Badge>}
+        {latest?.lead_time_min != null && <Badge tone="warn">~{latest.lead_time_min} min</Badge>}
       </button>
       {open && (
         <div id="alerts-body" className="scroll max-h-[32vh] space-y-3 overflow-y-auto px-4 pb-3">
