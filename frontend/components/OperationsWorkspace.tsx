@@ -1,10 +1,6 @@
 "use client";
 
 import {
-  Activity,
-  BellRing,
-  BookOpen,
-  Bot,
   CheckCircle2,
   ChevronRight,
   CircleHelp,
@@ -13,23 +9,21 @@ import {
   FileCheck2,
   FlaskConical,
   Gauge,
-  GraduationCap,
-  LayoutDashboard,
   Menu,
   Search,
-  Server,
   ShieldCheck,
-  Sparkles,
   TriangleAlert,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api, USE_MOCKS } from "@/lib/api";
+import { environmentName, humanizeEnvironmentText } from "@/lib/format";
 import { usePolling } from "@/lib/hooks";
 import { ConsoleProvider, useConsole } from "@/lib/store";
 import type { ScenarioName } from "@/lib/types";
 import { DOC_SOURCES, HEURISTIC_SOURCES } from "@/mocks/fixtures";
 import { AlertsPanel } from "./AlertsPanel";
+import { AppIcon, type AppIconName } from "./AppIcon";
 import { ChatPane } from "./ChatPane";
 import { NodeSwitcher } from "./NodeSwitcher";
 import { SourceDialog } from "./SourceDialog";
@@ -38,13 +32,13 @@ import { ThemeToggle } from "./ThemeToggle";
 
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator";
 
-const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard }> = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "systems", label: "Systems", icon: Server },
-  { id: "investigations", label: "Investigations", icon: BellRing },
-  { id: "assistant", label: "AI Assistant", icon: Bot },
-  { id: "knowledge", label: "Knowledge", icon: BookOpen },
-  { id: "simulator", label: "Training Simulator", icon: GraduationCap },
+const NAV: Array<{ id: PageId; label: string; icon: AppIconName }> = [
+  { id: "overview", label: "Overview", icon: "overview" },
+  { id: "systems", label: "Systems", icon: "systems" },
+  { id: "investigations", label: "Investigations", icon: "investigations" },
+  { id: "assistant", label: "AI Assistant", icon: "assistant" },
+  { id: "knowledge", label: "Knowledge", icon: "knowledge" },
+  { id: "simulator", label: "Training Simulator", icon: "simulator" },
 ];
 
 const METRICS = [
@@ -63,7 +57,7 @@ function SectionTitle({ eyebrow, title, description }: { eyebrow?: string; title
   );
 }
 
-function MetricCard({ label, value, note, tone = "neutral" }: { label: string; value: string; note: string; tone?: "neutral" | "ok" | "warn" | "crit" }) {
+function MetricCard({ label, value, note, icon, tone = "neutral" }: { label: string; value: string; note: string; icon: AppIconName; tone?: "neutral" | "ok" | "warn" | "crit" }) {
   const iconTone = tone === "ok" ? "text-ok bg-ok/10" : tone === "warn" ? "text-warn bg-warn/10" : tone === "crit" ? "text-crit bg-crit/10" : "text-accent bg-accent/10";
   return (
     <article className="rounded-2xl border border-line bg-panel p-4 shadow-sm">
@@ -72,7 +66,7 @@ function MetricCard({ label, value, note, tone = "neutral" }: { label: string; v
           <p className="text-xs font-medium text-muted">{label}</p>
           <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
         </div>
-        <span className={`rounded-xl p-2 ${iconTone}`}><Activity size={18} aria-hidden="true" /></span>
+        <span className={`grid h-9 w-9 place-items-center rounded-xl ${iconTone}`}><AppIcon name={icon} size={19} /></span>
       </div>
       <p className="mt-3 text-xs text-muted">{note}</p>
     </article>
@@ -89,7 +83,7 @@ function HealthCharts() {
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">System health</h3>
-          <p className="mt-0.5 text-xs text-muted">Live operational indicators for {session?.node_display ?? "the selected node"}</p>
+          <p className="mt-0.5 text-xs text-muted">Live operational indicators for {environmentName(session?.node_display)}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok">
           <span className="h-1.5 w-1.5 rounded-full bg-ok" /> Monitoring active
@@ -135,29 +129,14 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
     <div>
       <SectionTitle title="Operations overview" description="Understand the state of monitored systems, find what needs attention, and begin an evidence-backed investigation." />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Monitored systems" value="24" note="6 connected data sources" />
-        <MetricCard label="Healthy" value="19" note="79% of systems reporting normally" tone="ok" />
-        <MetricCard label="Warnings" value="3" note="Capacity and performance signals" tone="warn" />
-        <MetricCard label="Active incidents" value={String(Math.max(2, active))} note="1 investigation needs review" tone="crit" />
+        <MetricCard label="Monitored systems" value="24" note="6 connected data sources" icon="systems" />
+        <MetricCard label="Healthy" value="19" note="79% reporting normally" icon="overview" tone="ok" />
+        <MetricCard label="Warnings" value="3" note="Capacity and performance signals" icon="investigations" tone="warn" />
+        <MetricCard label="Active investigations" value={String(Math.max(2, active))} note="1 investigation needs review" icon="assistant" tone="crit" />
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.75fr)]">
+      <div className="mt-5">
         <HealthCharts />
-        <section className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="rounded-xl bg-accent/10 p-2 text-accent"><Sparkles size={18} aria-hidden="true" /></span>
-            <div>
-              <h3 className="font-semibold">AI operational summary</h3>
-              <p className="text-xs text-muted">Evidence checked 2 minutes ago</p>
-            </div>
-          </div>
-          <p className="mt-5 text-sm leading-6">Two systems require operator attention. The most time-sensitive signal is rising audit-trail capacity on {session?.node_display ?? "\\PROD"}.</p>
-          <div className="mt-4 rounded-xl border border-warn/30 bg-warn/8 p-3 text-sm">
-            <p className="font-medium text-warn">Uncertainty: moderate</p>
-            <p className="mt-1 text-xs leading-5 text-muted">A known quarter-end pattern matches, but the cause is not confirmed until process status is checked.</p>
-          </div>
-          <button type="button" className="btn btn-primary mt-4 w-full" onClick={() => onNavigate("assistant")}>Investigate with AI <ChevronRight size={14} /></button>
-        </section>
       </div>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
@@ -167,6 +146,22 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
             <p className="text-xs text-muted">Prioritized observations across monitored systems</p>
           </div>
           <button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => onNavigate("investigations")}>View investigations</button>
+        </div>
+        <div className="border-b border-line bg-accent/[0.045] px-5 py-4">
+          <div className="grid items-center gap-4 lg:grid-cols-[minmax(220px,0.75fr)_minmax(360px,1.5fr)_auto]">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><AppIcon name="assistant" size={21} /></span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">Priority insight</p>
+                <p className="mt-0.5 text-xs text-muted">Evidence checked 2 minutes ago</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium leading-5">Audit capacity is approaching its configured limit in {environmentName(session?.node_display)}.</p>
+              <p className="mt-1 text-xs leading-5 text-muted"><span className="font-semibold text-warn">Moderate confidence:</span> a quarter-end pattern matches, but process status must be checked before the cause is confirmed.</p>
+            </div>
+            <button type="button" className="btn btn-primary justify-center whitespace-nowrap" onClick={() => onNavigate("assistant")}>Review investigation <ChevronRight size={14} /></button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
@@ -232,7 +227,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
               <li className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-accent" size={17} /><span><strong className="block">Controlled next steps</strong><span className="text-muted">Allowlisted and human reviewed.</span></span></li>
             </ul>
           </section>
-          <button type="button" className="btn btn-primary w-full py-2.5" onClick={() => onNavigate("assistant")}><Bot size={16} /> Open AI investigation</button>
+          <button type="button" className="btn btn-primary w-full py-2.5" onClick={() => onNavigate("assistant")}><AppIcon name="assistant" size={16} /> Open AI investigation</button>
         </aside>
       </div>
     </div>
@@ -265,7 +260,7 @@ function KnowledgePage() {
   const [filter, setFilter] = useState<"all" | "manuals" | "expert">("all");
   const entries = useMemo(() => [
     ...DOC_SOURCES.slice(0, 6).map((source) => ({ id: source.id, name: source.title, detail: source.section ?? "Approved excerpt", type: "Manual", scope: source.applies_to ?? "All supported series", status: "Approved" })),
-    ...HEURISTIC_SOURCES.map((source) => ({ id: source.id, name: `${source.owner_name ?? source.owner} expert note`, detail: source.why, type: "Expert note", scope: source.scope ?? "Scoped", status: "Approved" })),
+    ...HEURISTIC_SOURCES.map((source) => ({ id: source.id, name: `${source.owner_name ?? source.owner} expert note`, detail: humanizeEnvironmentText(source.why), type: "Expert note", scope: humanizeEnvironmentText(source.scope ?? "Scoped"), status: "Approved" })),
   ], []);
   const visible = entries.filter((entry) => filter === "all" || (filter === "manuals" ? entry.type === "Manual" : entry.type === "Expert note"));
   return (
@@ -299,7 +294,7 @@ function SimulatorPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
     <div>
       <SectionTitle eyebrow="Synthetic environment" title="Operator training simulator" description="Practice evidence-based investigation and safe decision-making without connecting to production infrastructure." />
       <div className="mb-5 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent/8 p-4 text-sm"><FlaskConical className="shrink-0 text-accent" size={20} /><div><p className="font-medium">Training data only</p><p className="text-xs text-muted">Every event, command, person, and outcome in this area is fictional demo data.</p></div></div>
-      <div className="grid gap-4 md:grid-cols-2">{SCENARIOS.map((scenario, index) => <article key={scenario.id} className="rounded-2xl border border-line bg-panel p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><span className="rounded-xl bg-accent/10 p-2.5 text-accent"><GraduationCap size={20} /></span><span className="rounded-full bg-panel2 px-2.5 py-1 text-xs text-muted">Scenario {index + 1}</span></div><h3 className="mt-4 text-lg font-semibold">{scenario.title}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-muted">{scenario.description}</p><div className="mt-4 flex items-center gap-4 text-xs text-muted"><span className="inline-flex items-center gap-1"><Gauge size={13} />{scenario.difficulty}</span><span className="inline-flex items-center gap-1"><Clock3 size={13} />{scenario.duration}</span></div><button type="button" className="btn btn-primary mt-5 w-full py-2" disabled={running === scenario.id} onClick={() => void start(scenario.id)}>{running === scenario.id ? "Scenario running" : "Start scenario"}</button></article>)}</div>
+      <div className="grid gap-4 md:grid-cols-2">{SCENARIOS.map((scenario, index) => <article key={scenario.id} className="rounded-2xl border border-line bg-panel p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><AppIcon name="simulator" size={21} /></span><span className="rounded-full bg-panel2 px-2.5 py-1 text-xs text-muted">Scenario {index + 1}</span></div><h3 className="mt-4 text-lg font-semibold">{scenario.title}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-muted">{scenario.description}</p><div className="mt-4 flex items-center gap-4 text-xs text-muted"><span className="inline-flex items-center gap-1"><Gauge size={13} />{scenario.difficulty}</span><span className="inline-flex items-center gap-1"><Clock3 size={13} />{scenario.duration}</span></div><button type="button" className="btn btn-primary mt-5 w-full py-2" disabled={running === scenario.id} onClick={() => void start(scenario.id)}>{running === scenario.id ? "Scenario running" : "Start scenario"}</button></article>)}</div>
       {status && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ok/30 bg-ok/8 p-4 text-sm" role="status"><span className="inline-flex items-center gap-2"><CheckCircle2 size={17} className="text-ok" />{status}</span>{running && <button type="button" className="btn" onClick={() => onNavigate("assistant")}>Open AI Assistant</button>}</div>}
     </div>
   );
@@ -317,8 +312,8 @@ function WorkspaceShell() {
     <div className="flex h-screen min-w-0 bg-bg text-fg">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-panel transition-transform lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-16 items-center gap-3 border-b border-line px-5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-sm font-bold text-white">C</span><div><p className="font-semibold leading-tight">CAIL</p><p className="text-[11px] text-muted">Operations Assistant</p></div><button type="button" className="ml-auto p-1 text-muted lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
-        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const Icon = item.icon; const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><Icon size={18} aria-hidden="true" />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-crit/10 px-2 py-0.5 text-[11px] text-crit">2</span>}</button>; })}</nav>
-        <div className="border-t border-line p-4"><div className="rounded-xl bg-panel2 p-3"><p className="flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-ok" />Advisory mode</p><p className="mt-1 text-[11px] leading-4 text-muted">No production execution or credentials.</p></div><p className="mt-3 text-[10px] text-muted">CAIL Catalyst 2026 prototype</p></div>
+        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><AppIcon name={item.icon} size={18} />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-crit/10 px-2 py-0.5 text-[11px] text-crit">2</span>}</button>; })}</nav>
+        <div className="border-t border-line p-4"><div className="rounded-xl bg-panel2 p-3"><p className="flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-ok" />Advisory mode</p><p className="mt-1 text-[11px] leading-4 text-muted">No production execution or credentials.</p></div><p className="mt-3 text-[10px] text-muted">CAIL Catalyst 2026 prototype</p><a className="mt-1 block text-[10px] text-muted underline-offset-2 hover:underline" href="https://freeicons.io/icon-list/business-%26-management-%28line-style%29" target="_blank" rel="noreferrer">Icons by Nine One · Freeicons.io</a></div>
       </aside>
       {mobileOpen && <button className="fixed inset-0 z-30 bg-black/30 lg:hidden" aria-label="Close navigation backdrop" onClick={() => setMobileOpen(false)} />}
 

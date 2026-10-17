@@ -3,6 +3,7 @@
 import { Bell, ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { environmentName } from "@/lib/format";
 import { usePolling } from "@/lib/hooks";
 import { useConsole } from "@/lib/store";
 import { AlertCard } from "./AlertCard";
@@ -47,7 +48,7 @@ export function AlertsPanel() {
               ? "Connecting to watcher…"
               : latest
                 ? latest.message
-                : `No active alerts for ${session?.node_display ?? "this node"}. Watcher is running.`}
+                : `No active alerts for ${environmentName(session?.node_display)}. Monitoring is active.`}
         </span>
         {latest && <Badge tone="warn">~{latest.lead_time_min} min</Badge>}
       </button>

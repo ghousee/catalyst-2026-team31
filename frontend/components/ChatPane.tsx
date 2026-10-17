@@ -2,7 +2,7 @@
 
 import { ArrowUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { SERIES_OPTIONS, SUBSYSTEM_OPTIONS } from "@/lib/format";
+import { environmentName, SERIES_OPTIONS, SUBSYSTEM_OPTIONS } from "@/lib/format";
 import { useConsole, type ChatMsg } from "@/lib/store";
 import { AnswerCard } from "./AnswerCard";
 import { ClarifyCard } from "./ClarifyCard";
@@ -56,7 +56,7 @@ function Message({ m }: { m: ChatMsg }) {
 function OverrideLine() {
   const { override, setOverride, session } = useConsole();
   const parts: string[] = [];
-  if (override.site) parts.push(session?.nodes_available.find((n) => n.id === override.site)?.display ?? override.site);
+  if (override.site) parts.push(environmentName(session?.nodes_available.find((n) => n.id === override.site)?.display ?? override.site));
   if (override.version) parts.push(SERIES_OPTIONS.find((o) => o.id === override.version)?.label ?? override.version);
   if (override.system) parts.push(SUBSYSTEM_OPTIONS.find((o) => o.id === override.system)?.label ?? override.system);
   const active = parts.length > 0;
@@ -70,7 +70,7 @@ function OverrideLine() {
           </button>
         </>
       ) : (
-        <span>Context: from session ({session?.node_display ?? "…"})</span>
+        <span>Context: {environmentName(session?.node_display)}</span>
       )}
     </p>
   );
@@ -99,7 +99,7 @@ export function ChatPane() {
       <div ref={logRef} className="scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" role="log" aria-live="polite" tabIndex={0}>
         {messages.length === 0 && (
           <div className="py-6 text-center">
-            <p className="text-[13.5px] font-medium">Ask about {session?.node_display ?? "the system"}</p>
+            <p className="text-[13.5px] font-medium">Ask about {environmentName(session?.node_display)}</p>
             <p className="mt-1 text-[12.5px] text-muted">
               Answers are scoped to your session and cite a manual, a veteran or live output. Commands only run after you approve them.
             </p>

@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
-import { fmtDateTime, relationKind } from "@/lib/format";
+import { environmentName, fmtDateTime, humanizeEnvironmentText, relationKind } from "@/lib/format";
 import { useConsole } from "@/lib/store";
 import type { DocSource, HeuristicSource, LiveSource } from "@/lib/types";
 import { Avatar } from "./Avatar";
@@ -25,7 +25,7 @@ function Doc({ s }: { s: DocSource }) {
       <dl className="mt-2 divide-y divide-line">
         {s.part_number && <Row k="Part">{s.part_number}</Row>}
         {s.section && <Row k="Section">{s.section}</Row>}
-        {s.applies_to && <Row k="Applies to">{s.applies_to}</Row>}
+        {s.applies_to && <Row k="Applies to">{humanizeEnvironmentText(s.applies_to)}</Row>}
       </dl>
       <blockquote className="mt-3 rounded border-l-2 border-info bg-panel2 p-3 text-[13px] italic">{s.snippet}</blockquote>
     </>
@@ -62,10 +62,10 @@ function Veteran({ s }: { s: HeuristicSource }) {
       )}
       <p className="mt-3 rounded bg-panel2 p-3 text-[13px]">
         <span className="block text-[11px] uppercase tracking-wide text-muted">Why</span>
-        {s.why}
+        {humanizeEnvironmentText(s.why)}
       </p>
       <dl className="mt-2 divide-y divide-line">
-        {s.scope && <Row k="Scope">{s.scope}</Row>}
+        {s.scope && <Row k="Scope">{humanizeEnvironmentText(s.scope)}</Row>}
         {s.captured_via && <Row k="Captured via">{s.captured_via}</Row>}
         {s.captured_at && <Row k="Captured at">{s.captured_at}</Row>}
         {s.provenance && <Row k="Provenance">{s.provenance}</Row>}
@@ -82,7 +82,7 @@ function Live({ s }: { s: LiveSource }) {
       <LaneBadge lane="live" />
       <h3 className="mt-2 break-words font-mono text-[14px] font-semibold">{s.command}</h3>
       <dl className="mt-2 divide-y divide-line">
-        <Row k="Node">{s.node}</Row>
+        <Row k="Environment">{environmentName(s.node)}</Row>
         <Row k="Timestamp">{fmtDateTime(s.ts)}</Row>
       </dl>
       <pre className="mt-3 overflow-x-auto rounded bg-[#05080a] p-3 font-mono text-[12px] text-[#7ee2a1]">{s.excerpt}</pre>

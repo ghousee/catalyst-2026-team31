@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
+import { environmentName } from "./format";
 import { excerptOf, fmtTime } from "./format";
 import type {
   ChatAnswer,
@@ -177,7 +178,7 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
       ]);
       push({
         kind: "system",
-        text: `Session switched to ${s.node_display}. Earlier answers and proposals were for ${prev?.node_display ?? "the previous node"} and no longer apply.`,
+        text: `Environment switched to ${environmentName(s.node_display)}. Earlier answers and proposals were for ${environmentName(prev?.node_display)} and no longer apply.`,
       });
     },
     [push, term],

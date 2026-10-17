@@ -1,4 +1,5 @@
 import { CircleAlert } from "lucide-react";
+import { humanizeEnvironmentText } from "@/lib/format";
 import type { Claim, Source } from "@/lib/types";
 import { CitationChip } from "./CitationChip";
 import { LaneBadge } from "./LaneBadge";
@@ -12,7 +13,7 @@ export function ClaimList({ claims, sources }: { claims: Claim[]; sources?: Sour
             <LaneBadge lane={c.lane} />
           </span>
           <div className="min-w-0">
-            <p className="text-[13.5px] leading-snug">{c.text}</p>
+            <p className="text-[13.5px] leading-snug">{humanizeEnvironmentText(c.text)}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <CitationChip sourceId={c.source_id} lane={c.lane} sources={sources} />
               {c.verified ? (

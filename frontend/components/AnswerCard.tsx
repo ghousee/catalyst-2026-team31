@@ -1,4 +1,5 @@
 import { ShieldAlert } from "lucide-react";
+import { humanizeEnvironmentText } from "@/lib/format";
 import type { ChatMsg } from "@/lib/store";
 import { AnswerChecks } from "./AnswerChecks";
 import { ClaimList } from "./ClaimList";
@@ -41,7 +42,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
         )}
         {!hasVeteran && (
           <p className="rounded border border-line bg-panel2 px-2.5 py-1.5 text-[12.5px] text-muted">
-            Documentation only. No captured veteran knowledge applies to {data.context.display}.
+            Documentation only. No captured veteran knowledge applies to {humanizeEnvironmentText(data.context.display)}.
           </p>
         )}
         {data.quality && <AnswerChecks q={data.quality} />}
