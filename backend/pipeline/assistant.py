@@ -203,6 +203,10 @@ def answer(question, session, override=None, history=()):
                                     names, history), temperature=0.2, max_tokens=MAX_ANSWER_TOKENS)
         st["generate"] = round((time.perf_counter() - t) * 1000)
         reply, cites, used = map_citations(_clean(r["content"]), sources)
+        cited_owners = {s["owner"] for s in sources if s["kind"] == "note" and s["id"] in used}
+        for e in experts:  # "cited above" only when the reply actually cited their note
+            if e["reason"].startswith("their captured") and e["name"] not in cited_owners:
+                e["reason"] = "has veteran notes on this topic"
 
         sub = subs[0] if subs else ""
         context = {"system": sub, "version": series, "site": node, "display": _display(node, series, sub or None),
