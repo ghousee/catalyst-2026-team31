@@ -23,20 +23,24 @@ const sum = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a +
 
 function Tile({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <article className="rounded border border-line bg-panel p-4">
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
-      <p className="mt-2 text-xs leading-4 text-muted">{note}</p>
-    </article>
+    <div className="min-w-0 lg:px-5 lg:first:pl-0">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="num mt-0.5 text-xl font-medium leading-tight">{value}</dd>
+      <dd className="mt-0.5 truncate text-[11.5px] text-muted" title={note}>{note}</dd>
+    </div>
   );
+}
+
+function Strip({ cols, children }: { cols: string; children: ReactNode }) {
+  return <dl className={`grid grid-cols-2 gap-y-4 border-y border-line py-3 lg:gap-y-0 lg:divide-x lg:divide-line ${cols}`}>{children}</dl>;
 }
 
 function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded border border-line bg-panel">
-      <div className="shrink-0 border-b border-line px-4 py-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {sub && <p className="text-xs text-muted">{sub}</p>}
+      <div className="flex shrink-0 items-baseline gap-3 border-b border-line px-4 py-2">
+        <h3 className="shrink-0 text-[13px] font-semibold">{title}</h3>
+        {sub && <p className="truncate text-xs text-muted" title={sub}>{sub}</p>}
       </div>
       <div className="scroll min-h-0 flex-1 overflow-auto">{children}</div>
     </section>
@@ -50,8 +54,8 @@ const Head = ({ cols }: { cols: string[] }) => (
 
 function Origin({ by }: { by: string | null }) {
   const who = by ?? "seed";
-  const cls = who === "seed" ? "bg-panel2 text-muted" : "bg-accent/10 text-accent";
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${cls}`}>{who === "seed" ? "seed" : `${who} (new)`}</span>;
+  const cls = who === "seed" ? "text-muted" : "font-medium text-accent";
+  return <span className={`text-xs ${cls}`}>{who === "seed" ? "seed" : `${who} (new)`}</span>;
 }
 
 export function KnowledgeGraphPage() {
@@ -63,13 +67,10 @@ export function KnowledgeGraphPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="mb-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-accent">Live data from the database</p>
-        <h2 className="text-2xl font-semibold tracking-tight text-fg">Knowledge graph</h2>
-        <p className="mt-1 max-w-3xl text-sm text-muted">
-          What the assistant actually knows. Refreshes every 10 s: sign a note or upload a manual and watch the counts, links and recent changes move.
-        </p>
+        <h2 className="text-xl font-semibold tracking-tight text-fg">Knowledge graph</h2>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">Live from the database, refreshed every 10 s.</p>
       </header>
-      {error && <p role="alert" className="mb-3 rounded border border-crit/30 bg-crit/8 p-3 text-sm text-crit">Graph unavailable: {error}</p>}
+      {error && <p role="alert" className="mb-3 border-l-2 border-crit pl-3 text-sm text-crit">Graph unavailable: {error}</p>}
       {!data && loading && <p className="text-sm text-muted">Loading graph...</p>}
       {data && <Body data={data} q={q} setQ={setQ} has={has} />}
     </div>
@@ -83,17 +84,17 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
   const [view, setView] = useState<"graph" | "tables">("graph");
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <Strip cols="lg:grid-cols-5">
         <Tile label="Entities" value={sum(c.entities)} note={breakdown(c.entities)} />
         <Tile label="Links" value={sum(c.links)} note={breakdown(c.links)} />
         <Tile label="People" value={c.persons} note="veterans who own notes" />
         <Tile label="Expert notes" value={c.notes.approved} note={`approved · ${c.notes.draft} draft · ${c.notes.needs_review} needs review · ${c.notes.retired} retired`} />
         <Tile label="Manual sections" value={c.doc_sections} note={`in ${c.documents} documents`} />
-      </div>
-      <div className="mt-3 flex gap-1" role="tablist" aria-label="Graph view">
+      </Strip>
+      <div className="mt-3 flex gap-5 border-b border-line" role="tablist" aria-label="Graph view">
         {(["graph", "tables"] as const).map((t) => (
           <button key={t} type="button" role="tab" aria-selected={view === t} onClick={() => setView(t)}
-            className={`rounded px-3 py-1.5 text-sm font-medium ${view === t ? "bg-accent/10 text-accent" : "text-muted hover:text-fg"}`}>
+            className={`-mb-px border-b-2 py-1.5 text-sm font-medium ${view === t ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"}`}>
             {t === "graph" ? "Graph" : "Tables"}
           </button>
         ))}
@@ -102,7 +103,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
       {view === "tables" && <>
       <label className="relative mt-3 block max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />
-        <input className="field h-10 w-full rounded bg-panel pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter entities and links" aria-label="Filter entities and links" />
+        <input className="field h-9 w-full pl-9" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter entities and links" aria-label="Filter entities and links" />
       </label>
 
       <div className="mt-3 flex h-[78vh] min-h-[560px]">

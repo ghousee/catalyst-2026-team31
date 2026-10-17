@@ -24,16 +24,16 @@ export function TopBar() {
   const prod = session?.node_display.toUpperCase().includes("PROD");
   return (
     <header
-      className={`flex h-14 shrink-0 items-center gap-4 border-b-[3px] bg-panel px-4 ${session ? (prod ? "border-prod" : "border-dr") : "border-line"}`}
+      className={`flex h-12 shrink-0 items-center gap-4 border-b-[3px] bg-panel px-4 ${session ? (prod ? "border-prod" : "border-dr") : "border-line"}`}
     >
-      <h1 className="text-[15px] font-bold tracking-tight">NonStop Copilot</h1>
+      <h1 className="text-[15px] font-semibold tracking-tight">NonStop Copilot</h1>
       <nav aria-label="Pages" className="flex items-center gap-1 text-[13px]">
         {PAGES.map((p) => (
           <Link
             key={p.href}
             href={p.href}
             aria-current={path === p.href ? "page" : undefined}
-            className={`rounded px-2 py-1 ${path === p.href ? "bg-accent/15 font-semibold text-accent" : "text-muted hover:text-fg"}`}
+            className={`border-b-2 px-1 py-1 ${path === p.href ? "border-accent font-semibold text-fg" : "border-transparent text-muted hover:text-fg"}`}
           >
             {p.label}
           </Link>

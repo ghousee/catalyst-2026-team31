@@ -65,7 +65,7 @@ function Inner() {
   return (
     <div className="flex h-screen min-w-[1100px] flex-col">
       <TopBar />
-      {err && <p role="alert" className="border-b border-crit/60 bg-crit/10 px-4 py-2 text-[13px] text-crit">{err}</p>}
+      {err && <p role="alert" className="border-b border-crit/50 px-4 py-2 text-[13px] text-crit">{err}</p>}
       <main className="flex min-h-0 flex-1">
         <SplitPane direction="horizontal" id="documents-main" label="upload and document list" initial={0.4} minFirst={300} minSecond={360}>
           <SplitPane direction="vertical" id="documents-left" label="upload form and last diff" initial={0.55} minFirst={160} minSecond={100}>

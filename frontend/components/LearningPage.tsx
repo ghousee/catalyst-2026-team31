@@ -11,20 +11,24 @@ const when = (ts: string | null) => (ts ? ts.slice(0, 16).replace("T", " ") : "n
 
 function Tile({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <article className="rounded border border-line bg-panel p-4">
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
-      <p className="mt-2 text-xs leading-4 text-muted">{note}</p>
-    </article>
+    <div className="min-w-0 lg:px-5 lg:first:pl-0">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="num mt-0.5 text-xl font-medium leading-tight">{value}</dd>
+      <dd className="mt-0.5 truncate text-[11.5px] text-muted" title={note}>{note}</dd>
+    </div>
   );
+}
+
+function Strip({ cols, children }: { cols: string; children: ReactNode }) {
+  return <dl className={`grid grid-cols-2 gap-y-4 border-y border-line py-3 lg:gap-y-0 lg:divide-x lg:divide-line ${cols}`}>{children}</dl>;
 }
 
 function Panel({ title, sub, children }: { title: string; sub?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="flex min-h-0 flex-col overflow-hidden rounded border border-line bg-panel">
-      <div className="shrink-0 border-b border-line px-4 py-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {sub && <p className="text-xs text-muted">{sub}</p>}
+      <div className="flex shrink-0 items-baseline gap-3 border-b border-line px-4 py-2">
+        <h3 className="shrink-0 text-[13px] font-semibold">{title}</h3>
+        {sub && <p className="truncate text-xs text-muted" title={sub}>{sub}</p>}
       </div>
       <div className="scroll min-h-0 flex-1 overflow-auto">{children}</div>
     </section>
@@ -43,20 +47,17 @@ export function LearningPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="mb-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-accent">Live data from the question log</p>
-        <h2 className="text-2xl font-semibold tracking-tight text-fg">Learning map</h2>
-        <p className="mt-1 max-w-3xl text-sm text-muted">
-          Shows what this operator has encountered through questions — not a test of what they know. Drill scores will be added later.
-        </p>
+        <h2 className="text-xl font-semibold tracking-tight text-fg">Learning map</h2>
+        <p className="mt-1 max-w-3xl text-[13px] text-muted">What this operator has encountered through questions, not a test of what they know. Live from the question log.</p>
       </header>
       <label className="mb-3 flex items-center gap-2 text-sm">
         <span className="font-medium">Operator</span>
-        <select className="field h-10 rounded bg-panel px-3" value={user} onChange={(e) => setUser(e.target.value)} aria-label="Operator">
+        <select className="field h-9 px-3" value={user} onChange={(e) => setUser(e.target.value)} aria-label="Operator">
           {options.map((u) => <option key={u.user_id} value={u.user_id}>{u.user_id} ({u.questions} questions)</option>)}
         </select>
       </label>
       {(users.error || map.error) && (
-        <p role="alert" className="mb-3 rounded border border-crit/30 bg-crit/8 p-3 text-sm text-crit">
+        <p role="alert" className="mb-3 border-l-2 border-crit pl-3 text-sm text-crit">
           {map.error?.includes("no questions") ? `${user} has not asked anything yet.` : `Learning map unavailable: ${map.error ?? users.error}`}
         </p>
       )}
@@ -70,12 +71,12 @@ function Body({ d }: { d: LearningMap }) {
   const t = d.totals;
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Strip cols="lg:grid-cols-4">
         <Tile label="Questions asked" value={t.questions} note="logged answers, referrals and clarifications" />
         <Tile label="Subsystems touched" value={`${t.subsystems_touched} of ${t.subsystems_total}`} note="a manual section or veteran note was cited" />
         <Tile label="Veteran notes seen" value={t.notes_seen} note={`from ${d.veterans.length} veteran(s) · ${t.sections_cited} manual sections cited`} />
         <Tile label="Coverage" value={pct(t.coverage)} note={`${t.entities_touched} of ${t.entities_total} events, objects, metrics and commands`} />
-      </div>
+      </Strip>
       <div className="mt-3 flex h-[70vh] min-h-[520px]">
         <SplitPane direction="horizontal" id="learning-main" label="subsystem table and the other lists" initial={0.62} minFirst={360} minSecond={260}>
           <Panel title="By subsystem" sub="Coverage = entities touched through cited notes and manual sections / entities in the subsystem">
@@ -92,7 +93,7 @@ function Body({ d }: { d: LearningMap }) {
                     <td className="px-4 py-2 text-xs">{s.notes.length ? s.notes.map((n) => <p key={n.id}><span className="font-mono text-[11px]">{n.id}</span> <span className="text-muted">{n.owner}</span></p>) : <span className="text-muted">none</span>}</td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2" role="img" aria-label={`${pct(s.coverage)} covered`}>
-                        <div className="h-2 w-24 overflow-hidden rounded-full bg-panel2"><div className="h-full rounded-full bg-accent" style={{ width: pct(s.coverage) }} /></div>
+                        <div className="h-1.5 w-24 overflow-hidden bg-panel2"><div className="h-full bg-accent" style={{ width: pct(s.coverage) }} /></div>
                         <span className="text-xs tabular-nums text-muted">{s.entities_touched}/{s.entities_total}</span>
                       </div>
                     </td>
