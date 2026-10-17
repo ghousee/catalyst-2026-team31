@@ -142,7 +142,7 @@ export function ChatPane({ showComposer = true }: { showComposer?: boolean }) {
   );
 }
 
-export function AssistantComposer() {
+export function AssistantComposer({ side = false }: { side?: boolean }) {
   const { busy, ask, session } = useConsole();
   const [text, setText] = useState("");
 
@@ -155,25 +155,37 @@ export function AssistantComposer() {
   };
 
   return (
-    <form onSubmit={submit} className="border-t border-line bg-panel p-3 sm:p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
-        <span>Ask about this incident</span>
-        <span>Context: {environmentName(session?.node_display)}</span>
+    <form onSubmit={submit} className={side ? "bg-panel p-4 sm:p-5" : "border-t border-line bg-panel p-3 sm:p-4"}>
+      <div className={side ? "mb-4" : "mb-2 flex flex-wrap items-center justify-between gap-2"}>
+        <p className={side ? "font-semibold" : "text-[11px] text-muted"}>{side ? "Ask CAIL" : "Ask about this incident"}</p>
+        <p className={`${side ? "mt-1" : ""} text-[11px] text-muted`}>Context: {environmentName(session?.node_display)} · INC-1042</p>
       </div>
-      <div className="flex gap-2">
-        <input
+      {side && <div className="mb-4 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Suggested questions</p>
+        {["Explain the evidence", "What could happen next?", "Show the safest check"].map((question) => <button key={question} type="button" className="block w-full rounded-lg border border-line bg-panel2/50 px-3 py-2 text-left text-xs text-muted hover:border-accent/40 hover:text-fg" onClick={() => setText(question)}>{question}</button>)}
+      </div>}
+      <div className={side ? "space-y-2" : "flex gap-2"}>
+        {side ? <textarea
+          className="field min-h-28 w-full resize-y"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Ask about this incident or request another diagnostic check..."
+          aria-label="Ask the AI troubleshooting assistant"
+          autoComplete="off"
+        /> : <input
           className="field min-w-0 flex-1"
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder="Ask about INC-1042 or request another diagnostic check..."
           aria-label="Ask the AI troubleshooting assistant"
           autoComplete="off"
-        />
-        <button type="submit" className="btn btn-primary" disabled={busy || !text.trim() || !session}>
+        />}
+        <button type="submit" className={`btn btn-primary ${side ? "w-full justify-center" : ""}`} disabled={busy || !text.trim() || !session}>
           <ArrowUp size={15} aria-hidden="true" />
           Ask
         </button>
       </div>
+      {side && <p className="mt-3 text-[11px] leading-4 text-muted">Answers remain scoped to this incident and include citations. Commands still require operator approval.</p>}
     </form>
   );
 }

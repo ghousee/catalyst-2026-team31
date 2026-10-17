@@ -341,8 +341,9 @@ function AssistantPage() {
           </nav>
         </header>
 
-        <div className="scroll min-h-0 flex-1 overflow-y-auto bg-panel2/25">
-          {tab === "investigation" && <div className="space-y-2 p-3 sm:p-4">
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="scroll min-h-0 overflow-y-auto bg-panel2/25">
+            {tab === "investigation" && <div className="space-y-2 p-3 sm:p-4">
             <InvestigationSection id="incident" label="Incident" preview="Audit capacity is approaching its configured limit." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
               <p className="text-base font-semibold">Audit capacity is approaching its configured limit.</p><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">The warning was raised after sustained growth in the audit trail. No service interruption has been confirmed.</p><div className="mt-3 flex flex-wrap gap-4 text-xs text-muted"><span>Detected 2 minutes ago</span><span>Primary Production</span><span>INC-1042 · Active</span></div>
             </InvestigationSection>
@@ -364,11 +365,14 @@ function AssistantPage() {
             <InvestigationSection id="timeline" label="Incident timeline" preview="6 recorded events" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">6 events</span>} open={openSections.has("timeline")} onToggle={toggle}>
               <IncidentActivity />
             </InvestigationSection>
-          </div>}
-          {tab === "terminals" && <ConnectedTerminals />}
-          {tab === "activity" && <IncidentActivity />}
+            </div>}
+            {tab === "terminals" && <ConnectedTerminals />}
+            {tab === "activity" && <IncidentActivity />}
+          </div>
+          <aside className="border-t border-line bg-panel lg:border-l lg:border-t-0" aria-label="Ask CAIL about this incident">
+            <AssistantComposer side />
+          </aside>
         </div>
-        <AssistantComposer />
       </section>
     </div>
   );

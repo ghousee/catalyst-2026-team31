@@ -37,7 +37,7 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - Global demo/synthetic-data banners make the no-production boundary visible on every page.
 - The Dashboard uses full-width health telemetry followed by a compact AI operational summary inside the attention workflow; the previous detached side card was removed.
 - Operator-facing environment names are `Primary Production` and `Disaster Recovery`; raw node ids remain API/command data only. Navigation and summary icons use the attributed Nine One Freeicons outline set in `frontend/public/icons/freeicons/`.
-- The AI Assistant is incident-first: Investigation uses collapsible Incident, Affected systems, AI assessment, Evidence, Recommended action, Expert knowledge and Timeline sections. Connected terminals and Activity are separate workspace tabs, while the incident-aware composer remains at the bottom.
+- The AI Assistant is incident-first: Investigation uses collapsible Incident, Affected systems, AI assessment, Evidence, Recommended action, Expert knowledge and Timeline sections. Connected terminals and Activity are separate workspace tabs. The incident-aware Ask CAIL composer is a persistent right rail on desktop and stacks below the workspace on smaller screens.
 
 ## Contract gaps (not edited in docs/API_CONTRACT.md)
 1. No source lookup: `proposal.source_id`, alert `fix_claims[].source_id` have no `sources[]`. UI assumes `GET /sources/{id}` -> a `Source`.
