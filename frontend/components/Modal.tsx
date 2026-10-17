@@ -26,7 +26,7 @@ export function Modal({
 
   const cls = side
     ? "m-0 ml-auto h-full max-h-none w-[420px] max-w-full rounded-none border-l border-line bg-panel p-0"
-    : "m-auto w-[460px] max-w-[92vw] rounded border border-line bg-panel p-0";
+    : "m-auto w-[460px] max-w-[92vw] rounded-2xl border border-line bg-panel p-0 shadow-lift";
 
   return (
     <dialog

@@ -44,7 +44,7 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open && (
-        <div role="dialog" aria-label="Who are you?" className="absolute right-0 top-10 z-50 w-72 rounded border border-line bg-panel p-3 text-[13px] shadow-lg">
+        <div role="dialog" aria-label="Who are you?" className="absolute right-0 top-10 z-50 w-72 rounded-xl border border-line bg-panel p-3 text-[13px] shadow-lift rise">
           <form onSubmit={startNew} className="space-y-1.5">
             <p className="font-medium">New here?</p>
             <div className="flex gap-2">
