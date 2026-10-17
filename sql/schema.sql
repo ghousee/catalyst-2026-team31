@@ -145,3 +145,6 @@ CREATE INDEX ON alert (ts DESC);
 -- After loading data:
 -- CREATE INDEX ON doc_chunk USING hnsw (embedding vector_cosine_ops);
 -- CREATE INDEX ON heuristic USING hnsw (embedding vector_cosine_ops);
+-- Created by backend.ingest.loader.ensure_indexes() (same statements, IF NOT EXISTS):
+--   CREATE INDEX doc_chunk_fts_en ON doc_chunk USING gin (to_tsvector('english', text));   -- keyword_search
+--   CREATE INDEX doc_chunk_emb_hnsw ON doc_chunk USING hnsw (embedding vector_cosine_ops);
