@@ -17,6 +17,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[tests]] — what each unit test proves
 
 ## Design
+- [[core requirements]] — non-negotiables from Ghouse + CAIL (read before designing)
 - [[system design]] — architecture (to be written)
 - [[api contract]] — pointer to `docs/API_CONTRACT.md` + gotchas
 
