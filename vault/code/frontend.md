@@ -81,3 +81,8 @@ team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.r
 - **Demo:** alerts. `api.getAlerts` is always the mock while `USE_MOCKS` (`ALERTS_ARE_MOCK` in `lib/api.ts`; no endpoint group yet). Active alerts card, AI operational summary (top alert), Needs attention rows, Investigations badge and page are labelled "demo".
 - Header label is computed from `liveGroups()` (`NEXT_PUBLIC_REAL_ENDPOINTS`): "Live: knowledge · graph · ... — Demo: alerts ...".
 - `lib/admin.ts` `admin.graph()` + `GraphSnapshot` type. `ClarifyCard` hides the button row when `options` is empty.
+
+## Learning map (2026-10-17)
+`components/LearningPage.tsx` (nav item right after "Knowledge graph" in `OperationsWorkspace.tsx`), client `lib/learning.ts` (real API, no mocks).
+Operator picker (default `USER_ID`), 4 tiles, per-subsystem table with a coverage bar, never-touched list, recent questions, veterans learned from; `SplitPane` panels,
+polls every 15 s. Header says it shows encounters, not what the operator knows. Backend: [[api]] "Learning map".

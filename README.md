@@ -117,6 +117,7 @@ Veterans and their knowledge are fictional, written for the demo (`kg/seed/`).
 | Systems (node x subsystem, notes, manual sections) | Real (`/graph`, `/documents`); live metrics only where the simulator has data |
 | Knowledge (manuals, signed notes) | Real (`/documents`, `/knowledge`) |
 | Knowledge graph page | Real, refreshes every 10 s (`/graph`) |
+| Learning map | Real: per-operator encounters from the question log (`/learning/*`); not a test of knowledge |
 | Training Simulator scenarios | Real API, fictional scenarios |
 
 ## Database schema

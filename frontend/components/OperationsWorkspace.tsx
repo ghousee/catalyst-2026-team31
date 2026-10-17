@@ -15,6 +15,7 @@ import {
   Gauge,
   GraduationCap,
   LayoutDashboard,
+  Map,
   Menu,
   Network,
   Search,
@@ -34,12 +35,13 @@ import type { MetricsResponse, ScenarioName } from "@/lib/types";
 import { AlertsPanel } from "./AlertsPanel";
 import { ChatPane } from "./ChatPane";
 import { KnowledgeGraphPage, useGraph } from "./KnowledgeGraphPage";
+import { LearningPage } from "./LearningPage";
 import { NodeSwitcher } from "./NodeSwitcher";
 import { SourceDialog } from "./SourceDialog";
 import { Sparkline } from "./Sparkline";
 import { ThemeToggle } from "./ThemeToggle";
 
-type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph";
+type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph" | "learning";
 
 const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -49,6 +51,7 @@ const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard }> = 
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "simulator", label: "Training Simulator", icon: GraduationCap },
   { id: "graph", label: "Knowledge graph", icon: Network },
+  { id: "learning", label: "Learning map", icon: Map },
 ];
 
 const METRICS = [
@@ -391,6 +394,7 @@ function WorkspaceShell() {
             {page === "knowledge" && <KnowledgePage />}
             {page === "simulator" && <SimulatorPage onNavigate={navigate} />}
             {page === "graph" && <KnowledgeGraphPage />}
+            {page === "learning" && <LearningPage />}
           </div>
         </main>
       </div>

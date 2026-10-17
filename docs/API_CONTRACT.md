@@ -223,3 +223,21 @@ retrieved. Approved notes linked to a changed/removed chunk get `needs_review: t
 - Veteran claim: `"needs_review": true` when the note's manual section changed since signing (UI: "manual changed since this note was signed - needs re-check"). Source card has the same field.
 - `claims[].contradicts` is only set when that doc section is among the answer's cited sources.
 - `debug.note_sims` / `debug.notes_below_cutoff`: cosine of the notes offered to / withheld from Qwen.
+
+## GET /learning/users  → `[ { "user_id": "newhire1", "questions": 40, "last_seen": "2026-10-17 12:00:00+00" } ]`
+Operators seen in `answer_log`, most questions first; test/script ids (`eval`, `conncheck`, `check`, `t`, `test`, `cli`) are left out.
+
+## GET /learning/{user_id}  → learning map (404 if the id is a test id or has no logged questions)
+What the operator has *encountered* through questions, not a test of knowledge.
+```json
+{ "user_id": "newhire1",
+  "totals": { "questions": 40, "subsystems_touched": 7, "subsystems_total": 7, "notes_seen": 8, "sections_cited": 36,
+              "entities_touched": 17, "entities_total": 44, "coverage": 0.39 },
+  "subsystems": [ { "id": "sub:TMF", "name": "TMF (TMFCOM)", "questions": 20, "sections_cited": 11,
+                    "notes": [ { "id": "maria:h7", "owner": "Maria Rossi" } ],
+                    "entities_touched": 8, "entities_total": 15, "coverage": 0.53, "last_seen": "2026-10-17 12:00:00+00" } ],
+  "veterans": [ { "id": "maria", "name": "Maria Rossi", "notes": 4 } ],
+  "gaps": { "subsystems": ["FUP"], "events": [ { "id": "evt:TMF-187", "name": "...", "subsystem": "TMF (TMFCOM)" } ] },
+  "recent": [ { "ts": "...", "question": "...", "outcome": "answer", "subsystem": "TMF (TMFCOM)" } ] }
+```
+Entities touched = entities the cited veteran notes and manual sections are linked to (`about` edges); coverage = touched / entities of that subsystem.

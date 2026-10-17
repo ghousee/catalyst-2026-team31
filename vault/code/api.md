@@ -85,3 +85,11 @@ recent[...20]}`. Edges have no timestamp, so `recent` = notes signed/drafted, pl
 rank -> one cited Qwen answer with history). See docs/ARCHITECTURE_V2.md. `/chat` accepts `history`
 [{question, reply}]. Assistant responses carry `reply` + `reply_citations`, `claims` is empty; the UI's
 `ReplyText` renders it. The eval treats an assistant answer with no citations as refer (or clarify if it ends in "?").
+
+## Learning map (2026-10-17) — `backend/learning.py`
+`GET /learning/users` (operators in `answer_log` with question counts; ids `eval conncheck check t test cli` excluded, `real_users`) and
+`GET /learning/{user_id}` (404 for test ids / no questions). Pure `shape_map` (tested in `test_learning.py`): per `sub:*` entity the questions asked
+(context.system), manual sections cited (`doc_chunk.system_id`), veteran notes cited (`heuristic.system_id`, owner), entities touched (`about` edges from
+cited notes/chunks to entities whose `parent_id` is that subsystem), coverage = touched / entities in the subsystem, last seen.
+"Touched" needs a cited source, so a question that cited nothing does not count. Gaps = untouched subsystems + events. It is encounter history, not a test of knowledge.
+Gotcha: `/chat` with `context_override: {"site": "node:DR"}` and no `version` returns a 500; send both.
