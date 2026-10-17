@@ -73,6 +73,7 @@ negatives, manuals only (no knowledge graph yet). An independent question set is
 Manual sections and veterans' knowledge share one graph. Every link cites the manual section or note that justifies it,
 and veterans' notes are scoped to the node they apply to. Full interactive view (77 nodes, 142 links):
 run `python scripts/export_graph.py`, then open `docs/knowledge_graph.html` in a browser.
+`python -m backend.graph.from_docs` auto-adds each manual's commands and numbered messages (from section titles, no LLM) and links them to their section; uploads do it too.
 
 The `TMF 185` neighbourhood (hero scenario). On `\PROD` an operator gets Maria's notes; on `\DR` only Raj's DR note applies:
 ```mermaid

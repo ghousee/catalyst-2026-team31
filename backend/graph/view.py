@@ -49,7 +49,8 @@ def shape_graph(entities, edges, notes, persons, docs, link_cap=LINK_CAP):
             touch[end] = touch.get(end, 0) + 1
     ents = [{"id": x["id"], "kind": x["kind"], "name": x["name"], "aliases": list(x["aliases"] or []),
              "parent_id": x.get("parent_id"), "links": touch.get(x["id"], 0)} for x in entities]
-    ordered = sorted(edges, key=lambda e: e["created_by"] == "seed")  # auto/human (the growing part) first; stable
+    # human/auto (the growing part) first, then seed, then the thousands of auto-docs section links; stable
+    ordered = sorted(edges, key=lambda e: {"seed": 1, "auto-docs": 2}.get(e["created_by"], 0))
     links = [{k: e[k] for k in ("src", "rel", "dst", "source_id", "created_by")} for e in ordered[:link_cap]]
     return {
         "counts": {

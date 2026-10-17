@@ -33,6 +33,25 @@ Walk is undirected over about/symptom_of/fixed_by/precedes/depends_on/diagnosed_
 - Loader deletes and re-inserts all `created_by = 'seed'` edges each run; edit the YAML, not the table.
 - `query.py` also runs on SQLite (tests): SQL stays portable (`%(x)s` params, IN lists built by `_in`), JSON columns parsed by `_j`.
 
+## Auto-built from the manuals (2026-10-17) — `backend/graph/from_docs.py`
+`python -m backend.graph.from_docs [--subsystem sub:TMF] [--dry-run] [--rebuild]` — deterministic (no LLM), idempotent. Titles of `doc_chunk` sections give:
+- **commands** `cmd:auto:<sub>:<slug>` (kind `command`, parent = subsystem, name `<TOOL> <COMMAND>` e.g. `SCF ADD DISK`, `FUP CONFIG[URE]`, `PEEK PAGING`).
+  Per-manual rule in `PROFILES` (`command_heads`): TMF/FUP = bare uppercase heading under the commands chapter; SCF/Pathway/TACL = `<X> Command`;
+  PEEK = `<X> Option`; MEASURE (flat titles) = heading whose first word is a MEASCOM verb. Ranges (`A .. B`) name both ends, `A - note` ignores the note.
+  Not extracted: guidelines/examples/listing formats, summary chapters, TACL built-in functions, API procedures, glossary.
+- **messages** `evt:auto:<sub>:<number>` (kind `event`, name `<TOOL> message <n>`): `Message n` / `MEAS n` titles plus the bare number lines inside merged sections (`message_numbers`).
+  `props.number` is a **string** on purpose: `match_entities` compares int `props.number` (curated EMS events) with bare numbers in a question. FUP has none (`UNNUMBERED`).
+- props `{auto: true, risk, source_id}`; `risk` = `read_only` only when the first word is STATUS/INFO/LISTOPENS/DISPLAY/SHOW/HELP, else `unknown`. No `template_id`/`subsystem`
+  on purpose: `lookup` lists a command only if it has `template_id` (catalog), so auto commands are never proposed or executed.
+- aliases: lowercase, **never a single word** (`add`, `status`, `info` stay out): `<tool> <command>` plus the bare command when it is >= 2 words; bracket forms expand
+  (`fup configure`, `fup config`); an alias any other entity already uses is dropped.
+- edges (`created_by='auto-docs'`, `source_id` = defining section = lowest page): section -about-> entity, entity -about-> subsystem.
+- **dedupe**: `norm_key` (tool prefix, case, plural, `[optional]` parts and arguments dropped: `FUP LISTOPENS file`, `... STATUS AUDITTRAIL, DETAIL`) equal to a curated command's key (or the curated one = auto + arguments, auto >= 2 words)
+  -> reuse the curated id, add only the section -about-> curated edge. Curated rows are never edited.
+- `sync(conn, sub)` = extract + upsert + prune (auto-docs edges whose section is gone/renamed; auto entities left without a section, unless a human/curated edge uses them). `POST /documents` calls it for the
+  document's subsystem and returns `graph` counts. `--rebuild` deletes only `props.auto` entities, `created_by='auto-docs'` edges and auto `mentions` of those, then re-extracts.
+- `GET /graph`: links are capped at 500 with curated/human first and auto-docs last, so the thousands of auto links never push out the curated ones; `entities` lists every entity.
+
 ## Knowledge capture (2026-10-17) — `backend/knowledge.py`
 - draft (`POST /knowledge`) -> owner signs (`/approve`, 403 for anyone else) -> approved. Embedding = same text as the seed loader (`doc_text(trigger[:80], trigger+call+why)`, CPU).
 - Auto-link on approve (`autolink_edges`, pure): `about` subsystem + entities named in trigger+call (via `resolve`, same subsystem only), `applies_to` node(s)

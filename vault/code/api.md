@@ -76,7 +76,7 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
 ## GET /graph (2026-10-17) — `backend/graph/view.py`
 Read-only snapshot for the UI's Knowledge graph page. `shape_graph` is pure (tested in `test_knowledge_capture.py`).
 `{counts{entities by kind, links by rel, persons, notes{approved,draft,retired,needs_review}, doc_sections, documents}, entities[{id,kind,name,aliases,parent_id,links}],
-links[{src,rel,dst,source_id,created_by}] (cap 500, auto/human before seed), links_total, notes[{id,owner_name,kind,scope,status,needs_review,signed_at,call_text}] (cap 200),
+links[{src,rel,dst,source_id,created_by}] (cap 500; human/auto first, then seed, then auto-docs section links), links_total, notes[{id,owner_name,kind,scope,status,needs_review,signed_at,call_text}] (cap 200),
 recent[...20]}`. Edges have no timestamp, so `recent` = notes signed/drafted, plus auto/human links dated by their note, plus document loads, newest first.
 
 ## Answer modes (2026-10-17)

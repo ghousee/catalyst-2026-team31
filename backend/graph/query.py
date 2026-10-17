@@ -339,7 +339,7 @@ def lookup(conn, entity_ids, ctx, k=10):
     commands = []
     for i in depth:
         e = ents.get(i)
-        if e and e["kind"] == "command" and e["props"].get("subsystem") == system:
+        if e and e["kind"] == "command" and e["props"].get("subsystem") == system and "template_id" in e["props"]:  # not auto-docs commands
             p = e["props"]
             commands.append((depth[i], RISK_ORDER.get(p["risk"], 9), e["name"],
                              {"template_id": p["template_id"], "command": p["command"], "risk": p["risk"],
