@@ -22,5 +22,7 @@ watcher triggers (`is_trigger`, `precedes` edges).
    the reasoning (why / when not), not just the fix; practice on replayed incidents ("Drill mode") and progress
    tracking are core, not extras.
 7. **Integrate with existing monitoring tools** CAIL's customers use (IR Prognosis; "momoi" - product to confirm,
-   possibly Idelji MOMI). Warnings should come from those tools' events/metrics via simple adapters (replay of an
-   exported feed for the demo; no live/remote connection required).
+   possibly Idelji MOMI). Warnings come from those tools' events/metrics as a REAL-TIME stream: tools push to us
+   (webhook / syslog / SNMP trap / Kafka) or we poll their local API, inside the customer network; one adapter per
+   tool -> one normalised event -> watcher. The demo replays a recorded feed through the same pipeline.
+   Research: docs/INTEGRATIONS.md.
