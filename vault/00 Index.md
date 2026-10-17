@@ -11,6 +11,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 
 ## Code
 - [[schema]] — Postgres tables, context fingerprint, constraints
+- [[api]] — `/chat` pipeline (`answer()`), FastAPI endpoints, `scripts/ask.py`
 - [[retrieve]] — context filter (`context_where`), vector/keyword/hybrid search, generate/gate/verify stages
 - [[graph]] — knowledge graph: seed (fictional veterans), loader, `resolve`/`lookup`, graph view
 - [[ingest]] — manual chunker, embedder, loader (HPE manuals -> doc_chunk)

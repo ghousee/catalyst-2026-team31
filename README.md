@@ -212,6 +212,14 @@ cd frontend; npm install; npm run dev    # http://localhost:3000
 Schema changed? The init script only runs on an empty volume: `docker compose rm -sf db; docker volume rm veteran-kg_pgdata; docker compose up -d db`
 (wipes the DB, keeps the Ollama models). Don't run `npm run build` while `npm run dev` is running.
 
+### Run the backend
+```powershell
+python -m backend.graph.load             # once: graph + veteran notes into the DB
+uvicorn backend.api.main:app --port 8000 # /health /session /chat /sources/{id}; MiniCheck loads at startup (~30 s)
+python scripts/ask.py "why is the audit trail filling?" --node DR   # no server needed; prints sources, claims, scores, timings
+```
+Point the UI at it: copy `frontend/.env.local.example` to `frontend/.env.local` (real `session,chat,sources`, the rest stays mocked) and restart `npm run dev`.
+
 ## First Claude Code prompts (each in its own session/worktree)
 1. `claude --model opusplan` → plan mode: "Read CLAUDE.md, docs/PLAN.md, sql/schema.sql. Plan the ingestion module for the docs in data/raw: chunk by section, tag system/version/site, embed with embeddinggemma, load into doc_chunk + entity + edge. Ask me about anything ambiguous in the docs."
 2. "Use the implementer agent to build backend/pipeline/context.py per backend/pipeline/README.md, with unit tests."
