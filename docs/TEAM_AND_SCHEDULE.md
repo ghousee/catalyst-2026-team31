@@ -30,11 +30,12 @@
 - Confluence: one architecture/pitch page Sunday morning; set up its MCP only if < 15 min, and turn it off when not writing docs (MCP tool schemas cost context).
 
 ## Git
-```bash
-git checkout -b feat/pipeline          # one branch per workstream: feat/ui, feat/security...
-git worktree add ../kg-ingest feat/ingest     # parallel Claude sessions, one folder each
-git worktree add ../kg-watcher feat/watcher
+```powershell
+git checkout -b feat/pipeline                    # one branch per workstream: feat/ui, feat/security...
+git worktree add -b feat/ingest ..\kg-ingest     # parallel Claude sessions, one folder each
+git worktree add -b feat/watcher ..\kg-watcher
 ```
+Each worktree needs its own `.env` (gitignored): `Copy-Item .env ..\kg-ingest\`.
 - `data/raw/`, `.env`, model files are gitignored. Share company docs via USB/shared drive, never git.
 - Install `gh` CLI so Claude can open PRs.
 

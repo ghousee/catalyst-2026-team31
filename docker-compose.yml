@@ -7,5 +7,10 @@ services:
       POSTGRES_DB: kg
     ports: ["5432:5432"]
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      # named volume, not a ./pgdata bind mount: bind mounts on Docker Desktop for
+      # Windows break Postgres file permissions/fsync
+      - pgdata:/var/lib/postgresql/data
       - ./sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+volumes:
+  pgdata:

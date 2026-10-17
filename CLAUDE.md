@@ -52,15 +52,18 @@ tests/unit/   fast tests the Stop hook runs
 docs/         PLAN, RESEARCH, SCHEMA, API_CONTRACT, EVAL, TEAM_AND_SCHEDULE, PITCH
 ```
 
-## Commands
-```bash
-docker compose up -d                      # postgres+pgvector
-ollama pull qwen3.5:4b && ollama pull embeddinggemma
+## Commands (Windows / PowerShell — no `&&` in PS 5.1; one command per line)
+```powershell
+docker compose up -d                      # postgres+pgvector (Docker Desktop must be running)
+ollama pull qwen3.5:4b
+ollama pull embeddinggemma
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn backend.api.main:app --reload     # API on :8000
 pytest tests/unit -q                      # fast tests
 python eval/run_eval.py                   # golden-set scores → eval/results/
 ```
+Dev machine is Windows: use Windows paths/commands in docs and scripts; prefer Python over bash for tooling.
 
 ## Working style (for Claude Code)
 - Plan mode first for anything non-trivial; keep tasks small and single-purpose.

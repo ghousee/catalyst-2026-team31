@@ -3,22 +3,28 @@
 Context-aware, citation-mandatory chatbot + proactive watcher that captures veterans' know-how.
 Start with `CLAUDE.md` (Claude Code reads it automatically), then `docs/PLAN.md`.
 
-## Tonight (≈30 min)
-```bash
-# 1. repo
-git init && git add . && git commit -m "skeleton"
+## Tonight (≈30 min) — Windows / PowerShell
+Needs: Git for Windows, Python 3.11+, Docker Desktop (running), Ollama for Windows, `gh` CLI.
+```powershell
+# 1. repo (when ready to share; until then just commit locally)
 gh repo create veteran-kg --private --source=. --push
 #    then: add teammates, protect main (Settings → Branches → require PR)
 
 # 2. services
-cp .env.example .env
-docker compose up -d                       # Postgres + pgvector, schema auto-loaded
-ollama pull qwen3.5:4b && ollama pull embeddinggemma
-python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+Copy-Item .env.example .env
+docker compose up -d                       # Postgres + pgvector, schema auto-loaded on FIRST start
+ollama pull qwen3.5:4b
+ollama pull embeddinggemma
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1               # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+pip install -r requirements.txt
+pytest                                     # should pass before anything else
 
-# 3. company docs → data/raw/  (gitignored, share by USB/drive, NEVER git)
-mkdir -p data/raw
+# 3. company docs → data\raw\  (gitignored, share by USB/drive, NEVER git)
+#    data\raw already exists in the repo; just drop files in.
 ```
+Schema changed? The init script only runs on an empty volume: `docker compose down -v; docker compose up -d`
+(wipes the DB).
 
 ## First Claude Code prompts (each in its own session/worktree)
 1. `claude --model opusplan` → plan mode: "Read CLAUDE.md, docs/PLAN.md, sql/schema.sql. Plan the ingestion module for the docs in data/raw: chunk by section, tag system/version/site, embed with embeddinggemma, load into doc_chunk + entity + edge. Ask me about anything ambiguous in the docs."
@@ -42,6 +48,6 @@ mkdir -p data/raw
 | `.claude/` | Subagents (sonnet implementer, opus reviewer, haiku test-runner), opusplan default, Stop hook running unit tests |
 
 Notes:
-- The Stop hook blocks Claude from finishing while `tests/unit` fails. If it misbehaves, remove the `hooks` block from `.claude/settings.json`.
+- The Stop hook (`.claude/hooks/stop_tests.py`) blocks Claude from finishing while `tests/unit` fails, at most once per stop. It calls `python`, so start Claude Code from a shell where the venv is active. If it misbehaves, remove the `hooks` block from `.claude/settings.json`.
 - Check the exact MiniCheck model ID on its GitHub (github.com/Liyan06/MiniCheck) before wiring `verify.py`.
 - Vector dim in `schema.sql` is 768; confirm against `embeddinggemma`'s output and adjust.
