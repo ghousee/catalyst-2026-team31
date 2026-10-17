@@ -16,3 +16,11 @@ From Ghouse (2026-10-16/17), on top of CAIL's brief. These are non-negotiable fo
 
 Maps to: heuristic table (owner, provenance) in [[schema]]; doc vs veteran lanes in [[api contract]];
 watcher triggers (`is_trigger`, `precedes` edges).
+
+## Update 2026-10-17 (Ghouse, after meeting CAIL)
+6. **The goal is training speed:** get a junior IT operator to senior level as fast as possible. Answers must teach
+   the reasoning (why / when not), not just the fix; practice on replayed incidents ("Drill mode") and progress
+   tracking are core, not extras.
+7. **Integrate with existing monitoring tools** CAIL's customers use (IR Prognosis; "momoi" - product to confirm,
+   possibly Idelji MOMI). Warnings should come from those tools' events/metrics via simple adapters (replay of an
+   exported feed for the demo; no live/remote connection required).
