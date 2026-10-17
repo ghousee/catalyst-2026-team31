@@ -21,6 +21,8 @@ def chat(messages, schema=None, num_ctx=8192, temperature=0.0, max_tokens=700, t
         body["format"] = schema
     t0 = time.time()
     r = httpx.post(f"{url}/api/chat", json=body, timeout=timeout)
+    if r.status_code >= 500:  # Ollama occasionally returns a one-off 500 (seen once in 60 eval calls): retry once
+        r = httpx.post(f"{url}/api/chat", json=body, timeout=timeout)
     r.raise_for_status()
     j = r.json()
     dt = time.time() - t0
