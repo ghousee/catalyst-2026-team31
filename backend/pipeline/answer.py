@@ -52,9 +52,18 @@ def relevant_notes(ids, sims, min_sim=NOTE_MIN_SIM):
     return [i for i in ids if sims.get(i, 0.0) >= min_sim]
 
 
-def note_ok(score, sim, verify_threshold=VERIFY_THRESHOLD):
-    """Keep a note Qwen cited: Qwen's claim about it is supported by the note text, or the note is a very close match."""
-    return score >= verify_threshold or (sim or 0.0) >= NOTE_STRONG_SIM
+def note_ok(score, sim, verify_threshold=VERIFY_THRESHOLD, graph_linked=False):
+    """Keep a note Qwen cited: Qwen's claim about it is supported by the note text, the note is a very close match,
+    or (in the 0.5-0.7 band) the graph links it to a specific event/object the question resolved to. MiniCheck alone
+    is unreliable on paraphrases of notes (it scored a near-verbatim raj:h8 sentence 0.03 and dropped the right note)."""
+    sim = sim or 0.0
+    return score >= verify_threshold or sim >= NOTE_STRONG_SIM or (graph_linked and sim >= NOTE_MIN_SIM)
+
+
+def linked_to_specific(path, entities):
+    """Note ids the graph links (either direction) to an event/object/command/metric the question resolved to."""
+    spec = {e["id"] for e in entities if e["kind"] in SPECIFIC}
+    return {a for e in path for a, b in ((e["src"], e["dst"]), (e["dst"], e["src"])) if b in spec}
 
 
 def note_plain(n):
@@ -345,8 +354,9 @@ def answer(question, session, override=None):
                                       [(seen[c["source_id"]], c["claim"]) for c in doc_claims])
         vet_scores, scores = scores[:len(vet_claims)], scores[len(vet_claims):]
         cited_notes = []
+        linked = linked_to_specific(lk["path"], r["entities"])
         for c, score in zip(vet_claims, vet_scores):
-            if note_ok(score, sims.get(c["source_id"])):
+            if note_ok(score, sims.get(c["source_id"]), graph_linked=c["source_id"] in linked):
                 if c["source_id"] not in cited_notes:
                     cited_notes.append(c["source_id"])
             else:

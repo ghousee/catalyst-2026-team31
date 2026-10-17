@@ -253,3 +253,16 @@ def test_note_ok_close_match_overrides_a_weak_paraphrase_score():
 def test_note_plain_has_no_card_header():
     n = {"text": "[x] Maria (24 years) ...", "trigger": "T.", "call": "C.", "why": "W.", "not_when": ""}
     assert A.note_plain(n) == "T. C. W."
+
+
+def test_note_ok_graph_link_breaks_ties_in_the_middle_band():
+    # raj:h8 on the DR question: cosine 0.60, MiniCheck 0.39 on a paraphrase, linked to the MAT the question names
+    assert A.note_ok(0.39, 0.60, graph_linked=True)
+    assert not A.note_ok(0.39, 0.60, graph_linked=False)
+    assert not A.note_ok(0.1, 0.47, graph_linked=True)  # off-topic note below the entry cutoff stays out
+
+
+def test_linked_to_specific_uses_only_specific_entities():
+    path = [{"src": "raj:h8", "rel": "about", "dst": "obj:audit-trail-MAT"}, {"src": "maria:h3", "rel": "about", "dst": "sub:TMF"}]
+    ents = [{"id": "obj:audit-trail-MAT", "kind": "object"}, {"id": "sub:TMF", "kind": "system"}]
+    assert A.linked_to_specific(path, ents) == {"raj:h8"}
