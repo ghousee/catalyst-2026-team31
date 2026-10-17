@@ -69,10 +69,120 @@ Commands run on the simulator only after approval; warnings go back to the opera
 Preliminary: small test sets (10–27 items) written by the same agent that built the pipeline, mostly easy
 negatives, manuals only (no knowledge graph yet). An independent question set is the next step.
 
+## Knowledge graph
+Manual sections and veterans' knowledge share one graph. Every link cites the manual section or note that justifies it,
+and veterans' notes are scoped to the node they apply to. Full interactive view (77 nodes, 142 links):
+run `python scripts/export_graph.py`, then open `docs/knowledge_graph.html` in a browser.
+
+The `TMF 185` neighbourhood (hero scenario). On `\PROD` an operator gets Maria's notes; on `\DR` only Raj's DR note applies:
+```mermaid
+flowchart LR
+  E185(["TMF 185<br/>audit file pinned"])
+  E187(["TMF 187<br/>audit trail critically full"])
+  MAT["Master audit trail (MAT)"]
+  TMF["TMF subsystem"]
+  C1["TMFCOM STATUS AUDITTRAIL, DETAIL<br/>read-only"]
+  C2["TMFCOM STATUS TRANSACTION<br/>read-only"]
+  C3["TMFCOM ABORT TRANSACTION<br/>critical, second approver"]
+  D1["Manual: STATUS AUDITTRAIL output"]
+  D2["Manual: STATUS TRANSACTIONS"]
+  D3["Manual: STATUS AUDITTRAIL part 2"]
+  M7["Maria h7, PROD only<br/>quarter-end warning pattern"]
+  M11["Maria h11, PROD only<br/>don't start with FILESPERVOLUME"]
+  R8["Raj h8, DR only<br/>no settlement batch on DR"]
+  E185 -- about --> TMF
+  E185 -- symptom_of --> MAT
+  E185 -- precedes --> E187
+  E185 -- diagnosed_by --> C1
+  E185 -- diagnosed_by --> C2
+  E185 -- fixed_by --> C3
+  E185 -- fixed_by --> D2
+  E185 -- fixed_by --> M7
+  D1 -- about --> E185
+  M7 -- extends --> D1
+  M11 -- contradicts --> D3
+  R8 -- about --> E185
+  R8 -- extends --> D1
+```
+Veterans and their knowledge are fictional, written for the demo (`kg/seed/`).
+
+## Database schema
+Postgres 16 + pgvector (`sql/schema.sql`, migrations in `sql/migrations/`). Main tables:
+```mermaid
+erDiagram
+  entity {
+    text id PK "sub:TMF, evt:TMF-185, cmd:..., node:PROD"
+    text kind "subsystem, series, node, event, object, metric, command"
+    text name
+    text_array aliases "shop-floor words for question matching"
+    jsonb props "command risk, source_id"
+  }
+  doc_chunk {
+    text id PK "doc:TMF-Reference:status-audittrail"
+    text section
+    text text
+    text system_id FK "subsystem"
+    text edition "which manual edition"
+    vector768 embedding
+  }
+  person {
+    text id PK "maria, raj, lena"
+    text name
+    text role
+    int years
+    text availability "on_shift, on_call, off_shift, retired"
+    text contact
+  }
+  heuristic {
+    text id PK "maria:h7"
+    text owner_id FK
+    text kind "note or warning_pattern"
+    text trigger_text
+    text call_text
+    text why_text
+    text not_when_text
+    text system_id FK "subsystem"
+    text site_id FK "node, NULL = all nodes"
+    text captured_via "interview, referral, debrief"
+    text signed_by FK
+    text status "draft, approved, retired"
+    jsonb pattern "watcher trigger"
+    vector768 embedding
+  }
+  edge {
+    text src PK
+    text rel PK "about, symptom_of, diagnosed_by, fixed_by, precedes, depends_on, extends, contradicts, disagrees_with, expert_in, applies_to"
+    text dst PK
+    text source_id "manual section or note that justifies the link"
+  }
+  answer_log {
+    bigint id PK
+    text question
+    jsonb context
+    text outcome "answer, clarify, refer"
+    text_array citations
+  }
+  feedback {
+    bigint id PK
+    bigint answer_log_id FK
+    text source_id
+    text action "endorse, wrong, outdated"
+  }
+  entity ||--o{ doc_chunk : "subsystem of"
+  entity ||--o{ heuristic : "scopes"
+  person ||--o{ heuristic : "owns and signs"
+  entity ||--o{ edge : "src or dst"
+  heuristic ||--o{ edge : "src or dst"
+  doc_chunk ||--o{ edge : "cited by"
+  answer_log ||--o{ feedback : "rated by"
+```
+Also: `referral` and `alert` tables for the referral loop and the watcher.
+
 ## Status (2026-10-17)
 - Done: schema + context filter, manual ingest (7 HPE manuals, 3,777 chunks), hybrid search, Qwen answer
   generation, MiniCheck verifier, sufficiency gate, UI on mock data, API contract v2.
-- Next: knowledge graph + veteran knowledge, `/chat` backend wired to the UI, command catalog + simulator, watcher, eval set.
+- Done since: knowledge graph (events, commands, objects, 146 cited links) + 3 fictional veterans with 10 signed notes.
+- Next: `/chat` backend wired to the UI, a simple form for veterans to add notes, independent eval set.
 
 ## Setup — Windows / PowerShell
 Needs: Git, Python 3.11+, Node 20+, Docker Desktop (running; NVIDIA GPU optional but recommended).
