@@ -1,0 +1,315 @@
+# Entities for the knowledge graph. ILLUSTRATIVE demo content (see README.md).
+# alias_only: true  -> row already exists (created by the manual loader); only aliases are updated.
+# Aliases are the shop-floor words operators actually type; matching is deterministic (see backend/graph/query.py):
+# case-insensitive, punctuation/stop-words ignored, light stemming (fills = filling = fill).
+# Bare event numbers are NOT aliases: they resolve through props.number + props.ems (so "185" and "TMF 185" both work).
+
+entities:
+  # ---------------- existing: subsystems (kind system) ----------------
+  - {id: 'sub:TMF', kind: system, alias_only: true,
+     aliases: [TMF, TMFCOM, transaction management facility, transaction manager, tmf subsystem, tmp, audit, auditing, transaction backout]}
+  - {id: 'sub:PATHWAY', kind: system, alias_only: true,
+     aliases: [Pathway, PATHCOM, TS/MP, TSMP, Pathway/iTS, server class, server classes, requester, SCREEN COBOL, scobol]}
+  - {id: 'sub:SCF-STORAGE', kind: system, alias_only: true,
+     aliases: [SCF, SCF storage, storage subsystem, storage, disk, disks, disk process, DP2, mirrored disk, volume, CLIM]}
+  - {id: 'sub:TACL', kind: system, alias_only: true,
+     aliases: [TACL, tacl prompt, command interpreter, STATUS command, process list]}
+  - {id: 'sub:PEEK', kind: system, alias_only: true,
+     aliases: [PEEK, peek utility, processor statistics, cpu statistics]}
+  - {id: 'sub:MEASURE', kind: system, alias_only: true,
+     aliases: [Measure, MEASCOM, measure counters, performance counters, performance measurement]}
+  - {id: 'sub:FUP', kind: system, alias_only: true,
+     aliases: [FUP, file utility program, file utility, file open, who has the file open]}
+
+  # ---------------- existing: nodes (site) and series (version) ----------------
+  - {id: 'node:PROD', kind: site, alias_only: true,
+     aliases: ['\PROD', prod, prod node, production node, production system, primary node]}
+  - {id: 'node:DR', kind: site, alias_only: true,
+     aliases: ['\DR', dr, dr node, disaster recovery, disaster recovery site, backup site, standby node, failover site]}
+  - {id: 'rvu:L', kind: version, alias_only: true, aliases: [L-series, L series, NonStop X, x86]}
+  - {id: 'rvu:J', kind: version, alias_only: true, aliases: [J-series, J series, Itanium]}
+  - {id: 'rvu:H', kind: version, alias_only: true, aliases: [H-series, H series]}
+
+  # ---------------- events (EMS subsystem + number); numbers/meanings from the demo scenario ----------------
+  - id: 'evt:TMF-185'
+    kind: event
+    name: 'TMF 185 - audit file pinned'
+    parent_id: 'sub:TMF'
+    props: {ems: TMF, number: 185, verified: false, severity: warning,
+            note: 'Meaning from the demo scenario; the EMS Operator Messages manual is not in the corpus.'}
+    aliases: [audit file pinned, pinned file, file pinned, audit trail pinned, audit trail file pinned,
+              first pinned file, audit trail filling, audit trail filling up, audit trail fills up,
+              audit trail growing, audit trail not releasing, audit files not being released, trail filling, trail filling up,
+              audit volume filling, audit capacity rising, audit trail getting full]
+  - id: 'evt:TMF-187'
+    kind: event
+    name: 'TMF 187 - audit trail critically full'
+    parent_id: 'sub:TMF'
+    props: {ems: TMF, number: 187, verified: false, severity: critical,
+            note: 'Meaning from the demo scenario; see TMFCOM STATUS AUDITTRAIL for the documented out-of-space warning.'}
+    aliases: [audit trail full, audit trail critically full, audit trail is full, trail full, audit trail out of space,
+              out of audit trail space, out of audit space, audit space exhausted, TMF cannot proceed, audit trail exhausted,
+              audit full, audit trail 100%]
+  - id: 'evt:TMF-109'
+    kind: event
+    name: 'TMF 109 - BEGINTRANS disabled'
+    parent_id: 'sub:TMF'
+    props: {ems: TMF, number: 109, verified: false, severity: critical,
+            note: 'Meaning from the demo scenario; BEGINTRANSDISABLE threshold behaviour is documented under ALTER AUDITTRAIL.'}
+    aliases: [BEGINTRANS disabled, begintrans, cannot begin transactions, cant begin transactions, no new transactions,
+              transactions suspended, transaction processing suspended, transactions stopped, new transactions rejected,
+              transaction processing disabled, TMF disabled transactions, begintransaction failing]
+  - id: 'evt:TMF-172'
+    kind: event
+    name: 'TMF 172 - audit trail using overflow volume'
+    parent_id: 'sub:TMF'
+    props: {ems: TMF, number: 172, verified: false, severity: warning,
+            note: 'Meaning from the demo scenario; STATUS AUDITTRAIL documents OVERFLOW SPACE IN USE.'}
+    aliases: [overflow space in use, overflow volume in use, using overflow, overflow threshold, passed overflow threshold,
+              overflow audit volume, audit overflow, overflow]
+  - id: 'evt:TMF-174'
+    kind: event
+    name: 'TMF 174 - audit trail rollover failed'
+    parent_id: 'sub:TMF'
+    props: {ems: TMF, number: 174, verified: false, severity: critical,
+            note: 'Meaning from the demo scenario; STATUS TMF documents the out-of-audit-trail-space warning.'}
+    aliases: [rollover failed, audit rollover failed, audit trail rollover, cannot roll over, no file for rollover,
+              audit generation stopped, TMF stopped generating audit, cannot locate file for rollover]
+  - id: 'evt:DISK-5015'
+    kind: event
+    name: 'DISK 5015 - disk path error'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {ems: DISK, number: 5015, verified: false, severity: warning,
+            note: 'Illustrative event number for a path error.'}
+    aliases: [path error, path errors, disk path error, io path error, path flapping, path down, flapping disk,
+              disk flapping, up and harddown, harddown, hard down, disk keeps going down, disk bouncing, primary path error]
+  - id: 'evt:DISK-5032'
+    kind: event
+    name: 'DISK 5032 - mirror drive down'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {ems: DISK, number: 5032, verified: false, severity: critical,
+            note: 'Illustrative event number for a mirror half going down.'}
+    aliases: [mirror down, mirror drive down, mirror is down, one half down, mirror half down, mirror failed, mirror lost,
+              mirrored volume degraded, volume running unmirrored, single sided, lost a mirror, mirror not up]
+  - id: 'evt:DISK-5034'
+    kind: event
+    name: 'DISK 5034 - revive stalled'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {ems: DISK, number: 5034, verified: false, severity: warning,
+            note: 'Illustrative event number; the stall symptoms are documented under stopping a revive operation.'}
+    aliases: [revive stuck, revive stalled, revive hung, revive not progressing, revive not moving, revive taking forever,
+              revive never finishes, revive loop, revive looping, revive slow, revive stopped moving, revive frozen,
+              mirror revive stuck, mirror revive stalled, stalled revive, stuck revive]
+  - id: 'evt:PATHWAY-1034'
+    kind: event
+    name: 'Pathway 1034 - no server available'
+    parent_id: 'sub:PATHWAY'
+    props: {ems: Pathway, number: 1034, verified: false, severity: warning,
+            note: 'Illustrative; server class at MAXSERVERS with requests queueing.'}
+    aliases: [no server available, no server, no servers available, server class saturated, server class busy, server class full,
+              requests queueing, requests queuing, requests backing up, maxservers, max servers, server class at max,
+              server class at maxservers, servers all busy, pathway error 1034]
+  - id: 'evt:PATHWAY-1061'
+    kind: event
+    name: 'Pathway 1061 - server class frozen'
+    parent_id: 'sub:PATHWAY'
+    props: {ems: Pathway, number: 1061, verified: false, severity: warning,
+            note: 'Illustrative; documented behaviour is the freeze-pending/frozen state rejecting SENDs.'}
+    aliases: [server frozen, server class frozen, frozen server class, freeze pending, frozen state, server is frozen,
+              send fails frozen, server class in freeze pending, stuck frozen, thaw]
+  - id: 'evt:PATHWAY-1038'
+    kind: event
+    name: 'Pathway 1038 - server process limit reached'
+    parent_id: 'sub:PATHWAY'
+    props: {ems: Pathway, number: 1038, verified: false, severity: warning,
+            note: 'Illustrative; documented message is NO SPACE FOR NEW SERVER PROCESS (MAXSERVERPROCESSES).'}
+    aliases: [no space for new server process, maxserverprocesses, max server processes, server process limit,
+              server process limit reached, cannot start more servers, too many server processes, link limit]
+  - id: 'evt:CPU-101'
+    kind: event
+    name: 'CPU 101 - CPU down / backup takeover'
+    parent_id: 'sub:PEEK'
+    props: {ems: CPU, number: 101, verified: false, severity: critical,
+            note: 'Illustrative event number; backup-takeover behaviour is described in the Pathway TCP messages.'}
+    aliases: [cpu down, processor down, cpu halted, cpu failure, cpu failed, cpu crashed, lost a cpu, cpu halt, takeover,
+              backup takeover, process pair takeover, backup took over, processor halted, cpu is down]
+
+  # ---------------- objects ----------------
+  - {id: 'obj:audit-trail-MAT', kind: object, name: 'Master audit trail (MAT)', parent_id: 'sub:TMF',
+     aliases: [audit trail, audit trails, MAT, master audit trail, audit files, audit file, audit trail files, auxiliary audit trail, AUX audit trail, trail]}
+  - {id: 'obj:vol-AUDIT', kind: object, name: '$AUDIT volume (active audit volume)', parent_id: 'sub:TMF',
+     props: {volume: '$AUDIT'},
+     aliases: ['$AUDIT', active audit volume, audit volume, audit disk, audit volumes, overflow volume, overflow volumes]}
+  - {id: 'obj:TMF-subsystem', kind: object, name: 'TMF subsystem (TMP / transaction manager)', parent_id: 'sub:TMF',
+     aliases: [TMP, TMF process, TMF processes, transaction manager process, transaction protection, transaction manager]}
+  - {id: 'obj:vol-DATA01', kind: object, name: '$DATA01 mirrored volume', parent_id: 'sub:SCF-STORAGE',
+     props: {volume: '$DATA01'},
+     aliases: ['$DATA01', data01, data volume, mirrored volume, the mirror, mirror, mirrored disk, mirror disk, mirror drive, disk volume, the volume]}
+  - {id: 'obj:sc-SETTLE', kind: object, name: 'Pathway server class SETTLE-SC', parent_id: 'sub:PATHWAY',
+     props: {server_class: SETTLE-SC},
+     aliases: [SETTLE-SC, settle sc, settlement server, settlement server class, settlement batch, quarter-end batch,
+               quarter end batch, quarter-end settlement, nightly settlement, settlement run, settlement job, batch settlement, settlement]}
+  - {id: 'obj:PATHMON', kind: object, name: 'PATHMON process', parent_id: 'sub:PATHWAY',
+     aliases: [PATHMON, pathway monitor, pathmon process, pathway environment, pathway domain]}
+  - {id: 'obj:TCP', kind: object, name: 'Pathway TCP (terminal control process)', parent_id: 'sub:PATHWAY',
+     aliases: [TCP, terminal control process, tcps, pathway tcp, term objects, terminals stuck]}
+  - {id: 'obj:CPU-2', kind: object, name: 'CPU 2', parent_id: 'sub:PEEK',
+     props: {cpu: 2},
+     aliases: [cpu 2, processor 2, cpu two]}
+  - {id: 'obj:CPUs', kind: object, name: 'CPUs (processors)', parent_id: 'sub:PEEK',
+     aliases: [cpu, cpus, processor, processors, cpu load, cpu pegged, cpu hot]}
+
+  # ---------------- metrics (Measure counters and derived values) ----------------
+  - {id: 'met:audit-capacity-pct', kind: metric, name: 'audit-capacity-pct (audit trail capacity used)', parent_id: 'sub:TMF',
+     aliases: [audit capacity, audit trail capacity, capacity used, percent full, audit percentage, audit trail percentage,
+               how full is the audit trail, audit capacity percent, active audit trail capacity used, audit trail usage]}
+  - {id: 'met:cpu-busy-time', kind: metric, name: 'cpu-busy-time', parent_id: 'sub:MEASURE',
+     aliases: [cpu busy, cpu busy time, cpu utilization, cpu utilisation, cpu usage, cpu percent, cpu busy percent, busy time]}
+  - {id: 'met:cpu-qtime', kind: metric, name: 'cpu-qtime', parent_id: 'sub:MEASURE',
+     aliases: [cpu qtime, ready queue, ready list, cpu queue, run queue, queue time, cpu queue time]}
+  - {id: 'met:request-qtime', kind: metric, name: 'request-qtime (disk process request queue time)', parent_id: 'sub:MEASURE',
+     aliases: [request qtime, disk queue, disk process queue, disk queue time, slow disk, disk response time, disk wait, disk latency]}
+  - {id: 'met:trans-backout-qtime', kind: metric, name: 'trans-backout-qtime', parent_id: 'sub:MEASURE',
+     aliases: [trans backout qtime, backout time, backout queue, backout backlog, slow backout, backout taking long, transaction backout time]}
+  - {id: 'met:revive-current-sector', kind: metric, name: 'revive current logical sector', parent_id: 'sub:SCF-STORAGE',
+     aliases: [current logical sector, revive progress, revive interval, revive sector, revive status]}
+
+  # ---------------- command catalog (templates; risk class decided here, never by the LLM) ----------------
+  # props.source_id MUST be a real doc_chunk id documenting the command (loader validates).
+  - id: 'cmd:tmfcom.status_tmf'
+    kind: command
+    name: TMFCOM STATUS TMF
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.status_tmf, command: 'TMFCOM STATUS TMF', risk: read_only, subsystem: 'sub:TMF',
+            explanation: 'Shows TMF state, the audit trail, BEGINTRANS enablement and any out-of-audit-space warning.',
+            source_id: 'doc:TMF-Reference:status-tmf'}
+    aliases: [status tmf, tmf status, check tmf, is tmf running, tmf state]
+  - id: 'cmd:tmfcom.status_audittrail_detail'
+    kind: command
+    name: TMFCOM STATUS AUDITTRAIL, DETAIL
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.status_audittrail_detail, command: 'TMFCOM STATUS AUDITTRAIL, DETAIL', risk: read_only, subsystem: 'sub:TMF',
+            explanation: 'Shows capacity used, the first pinned file and why it is pinned, and every audit file on disk.',
+            source_id: 'doc:TMF-Reference:status-audittrail'}
+    aliases: [status audittrail, status audit trail, check audit trail, audit trail status, show audit trail, audit trail detail]
+  - id: 'cmd:tmfcom.status_transaction'
+    kind: command
+    name: TMFCOM STATUS TRANSACTION
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.status_transaction, command: 'TMFCOM STATUS TRANSACTION', risk: read_only, subsystem: 'sub:TMF',
+            explanation: 'Lists active transactions with identifier, state and owning process so the one pinning the audit trail can be found.',
+            source_id: 'doc:TMF-Reference:status-transactions'}
+    aliases: [status transaction, status transactions, list transactions, active transactions, long running transaction,
+              long-running transaction, oldest transaction, find the transaction, stuck transaction, hung transaction]
+  - id: 'cmd:tmfcom.status_begintrans'
+    kind: command
+    name: TMFCOM STATUS BEGINTRANS
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.status_begintrans, command: 'TMFCOM STATUS BEGINTRANS', risk: read_only, subsystem: 'sub:TMF',
+            explanation: 'Reports whether BEGINTRANS is enabled and, if disabled, every reason why.',
+            source_id: 'doc:TMF-Reference:status-begintrans'}
+    aliases: [status begintrans, why is begintrans disabled, begintrans status]
+  - id: 'cmd:tmfcom.abort_transaction'
+    kind: command
+    name: 'TMFCOM ABORT TRANSACTION \node(cpu).seq.num'
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.abort_transaction, command: 'TMFCOM ABORT TRANSACTION \node(cpu).seq.num', risk: critical, subsystem: 'sub:TMF',
+            explanation: 'Backs out the named active transaction and releases its locks; it cannot be undone and the application must retry.',
+            source_id: 'doc:TMF-Reference:abort-transaction'}
+    aliases: [abort transaction, kill transaction, back out transaction, backout transaction, cancel transaction]
+  - id: 'cmd:tmfcom.alter_audittrail_addoverflow'
+    kind: command
+    name: 'TMFCOM ALTER AUDITTRAIL MAT, ADDOVERFLOW $volume'
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.alter_audittrail_addoverflow, command: 'TMFCOM ALTER AUDITTRAIL MAT, ADDOVERFLOW $volume', risk: state_changing, subsystem: 'sub:TMF',
+            explanation: 'Adds an overflow audit volume; the condition clears once the oldest pinned file is copied there. It does not remove the cause.',
+            source_id: 'doc:TMF-Reference:status-audittrail-part-2'}
+    aliases: [add overflow volume, add overflow, addoverflow, alter audittrail, add audit volume, increase filespervolume, filespervolume]
+  - id: 'cmd:tmfcom.enable_begintrans'
+    kind: command
+    name: TMFCOM ENABLE BEGINTRANS
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.enable_begintrans, command: 'TMFCOM ENABLE BEGINTRANS', risk: state_changing, subsystem: 'sub:TMF',
+            explanation: 'Resumes transaction processing (super user only); it disables itself again if the audit trail is still over its threshold.',
+            source_id: 'doc:TMF-Reference:enable-auditdump-enable-begintrans'}
+    aliases: [enable begintrans, turn transactions back on, resume transaction processing]
+  - id: 'cmd:tmfcom.disable_begintrans'
+    kind: command
+    name: TMFCOM DISABLE BEGINTRANS
+    parent_id: 'sub:TMF'
+    props: {template_id: tmfcom.disable_begintrans, command: 'TMFCOM DISABLE BEGINTRANS', risk: critical, subsystem: 'sub:TMF',
+            explanation: 'Suspends transaction processing by refusing new BEGINTRANSACTION calls; applications can fail.',
+            source_id: 'doc:TMF-Reference:disable-begintrans'}
+    aliases: [disable begintrans, stop new transactions, suspend transactions]
+  - id: 'cmd:scf.status_disk_detail'
+    kind: command
+    name: 'SCF STATUS DISK $vol, DETAIL'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {template_id: scf.status_disk_detail, command: 'SCF STATUS DISK $vol, DETAIL', risk: read_only, subsystem: 'sub:SCF-STORAGE',
+            explanation: 'Shows state of the primary and mirror drives, path state and revive status (Current Logical Sector) for a volume.',
+            source_id: 'doc:SCF-Storage:status-disk-command'}
+    aliases: [status disk, check disk, disk status, check the mirror, mirror status, scf status disk, revive status]
+  - id: 'cmd:scf.start_disk_mirror'
+    kind: command
+    name: 'SCF START DISK $vol-M'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {template_id: scf.start_disk_mirror, command: 'SCF START DISK $vol-M', risk: state_changing, subsystem: 'sub:SCF-STORAGE',
+            explanation: 'Starts the mirror half of a mirrored volume; a revive then copies data from the other half.',
+            source_id: 'doc:SCF-Storage:start-disk-command'}
+    aliases: [start disk, start mirror, bring mirror back, restart mirror, revive mirror, start the mirror]
+  - id: 'cmd:scf.abort_disk'
+    kind: command
+    name: 'SCF ABORT DISK $vol-M'
+    parent_id: 'sub:SCF-STORAGE'
+    props: {template_id: scf.abort_disk, command: 'SCF ABORT DISK $vol-M', risk: critical, subsystem: 'sub:SCF-STORAGE',
+            explanation: 'Puts the disk path into STOPPED / HARDDOWN while leaving the disk process running; never on the system disk.',
+            source_id: 'doc:SCF-Storage:abort-command'}
+    aliases: [abort disk, hard down a disk, force disk down]
+  - id: 'cmd:pathcom.status_tcp'
+    kind: command
+    name: PATHCOM STATUS TCP *
+    parent_id: 'sub:PATHWAY'
+    props: {template_id: pathcom.status_tcp, command: 'PATHCOM STATUS TCP *', risk: read_only, subsystem: 'sub:PATHWAY',
+            explanation: 'Lists TCPs and their state; DETAIL shows what each terminal is waiting for.',
+            source_id: 'doc:Pathway:status-tcp-command'}
+    aliases: [status tcp, check tcp, tcp status, pathcom status tcp]
+  - id: 'cmd:pathcom.status_term'
+    kind: command
+    name: PATHCOM STATUS TERM *
+    parent_id: 'sub:PATHWAY'
+    props: {template_id: pathcom.status_term, command: 'PATHCOM STATUS TERM *', risk: read_only, subsystem: 'sub:PATHWAY',
+            explanation: 'Lists TERM objects with state, server class being called and transaction identifier (TRANS-ID).',
+            source_id: 'doc:Pathway:status-term-command'}
+    aliases: [status term, check terms, term status, pathcom status term, which terminal holds the transaction]
+  - id: 'cmd:pathcom.thaw_server'
+    kind: command
+    name: 'PATHCOM THAW SERVER class'
+    parent_id: 'sub:PATHWAY'
+    props: {template_id: pathcom.thaw_server, command: 'PATHCOM THAW SERVER class', risk: state_changing, subsystem: 'sub:PATHWAY',
+            explanation: 'Thaws a frozen server class so SENDs to it succeed again; pair with START SERVER if it was stopped.',
+            source_id: 'doc:Pathway:procedure-for-synchronous-upgrade'}
+    aliases: [thaw server, thaw the server class, unfreeze server, unfreeze server class]
+  - id: 'cmd:tacl.status_term'
+    kind: command
+    name: 'TACL STATUS *, TERM'
+    parent_id: 'sub:TACL'
+    props: {template_id: tacl.status_term, command: 'TACL STATUS *, TERM', risk: read_only, subsystem: 'sub:TACL',
+            explanation: 'Lists every process and the terminal it runs on, as seen by the current TACL.',
+            source_id: 'doc:TACL-Reference:status-command-part-3'}
+    aliases: [status all processes, list processes, what is running, show processes, process list by terminal]
+  - id: 'cmd:peek.cpu'
+    kind: command
+    name: 'PEEK /CPU n/'
+    parent_id: 'sub:PEEK'
+    props: {template_id: peek.cpu, command: 'PEEK /CPU n/', risk: read_only, subsystem: 'sub:PEEK',
+            explanation: 'Shows processor-level statistics (time, pool, paging) for CPU n.',
+            source_id: 'doc:PEEK:syntax-to-run-peek-part-3'}
+    aliases: [peek cpu, peek the cpu, check cpu, look at the cpu, processor statistics]
+  - id: 'cmd:fup.listopens'
+    kind: command
+    name: 'FUP LISTOPENS file'
+    parent_id: 'sub:FUP'
+    props: {template_id: fup.listopens, command: 'FUP LISTOPENS file', risk: read_only, subsystem: 'sub:FUP',
+            explanation: 'Lists the processes that have a file open; use before touching a file you suspect is in use.',
+            source_id: 'doc:FUP:listopens'}
+    aliases: [listopens, who has it open, who has the file open, files open]

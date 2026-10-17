@@ -1,0 +1,240 @@
+# FICTIONAL veterans' knowledge, ILLUSTRATIVE (see README.md). Anchored to the ingested manual text, not HPE guidance.
+# scope: system = subsystem id; version = series id | all; site = node id | all   (ADR-004: version=series, site=node)
+# Relations become edges (source_id = the heuristic itself): about / mentions -> entities, extends / contradicts -> doc chunks,
+# disagrees_with -> another heuristic. A node-scoped note (site: node:PROD) is NEVER returned for a \DR session.
+# status approved = live; draft = captured but not yet signed, never retrieved.
+
+heuristics:
+  # ======================= Maria Rossi (retired 2026-09) =======================
+  - id: 'maria:h7'
+    owner: maria
+    kind: warning_pattern
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'Quarter-end on \PROD: TMF 185 (audit file pinned) fires twice within 30 minutes while audit capacity is above 60% and still rising.'
+    call: 'Run TMFCOM STATUS TRANSACTION and find the settlement batch (SETTLE-SC) transaction that is hours old. Identify the pinning transaction before you add any overflow volume.'
+    why: 'Quarter-end settlement holds one transaction open for hours, so the audit file it started in cannot be released and the trail keeps filling behind it. From the first pair of 185s to TMF 187 is about 40 minutes.'
+    not_when: 'Outside quarter-end, or when the oldest transaction is not the settlement batch. Then treat it as an ordinary pinned-file case.'
+    provenance: 'interview:2026-09-30'
+    captured_via: interview
+    captured_at: 2026-09-30
+    signed_by: maria
+    signed_at: 2026-09-30
+    status: approved
+    endorsements: 3
+    last_validated: 2026-09-30
+    is_trigger: true
+    pattern:
+      scope: {node: 'node:PROD', series: 'rvu:L', subsystem: 'sub:TMF'}
+      window_minutes: 30
+      when:
+        - {event: 'evt:TMF-185', count: '>=2'}
+        - {metric: 'met:audit-capacity-pct', trend: rising, above: 60}
+      predicts: {event: 'evt:TMF-187', lead_minutes: 40, then: 'evt:TMF-109'}
+      propose_commands: ['cmd:tmfcom.status_audittrail_detail', 'cmd:tmfcom.status_transaction']
+    about: ['evt:TMF-185', 'evt:TMF-187', 'met:audit-capacity-pct', 'obj:audit-trail-MAT']
+    mentions: ['obj:sc-SETTLE']
+    extends: ['doc:TMF-Reference:status-audittrail-output-displayed']
+
+  - id: 'maria:h11'
+    owner: maria
+    kind: note
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'Audit trail is out of space on \PROD at quarter-end and the manual points you at raising FILESPERVOLUME first (the "recommended approach").'
+    call: 'Do not start with FILESPERVOLUME. First find and resolve the transaction pinning the oldest audit file. Add an overflow volume only as a bridge, and only after the pinning transaction is identified.'
+    why: 'The manual itself says FILESPERVOLUME is only usable if the active volumes have room for the new files. On \PROD at quarter-end they do not, and the batch never finishes before the trail fills. Relying on it cost us BEGINTRANS twice (2019, 2023).'
+    not_when: 'Any other node, or off-peak when the active audit volumes have free space. Then the manual advice is right.'
+    provenance: 'debrief:INC-2291'
+    captured_via: incident
+    captured_at: 2026-09-30
+    signed_by: maria
+    signed_at: 2026-09-30
+    status: approved
+    endorsements: 2
+    last_validated: 2026-09-30
+    about: ['evt:TMF-187', 'evt:TMF-174', 'obj:audit-trail-MAT', 'cmd:tmfcom.alter_audittrail_addoverflow']
+    contradicts: ['doc:TMF-Reference:status-audittrail-part-2']
+
+  - id: 'maria:h12'
+    owner: maria
+    kind: note
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'The pinning transaction is the settlement batch and audit capacity has passed 70%.'
+    call: 'Abort it early with TMFCOM ABORT TRANSACTION (second approver) and let SETTLE-SC retry the batch. Do not wait for the batch to finish.'
+    why: 'Backing out a half-done batch at 70% takes minutes. At 90% the audit trail is the bottleneck for every other application.'
+    not_when: 'The batch is within about 15 minutes of finishing (check the TERM status in Pathway), or on \DR.'
+    provenance: 'interview:2026-09-28'
+    captured_via: interview
+    captured_at: 2026-09-28
+    signed_by: maria
+    signed_at: 2026-09-28
+    status: approved
+    endorsements: 2
+    last_validated: 2026-09-28
+    about: ['evt:TMF-185', 'obj:sc-SETTLE', 'cmd:tmfcom.abort_transaction']
+    extends: ['doc:TMF-Reference:abort-transaction']
+    disagrees_with: ['raj:h6']
+
+  - id: 'maria:h3'
+    owner: maria
+    kind: note
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'You are about to ABORT TRANSACTION on the oldest active transaction at quarter-end.'
+    call: 'Read the owner process in STATUS TRANSACTION first. If it belongs to the settlement batch, tell Batch Operations before you abort: the abort backs out the whole batch and they have to re-run it.'
+    why: 'An abort cannot be undone. The last settlement transaction held about 14,000 records and Batch Operations was surprised when it vanished.'
+    not_when: 'The owner is an ATM or POS requester transaction. Those last seconds and are safe to resolve.'
+    provenance: 'interview:2026-09-28'
+    captured_via: interview
+    captured_at: 2026-09-28
+    signed_by: maria
+    signed_at: 2026-09-28
+    status: approved
+    endorsements: 4
+    last_validated: 2026-09-28
+    about: ['cmd:tmfcom.abort_transaction', 'cmd:tmfcom.status_transaction', 'obj:sc-SETTLE']
+    extends: ['doc:TMF-Reference:abort-transaction']
+
+  - id: 'raj:h3'
+    owner: raj
+    kind: note
+    system: 'sub:PATHWAY'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'An old transaction is pinning the audit trail on \PROD and you need to know which Pathway server class owns it.'
+    call: 'Run PATHCOM STATUS TERM and match the TRANS-ID to the TMFCOM STATUS TRANSACTION list. If it belongs to SETTLE-SC it is the batch; ATM-SC and POS-SC transactions only last seconds.'
+    why: 'SETTLE-SC is the only server class that holds long transactions. The others never do.'
+    not_when: 'On \DR, where the settlement classes are not running.'
+    provenance: 'referral:q41'
+    captured_via: referral
+    captured_at: 2026-10-02
+    signed_by: raj
+    signed_at: 2026-10-02
+    status: approved
+    endorsements: 1
+    last_validated: 2026-10-02
+    about: ['obj:sc-SETTLE', 'cmd:pathcom.status_term']
+    extends: ['doc:Pathway:status-term-command-part-3']
+
+  - id: 'raj:h4'
+    owner: raj
+    kind: note
+    system: 'sub:PATHWAY'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'Pathway 1034 (no server available): a server class is at its MAXSERVERS and requests are queueing.'
+    call: 'Raise MAXSERVERS carefully, two at a time, and check that the total of MAXSERVERS over all classes stays below MAXSERVERPROCESSES. Leave LINKDEPTH at 1.'
+    why: 'Going over MAXSERVERPROCESSES gives NO SPACE FOR NEW SERVER PROCESS and takes the next class down. A deeper LINKDEPTH hides queueing inside the server instead of fixing capacity.'
+    not_when: 'SETTLE-SC during the batch. Its MAXSERVERS is deliberately small, queueing there is expected; look at the batch instead.'
+    provenance: 'referral:q44'
+    captured_via: referral
+    captured_at: 2026-10-05
+    signed_by: raj
+    signed_at: 2026-10-05
+    status: approved
+    endorsements: 2
+    last_validated: 2026-10-05
+    about: ['evt:PATHWAY-1034', 'evt:PATHWAY-1038', 'obj:PATHMON']
+    mentions: ['obj:sc-SETTLE']
+    extends: ['doc:Pathway:configuration-limits-and-defaults-part-2']
+
+  - id: 'raj:h6'
+    owner: raj
+    kind: note
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'The settlement transaction is pinning the audit trail and capacity is above 85%.'
+    call: 'Do not abort it yet. Add an overflow volume first to buy headroom, then let the batch finish or abort it once capacity is back under 80%.'
+    why: 'Backout writes audit too. Aborting a big transaction near a full trail can tip it over BEGINTRANSDISABLE; I have watched trans-backout-qtime climb while the trail went critical.'
+    not_when: 'Capacity is below 70%, where aborting early is safe.'
+    provenance: 'referral:q47'
+    captured_via: referral
+    captured_at: 2026-10-08
+    signed_by: raj
+    signed_at: 2026-10-08
+    status: approved
+    endorsements: 1
+    last_validated: 2026-10-08
+    about: ['evt:TMF-187', 'obj:sc-SETTLE', 'cmd:tmfcom.abort_transaction', 'met:trans-backout-qtime']
+    extends: ['doc:TMF-Reference:status-audittrail-part-2']
+    disagrees_with: ['maria:h12']
+
+  - id: 'raj:h8'
+    owner: raj
+    kind: note
+    system: 'sub:TMF'
+    version: 'rvu:L'
+    site: 'node:DR'
+    trigger: 'Audit trail capacity is climbing on \DR (TMF 185 or 187 raised on the DR node).'
+    call: 'Do not look for the settlement batch: it does not run on \DR. Run TMFCOM STATUS TRANSACTION and look for long transactions started by the replication apply processes, and check the link to \PROD before adding any volume.'
+    why: 'On \DR the audit load comes from applying changes replicated from \PROD. It stalls when the link is slow or down; it is not batch work.'
+    not_when: 'On \PROD.'
+    provenance: 'interview:2026-10-09'
+    captured_via: interview
+    captured_at: 2026-10-09
+    signed_by: raj
+    signed_at: 2026-10-09
+    status: approved
+    endorsements: 1
+    last_validated: 2026-10-09
+    about: ['evt:TMF-185', 'evt:TMF-187', 'obj:audit-trail-MAT', 'cmd:tmfcom.status_transaction']
+    extends: ['doc:TMF-Reference:status-audittrail-output-displayed']
+
+  - id: 'lena:h4'
+    owner: lena
+    kind: note
+    system: 'sub:SCF-STORAGE'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'A disk flaps between UP and HARDDOWN after a path error (DISK 5015).'
+    call: 'Check the cable and the CLIM on the failing path first (SCF STATUS DISK $vol, DETAIL shows which path). Replace the drive last.'
+    why: 'A disk that flaps between UP and HARDDOWN after a path error is almost always the cable or the CLIM, not the drive.'
+    not_when: 'Both mirror halves show errors on different paths. Then suspect the volume or the drive.'
+    provenance: 'interview:2026-09-28'
+    captured_via: interview
+    captured_at: 2026-09-28
+    signed_by: lena
+    signed_at: 2026-09-28
+    status: approved
+    endorsements: 4
+    last_validated: 2026-09-28
+    about: ['evt:DISK-5015', 'evt:DISK-5032', 'obj:vol-DATA01', 'cmd:scf.status_disk_detail']
+    extends: ['doc:SCF-Storage:status-disk-command']
+
+  - id: 'lena:h2'
+    owner: lena
+    kind: warning_pattern
+    system: 'sub:SCF-STORAGE'
+    version: 'rvu:L'
+    site: all
+    trigger: 'A mirror revive is running and Current Logical Sector in STATUS DISK, DETAIL has not moved across two checks ten minutes apart, while the revive interval keeps growing.'
+    call: 'Do not start the revive again. Check EMS for checksum errors on the source mirror, then call storage on-call. The options are automatic sector reallocation or a controlled stop of the revive.'
+    why: 'Nonfatal checksum errors on the source drive make the revive retry the same sector forever. It never fails, so nothing alarms until the mirror has been unprotected for hours.'
+    not_when: 'The revive started less than ten minutes ago; the first sectors can be slow on large volumes.'
+    provenance: 'interview:2026-09-28'
+    captured_via: interview
+    captured_at: 2026-09-28
+    signed_by: lena
+    signed_at: 2026-09-28
+    status: approved
+    endorsements: 3
+    last_validated: 2026-09-28
+    is_trigger: true
+    pattern:
+      scope: {subsystem: 'sub:SCF-STORAGE'}
+      window_minutes: 10
+      when:
+        - {metric: 'met:revive-current-sector', trend: flat, samples: '>=2'}
+        - {metric: 'met:revive-current-sector', field: revive_interval, trend: rising}
+      predicts: {event: 'evt:DISK-5034', lead_minutes: 20}
+      propose_commands: ['cmd:scf.status_disk_detail']
+    about: ['evt:DISK-5034', 'met:revive-current-sector', 'obj:vol-DATA01', 'cmd:scf.status_disk_detail']
+    extends: ['doc:SCF-Storage:stopping-a-revive-operation']
+

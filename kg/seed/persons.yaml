@@ -1,0 +1,29 @@
+# FICTIONAL people (demo only). Match frontend/mocks/fixtures.ts.
+persons:
+  - id: maria
+    name: Maria Rossi
+    role: Senior NonStop Operator
+    team: Production Operations
+    years: 24
+    expertise: [TMF, Audit trails, Quarter-end batch]
+    availability: retired        # retired 2026-09; knowledge captured before she left
+    active: false
+    contact: null
+  - id: raj
+    name: Raj Patel
+    role: NonStop Systems Specialist
+    team: Production Operations
+    years: 15
+    expertise: [Pathway, TMF, '\PROD + \DR']
+    availability: on_call
+    active: true
+    contact: 'ext. 4417 · on-call pager 555-0142'
+  - id: lena
+    name: Lena Kowalski
+    role: Storage Administrator
+    team: Infrastructure
+    years: 19
+    expertise: [SCF Storage, Disk mirrors, Revives]
+    availability: on_shift
+    active: true
+    contact: 'ext. 4302 · Infrastructure desk'
