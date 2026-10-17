@@ -1,3 +1,6 @@
+@import "@ibm/plex-sans/css/ibm-plex-sans-default.css";
+@import "@ibm/plex-mono/css/ibm-plex-mono-default.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -45,10 +48,29 @@ body {
 body {
   background: rgb(var(--bg));
   color: rgb(var(--fg));
-  font-family: ui-sans-serif, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.45;
   overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+.metric-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 :focus-visible {

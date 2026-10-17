@@ -50,9 +50,9 @@ const METRICS = [
 
 function SectionTitle({ eyebrow, title, description }: { eyebrow?: string; title: string; description: string }) {
   return (
-    <header className="mb-6">
-      {eyebrow && <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-accent">{eyebrow}</p>}
-      <h2 className="text-2xl font-semibold tracking-tight text-fg">{title}</h2>
+    <header className="mb-5">
+      {eyebrow && <p className="mb-1 text-xs font-medium text-accent">{eyebrow}</p>}
+      <h2 className="text-2xl font-semibold leading-8 text-fg">{title}</h2>
       <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p>
     </header>
   );
@@ -65,7 +65,7 @@ function MetricCard({ label, value, note, icon, tone = "neutral" }: { label: str
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-muted">{label}</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+          <p className="metric-value mt-2 text-[28px] font-semibold leading-8">{value}</p>
         </div>
         <span className={`grid h-8 w-8 place-items-center ${iconTone}`}><AppIcon name={icon} size={18} /></span>
       </div>
@@ -103,7 +103,7 @@ function HealthCharts() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-medium text-muted">{metric.label}</p>
-                  <p className="mt-1 text-xl font-semibold" style={{ color }}>
+                  <p className="metric-value mt-1 text-xl font-semibold" style={{ color }}>
                     {current === undefined ? (loading ? "..." : "n/a") : `${Math.round(current)}${metric.unit}`}
                   </p>
                 </div>
@@ -123,17 +123,17 @@ function HealthCharts() {
 
 function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const { session } = useConsole();
-  const { data: alerts } = usePolling(() => api.getAlerts(), 2000, session?.node ?? "");
+  const { data: alerts, loading: alertsLoading } = usePolling(() => api.getAlerts(), 2000, session?.node ?? "");
   const active = alerts?.length ?? 0;
 
   return (
     <div>
-      <SectionTitle title="Operations dashboard" description="Understand the state of monitored systems, find what needs attention, and begin an evidence-backed investigation." />
+      <SectionTitle title="Operations dashboard" description="Monitor system health and open evidence-backed investigations." />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Monitored systems" value="24" note="6 connected data sources" icon="systems" />
         <MetricCard label="Healthy" value="19" note="79% reporting normally" icon="overview" tone="ok" />
         <MetricCard label="Needs attention" value="3" note="Capacity and performance signals" icon="investigations" tone="warn" />
-        <MetricCard label="Active investigations" value={alerts ? String(active) : "—"} note={active === 1 ? "1 investigation needs review" : active > 1 ? `${active} investigations need review` : "No investigations need review"} icon="assistant" tone="warn" />
+        <MetricCard label="Active investigations" value={alertsLoading || !alerts ? "—" : String(active)} note={alertsLoading || !alerts ? "Checking current alerts" : active === 1 ? "1 investigation needs review" : active > 1 ? `${active} investigations need review` : "No investigations need review"} icon="assistant" tone="warn" />
       </div>
 
       <div className="mt-6">
@@ -168,9 +168,9 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">System</th><th className="px-4 py-3 font-medium">Health</th><th className="px-4 py-3 font-medium">Observation</th><th className="px-4 py-3 font-medium">Source</th><th className="px-5 py-3 font-medium">Updated</th></tr></thead>
             <tbody className="divide-y divide-line">
-              <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Pathway-02</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Audit capacity rising; file may be pinned</td><td className="px-4 py-4 text-muted">EMS simulator</td><td className="px-5 py-4 text-muted">Now</td></tr>
-              <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Storage-03</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Disk path errors above baseline</td><td className="px-4 py-4 text-muted">Metrics feed</td><td className="px-5 py-4 text-muted">4 min ago</td></tr>
-              <tr className="hover:bg-panel2/40"><td className="px-5 py-4 font-medium">Reports-01</td><td className="px-4 py-4"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-4">Queue latency approaching limit</td><td className="px-4 py-4 text-muted">Application health</td><td className="px-5 py-4 text-muted">8 min ago</td></tr>
+              <tr className="hover:bg-panel2/40"><td className="px-5 py-3 font-medium">Pathway-02</td><td className="px-4 py-3"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-3">Audit capacity rising; file may be pinned</td><td className="px-4 py-3 text-muted">EMS simulator</td><td className="px-5 py-3 text-muted">Now</td></tr>
+              <tr className="hover:bg-panel2/40"><td className="px-5 py-3 font-medium">Storage-03</td><td className="px-4 py-3"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-3">Disk path errors above baseline</td><td className="px-4 py-3 text-muted">Metrics feed</td><td className="px-5 py-3 text-muted">4 min ago</td></tr>
+              <tr className="hover:bg-panel2/40"><td className="px-5 py-3 font-medium">Reports-01</td><td className="px-4 py-3"><span className="status-chip status-warning">Warning</span></td><td className="px-4 py-3">Queue latency approaching limit</td><td className="px-4 py-3 text-muted">Application health</td><td className="px-5 py-3 text-muted">8 min ago</td></tr>
             </tbody>
           </table>
         </div>
@@ -193,16 +193,16 @@ function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const rows = SYSTEM_ROWS.filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()));
   return (
     <div>
-      <SectionTitle title="Systems" description="A searchable inventory of monitored enterprise systems and their current operational state." />
+      <SectionTitle title="Systems" description="Search monitored systems and review their current state." />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <label className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field h-10 w-full rounded-xl bg-panel pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search systems" /></label>
         <span className="text-xs text-muted">{rows.length} systems shown • data minimized for demo</span>
       </div>
-      <section className="overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-line bg-panel">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr>{["System", "Subsystem", "Environment", "Health", "Alerts", "Updated", ""].map((head) => <th key={head} className="px-5 py-3 font-medium">{head}</th>)}</tr></thead>
-            <tbody className="divide-y divide-line">{rows.map((row) => <tr key={row[0]} className="hover:bg-panel2/40">{row.map((cell, index) => <td key={index} className={`px-5 py-4 ${index === 0 ? "font-medium" : "text-muted"}`}>{index === 3 ? <span className={`status-chip status-${cell.toLowerCase()}`}>{cell}</span> : cell}</td>)}<td className="px-5 py-4 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => onNavigate("assistant")}>Investigate</button></td></tr>)}</tbody>
+            <tbody className="divide-y divide-line">{rows.map((row) => <tr key={row[0]} className="hover:bg-panel2/40">{row.map((cell, index) => <td key={index} className={`px-5 py-3 ${index === 0 ? "font-medium" : "text-muted"}`}>{index === 3 ? <span className={`status-chip status-${cell.toLowerCase()}`}>{cell}</span> : cell}</td>)}<td className="px-5 py-3 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => onNavigate("assistant")}>Investigate</button></td></tr>)}</tbody>
           </table>
         </div>
       </section>
@@ -231,7 +231,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
 
   return (
     <div>
-      <SectionTitle title="Investigations" description="Triage active incidents, inspect only the detail you need, and hand a selected case to CAIL for guided troubleshooting." />
+      <SectionTitle title="Investigations" description="Triage incidents and hand selected cases to CAIL for guided troubleshooting." />
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium"><strong className="mr-1 text-fg">{activeAlerts.length}</strong><span className="text-muted">active</span></span>
@@ -239,7 +239,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
         <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium text-muted">Evidence window: last 60 minutes</span>
       </div>
 
-      <section className="grid min-h-[610px] overflow-hidden rounded-2xl border border-line bg-bg shadow-sm lg:grid-cols-[310px_minmax(0,1fr)]">
+      <section className="grid min-h-[610px] overflow-hidden rounded-xl border border-line bg-bg lg:grid-cols-[310px_minmax(0,1fr)]">
         <aside className="border-b border-line bg-panel2 lg:border-b-0 lg:border-r" aria-label="Investigation queue">
           <div className="border-b border-line px-4 py-4">
             <h3 className="font-semibold">Investigation queue</h3>
@@ -302,7 +302,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
 
                 <InvestigationSection id="assessment" label="Possible explanation" preview="A long-running transaction may be preventing audit-file reuse." badge={<span className="status-chip status-warning">Unverified</span>} open={openSections.has("assessment")} onToggle={toggle}>
                   <div className="rounded-lg border border-warn/30 bg-warn/8 p-3"><p className="font-medium text-warn">Working hypothesis</p><p className="mt-1 text-sm leading-6">A long-running quarter-end transaction may be pinning the active audit file and preventing it from being reused.</p></div>
-                  <div className="mt-3 rounded-lg border border-line bg-panel p-3"><p className="text-xs font-semibold uppercase tracking-wide text-muted">Still unknown</p><p className="mt-1 text-sm">The responsible process and root cause remain unconfirmed until the proposed diagnostic is reviewed.</p></div>
+                  <div className="mt-3 rounded-lg border border-line bg-panel p-3"><p className="text-xs font-semibold text-muted">Still unknown</p><p className="mt-1 text-sm">The responsible process and root cause remain unconfirmed until the proposed diagnostic is reviewed.</p></div>
                   <p className="mt-3 text-xs text-muted">Pattern warned early in {selected.backtest.hits}/{selected.backtest.of} comparable incidents, averaging {selected.backtest.avg_lead_min} minutes of lead time. This supports investigation, not a causal conclusion.</p>
                 </InvestigationSection>
 
@@ -344,7 +344,7 @@ function InvestigationSection({ id, label, preview, badge, open, onToggle, child
         <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-0" : "-rotate-90"}`} aria-hidden="true" />
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-fg">{label}</span>
+            <span className="text-sm font-semibold text-fg">{label}</span>
             {badge}
           </span>
           {!open && <span className="mt-0.5 block truncate text-xs text-muted">{preview}</span>}
@@ -419,8 +419,8 @@ function AssistantPage() {
 
   return (
     <div className="flex h-full min-h-[680px] flex-col">
-      <SectionTitle eyebrow="Advisory only" title="AI troubleshooting assistant" description="Investigate one incident at a time, reveal details as needed, and keep every diagnostic action under operator control." />
-      <section className="flex min-h-[610px] flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+      <SectionTitle eyebrow="Advisory only" title="AI troubleshooting assistant" description="Investigate one incident at a time with operator-controlled diagnostics." />
+      <section className="flex min-h-[610px] flex-1 flex-col overflow-hidden rounded-xl border border-line bg-panel">
         <header className="border-b border-line px-4 pt-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
             <div className="min-w-0 flex-1">
@@ -484,10 +484,10 @@ function KnowledgePage() {
   const visible = entries.filter((entry) => filter === "all" || (filter === "manuals" ? entry.type === "Manual" : entry.type === "Expert note"));
   return (
     <div>
-      <SectionTitle title="Knowledge" description="Approved manuals, reviewed operating procedures, and preserved expert experience used to ground CAIL answers." />
+      <SectionTitle title="Knowledge" description="Approved manuals, procedures, and expert knowledge used by CAIL." />
       <div className="mb-4 flex flex-wrap gap-2">{(["all", "manuals", "expert"] as const).map((item) => <button key={item} type="button" className={`rounded-full border px-4 py-2 text-sm font-medium ${filter === item ? "border-accent bg-accent/10 text-accent" : "border-line bg-panel text-muted hover:text-fg"}`} onClick={() => setFilter(item)}>{item === "all" ? "All knowledge" : item === "manuals" ? "Manuals & runbooks" : "Expert knowledge"}</button>)}</div>
-      <section className="overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
-        <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">Name</th><th className="px-4 py-3 font-medium">Type</th><th className="px-4 py-3 font-medium">Applicable scope</th><th className="px-4 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Review</th></tr></thead><tbody className="divide-y divide-line">{visible.map((entry) => <tr key={entry.id} className="hover:bg-panel2/40"><td className="max-w-md px-5 py-4"><p className="font-medium">{entry.name}</p><p className="mt-1 truncate text-xs text-muted">{entry.detail}</p></td><td className="px-4 py-4 text-muted">{entry.type}</td><td className="px-4 py-4 text-muted">{entry.scope}</td><td className="px-4 py-4"><span className="status-chip status-healthy"><FileCheck2 size={12} />{entry.status}</span></td><td className="px-5 py-4 text-muted">17 Oct 2026</td></tr>)}</tbody></table></div>
+      <section className="overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">Name</th><th className="px-4 py-3 font-medium">Type</th><th className="px-4 py-3 font-medium">Applicable scope</th><th className="px-4 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Review</th></tr></thead><tbody className="divide-y divide-line">{visible.map((entry) => <tr key={entry.id} className="hover:bg-panel2/40"><td className="max-w-md px-5 py-3"><p className="font-medium">{entry.name}</p><p className="mt-1 truncate text-xs text-muted">{entry.detail}</p></td><td className="px-4 py-3 text-muted">{entry.type}</td><td className="px-4 py-3 text-muted">{entry.scope}</td><td className="px-4 py-3"><span className="status-chip status-healthy"><FileCheck2 size={12} />{entry.status}</span></td><td className="px-5 py-3 text-muted">17 Oct 2026</td></tr>)}</tbody></table></div>
       </section>
       <p className="mt-4 text-xs text-muted">Expert corrections enter a review queue before they become searchable knowledge.</p>
     </div>
@@ -511,10 +511,10 @@ function SimulatorPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   };
   return (
     <div>
-      <SectionTitle eyebrow="Synthetic environment" title="Operator training simulator" description="Practice evidence-based investigation and safe decision-making without connecting to production infrastructure." />
-      <div className="mb-5 flex items-center gap-3 rounded-2xl border border-accent/25 bg-accent/8 p-4 text-sm"><FlaskConical className="shrink-0 text-accent" size={20} /><div><p className="font-medium">Training data only</p><p className="text-xs text-muted">Every event, command, person, and outcome in this area is fictional demo data.</p></div></div>
-      <div className="grid gap-4 md:grid-cols-2">{SCENARIOS.map((scenario, index) => <article key={scenario.id} className="rounded-2xl border border-line bg-panel p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><AppIcon name="simulator" size={21} /></span><span className="rounded-full bg-panel2 px-2.5 py-1 text-xs text-muted">Scenario {index + 1}</span></div><h3 className="mt-4 text-lg font-semibold">{scenario.title}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-muted">{scenario.description}</p><div className="mt-4 flex items-center gap-4 text-xs text-muted"><span className="inline-flex items-center gap-1"><Gauge size={13} />{scenario.difficulty}</span><span className="inline-flex items-center gap-1"><Clock3 size={13} />{scenario.duration}</span></div><button type="button" className="btn btn-primary mt-5 w-full py-2" disabled={running === scenario.id} onClick={() => void start(scenario.id)}>{running === scenario.id ? "Scenario running" : "Start scenario"}</button></article>)}</div>
-      {status && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ok/30 bg-ok/8 p-4 text-sm" role="status"><span className="inline-flex items-center gap-2"><CheckCircle2 size={17} className="text-ok" />{status}</span>{running && <button type="button" className="btn" onClick={() => onNavigate("assistant")}>Open AI Assistant</button>}</div>}
+      <SectionTitle eyebrow="Synthetic environment" title="Operator training simulator" description="Practice safe investigations without connecting to production." />
+      <div className="mb-5 flex items-center gap-3 rounded-xl border border-accent/25 bg-accent/8 p-4 text-sm"><FlaskConical className="shrink-0 text-accent" size={20} /><div><p className="font-medium">Training data only</p><p className="text-xs text-muted">Events, commands, people, and outcomes are fictional demo data.</p></div></div>
+      <div className="grid gap-4 md:grid-cols-2">{SCENARIOS.map((scenario, index) => <article key={scenario.id} className="rounded-xl border border-line bg-panel p-5"><div className="flex items-start justify-between gap-3"><span className="grid h-8 w-8 place-items-center text-accent"><AppIcon name="simulator" size={19} /></span><span className="rounded-full bg-panel2 px-2.5 py-1 text-xs text-muted">Scenario {index + 1}</span></div><h3 className="mt-4 text-lg font-semibold">{scenario.title}</h3><p className="mt-2 min-h-10 text-sm leading-5 text-muted">{scenario.description}</p><div className="mt-4 flex items-center gap-4 text-xs text-muted"><span className="inline-flex items-center gap-1"><Gauge size={13} />{scenario.difficulty}</span><span className="inline-flex items-center gap-1"><Clock3 size={13} />{scenario.duration}</span></div><button type="button" className="btn btn-primary mt-5 w-full py-2" disabled={running === scenario.id} onClick={() => void start(scenario.id)}>{running === scenario.id ? "Scenario running" : "Start scenario"}</button></article>)}</div>
+      {status && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ok/30 bg-ok/8 p-4 text-sm" role="status"><span className="inline-flex items-center gap-2"><CheckCircle2 size={17} className="text-ok" />{status}</span>{running && <button type="button" className="btn" onClick={() => onNavigate("assistant")}>Open AI Assistant</button>}</div>}
     </div>
   );
 }
