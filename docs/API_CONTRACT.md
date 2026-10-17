@@ -99,7 +99,7 @@ UI resends `/chat` with `context_override` set. `clarify` has no `context` (it i
 # v2 additions — NonStop copilot (docs/SYSTEM_DESIGN.md). Draft, locked once UI + backend agree.
 
 Context dimensions (ADR-004): `system` = subsystem (`sub:TMF`), `version` = series/RVU (`rvu:L`),
-`site` = node (`node:PROD`). `display` e.g. `"\PROD · L-series · TMF"`.
+`site` = node (`node:PROD`). `display` e.g. `"\\PROD · L-series · TMF"`.
 
 ## Claims: lanes and sources (extends /chat `answer`)
 `lane`: `doc` (📘) | `veteran` (👤) | `live` (🖥 command output).
@@ -110,18 +110,18 @@ Context dimensions (ADR-004): `system` = subsystem (`sub:TMF`), `version` = seri
     "snippet": "..." },
   { "id": "maria:h7", "kind": "heuristic", "owner": "maria", "owner_name": "Maria Rossi",
     "owner_role": "Sr. NonStop Operator", "years": 24, "captured_via": "interview", "captured_at": "2026-09-30",
-    "endorsements": 3, "last_validated": "2026-09-30", "scope": "\PROD · L-series · TMF",
+    "endorsements": 3, "last_validated": "2026-09-30", "scope": "\\PROD · L-series · TMF",
     "why": "Quarter-end settlement batch holds one transaction open for hours.",
     "relation": "extends:doc:TMF-Reference:ch121.185" },
-  { "id": "run:c42", "kind": "live", "command": "TMFCOM STATUS AUDITTRAIL, DETAIL", "node": "\PROD",
+  { "id": "run:c42", "kind": "live", "command": "TMFCOM STATUS AUDITTRAIL, DETAIL", "node": "\\PROD",
     "ts": "2026-10-17T02:14:05Z", "excerpt": "Active audit trail capacity used: 71%" }
 ]
 ```
 
 ## GET /session  (from the CAIL emulator session; simulated)
 ```json
-{ "node": "node:PROD", "node_display": "\PROD", "series": "rvu:L", "user": "OPS.NEWHIRE",
-  "nodes_available": [ {"id":"node:PROD","display":"\PROD"}, {"id":"node:DR","display":"\DR"} ] }
+{ "node": "node:PROD", "node_display": "\\PROD", "series": "rvu:L", "user": "OPS.NEWHIRE",
+  "nodes_available": [ {"id":"node:PROD","display":"\\PROD"}, {"id":"node:DR","display":"\\DR"} ] }
 ```
 ## POST /session  `{ "node": "node:DR" }` → same shape (switch node; UI shows it loudly).
 
@@ -130,7 +130,7 @@ Context dimensions (ADR-004): `system` = subsystem (`sub:TMF`), `version` = seri
 { "question": "what's pinning the audit trail?", "context": { "system": "sub:TMF", "site": "node:PROD", "version": "rvu:L" } }
 → { "proposals": [
     { "id": "cmd-17", "template_id": "tmfcom.status_audittrail_detail",
-      "command": "TMFCOM STATUS AUDITTRAIL, DETAIL", "node": "\PROD",
+      "command": "TMFCOM STATUS AUDITTRAIL, DETAIL", "node": "\\PROD",
       "risk": "read_only",                       // read_only | state_changing | critical
       "explanation": "Shows capacity used and the first pinned file with its reason.",
       "source_id": "doc:TMF-Reference:ch4.status-audittrail",
@@ -145,14 +145,14 @@ Context dimensions (ADR-004): `system` = subsystem (`sub:TMF`), `version` = seri
 `→ { "id": "cmd-17", "expected_output": "...", "blast_radius": [ {"entity":"Pathway SETTLE-SC","effect":"will retry 1 batch"} ], "warnings": [] }`
 
 ## POST /commands/{id}/approve
-`{ "user_id": "newhire1", "typed_node": "\PROD", "second_approver": null }` → `{ "status": "approved" | "needs_second_approver" | "rejected", "reason": "" }`
+`{ "user_id": "newhire1", "typed_node": "\\PROD", "second_approver": null }` → `{ "status": "approved" | "needs_second_approver" | "rejected", "reason": "" }`
 
 ## POST /commands/{id}/execute   (simulated; only after approve)
 `→ { "run_id": "run:c42", "output": "...", "ts": "...", "source_id": "run:c42" }`
 
 ## GET /alerts  (v2 shape)
 ```json
-[ { "id": "al-7", "ts": "2026-10-17T02:10:00Z", "node": "\PROD", "subsystem": "TMF",
+[ { "id": "al-7", "ts": "2026-10-17T02:10:00Z", "node": "\\PROD", "subsystem": "TMF",
     "pattern_id": "maria:h7", "owner": "maria", "owner_name": "Maria Rossi",
     "severity": "warning", "lead_time_min": 40,
     "message": "Audit trail on track to fill in ~40 min — Maria's quarter-end pattern",
