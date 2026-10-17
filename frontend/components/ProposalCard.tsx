@@ -117,7 +117,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
       {done && result ? (
         <div role="status" className="flex flex-wrap items-center gap-2 rounded border border-ok/40 bg-ok/10 p-2 text-[12.5px] text-ok">
           <Play size={13} aria-hidden="true" />
-          Executed (simulated) at {fmtTime(result.ts)}. Output is in the terminal pane.
+          Simulated check completed at {fmtTime(result.ts)}. Output was captured as live investigation evidence.
           <CitationChip sourceId={result.source_id} lane="live" />
         </div>
       ) : (

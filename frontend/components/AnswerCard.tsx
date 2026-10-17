@@ -11,11 +11,28 @@ type AnswerMsg = Extract<ChatMsg, { kind: "answer" }>;
 export function AnswerCard({ msg }: { msg: AnswerMsg }) {
   const { data, proposals, noTemplate } = msg;
   const hasVeteran = data.claims.some((c) => c.lane === "veteran");
+  const observedClaims = data.claims.filter((c) => c.lane !== "veteran");
+  const veteranClaims = data.claims.filter((c) => c.lane === "veteran");
   return (
     <div className="space-y-2.5">
       <ContextChip display={data.context.display} confidence={data.context.confidence} />
       <section aria-label="Answer" className="card space-y-3 p-3">
-        <ClaimList claims={data.claims} sources={data.sources} />
+        {observedClaims.length > 0 && (
+          <div>
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Confirmed and documented evidence</h4>
+            <ClaimList claims={observedClaims} sources={data.sources} />
+          </div>
+        )}
+        {veteranClaims.length > 0 && (
+          <div className="border-t border-line pt-3">
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Expert guidance · context scoped</h4>
+            <ClaimList claims={veteranClaims} sources={data.sources} />
+          </div>
+        )}
+        <div className="rounded-lg border border-warn/30 bg-warn/8 px-3 py-2 text-[12.5px]">
+          <span className="font-semibold text-warn">Still unknown: </span>
+          <span className="text-muted">The root cause remains unconfirmed until the proposed live diagnostic is reviewed.</span>
+        </div>
         {data.dropped_claims > 0 && (
           <p className="flex items-center gap-1.5 text-[12px] text-warn">
             <ShieldAlert size={13} aria-hidden="true" />
