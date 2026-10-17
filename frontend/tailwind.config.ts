@@ -20,6 +20,8 @@ const config: Config = {
         info: c("info"),
         prod: c("prod"),
         dr: c("dr"),
+        term: c("term"),
+        termfg: c("term-fg"),
       },
       fontFamily: {
         sans: ["var(--font-sans)", "IBM Plex Sans", "Segoe UI", "system-ui", "sans-serif"],

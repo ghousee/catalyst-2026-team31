@@ -1,4 +1,4 @@
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, TriangleAlert } from "lucide-react";
 import type { Claim, Source } from "@/lib/types";
 import { CitationChip } from "./CitationChip";
 import { LaneBadge } from "./LaneBadge";
@@ -30,7 +30,7 @@ export function ClaimList({ claims, sources }: { claims: Claim[]; sources?: Sour
               )}
             </div>
             {c.needs_review && (
-              <p className="mt-1 text-[11.5px] font-medium text-warn">⚠ manual changed since this note was signed — needs re-check</p>
+              <p className="mt-1 flex items-center gap-1 text-[11.5px] font-medium text-warn"><TriangleAlert size={11} aria-hidden="true" /> manual changed since this note was signed — needs re-check</p>
             )}
           </div>
         </li>

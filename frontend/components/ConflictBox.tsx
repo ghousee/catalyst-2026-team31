@@ -31,7 +31,7 @@ export function ConflictBox({ claims, sources }: { claims: Claim[]; sources?: So
 
 function Box({ title, who, children }: { title: string; who: string; children: React.ReactNode }) {
   return (
-    <div role="group" aria-label={title} className="space-y-2 rounded border border-warn/60 bg-warn/10 p-2.5">
+    <div role="group" aria-label={title} className="space-y-2 border-l-2 border-warn bg-warn/5 py-1.5 pl-3 pr-2">
       <p className="flex items-center gap-1.5 text-[12px] font-semibold text-warn">
         <TriangleAlert size={13} aria-hidden="true" /> {title}: {who}
       </p>

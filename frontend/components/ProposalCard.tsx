@@ -86,24 +86,24 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
     }
   };
 
-  const border = blocked ? "border-crit" : p.risk === "critical" ? "border-crit/60" : p.risk === "state_changing" ? "border-warn/60" : "border-line";
+  const border = blocked ? "border-crit" : p.risk === "critical" ? "border-crit/70" : p.risk === "state_changing" ? "border-warn/70" : "border-line";
 
   return (
-    <article aria-label={`Command proposal: ${p.command}`} className={`card space-y-2.5 border-2 p-3 ${border}`}>
+    <article aria-label={`Command proposal: ${p.command}`} className={`card space-y-2.5 p-3 ${border}`}>
       <header className="flex flex-wrap items-center gap-2">
         <TerminalSquare size={14} className="text-muted" aria-hidden="true" />
         <span className="label">Proposed command</span>
         <span className="ml-auto flex items-center gap-2">
           <RiskBadge risk={p.risk} />
-          <span className="text-[11px] text-muted">target</span>
+          <span className="text-xs text-muted">target</span>
           <NodeBadge display={p.node} />
         </span>
       </header>
 
-      <pre className="overflow-x-auto rounded bg-[#05080a] px-3 py-2 font-mono text-[13.5px] text-[#7ee2a1]">{p.command}</pre>
+      <pre className="overflow-x-auto rounded-[3px] bg-term px-3 py-2 font-mono text-[13.5px] text-termfg">{p.command}</pre>
       <p className="text-[13px]">{p.explanation}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-muted">Source</span>
+        <span className="text-xs text-muted">Source</span>
         <CitationChip sourceId={p.source_id} lane="doc" />
         <Badge tone="muted" title="Approval required for this command">
           approval: {p.approval.required.replace("_", " ")}
@@ -115,7 +115,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
       {dry && <DryRunView dry={dry} />}
 
       {done && result ? (
-        <div role="status" className="flex flex-wrap items-center gap-2 rounded border border-ok/40 bg-ok/10 p-2 text-[12.5px] text-ok">
+        <div role="status" className="flex flex-wrap items-center gap-2 border-l-2 border-ok pl-2.5 text-[12.5px] text-ok">
           <Play size={13} aria-hidden="true" />
           Simulated check completed at {fmtTime(result.ts)}. Output was captured as live investigation evidence.
           <CitationChip sourceId={result.source_id} lane="live" />

@@ -20,26 +20,22 @@ function ExpertRow({ expert }: { expert: Expert }) {
     .join(" · ");
 
   return (
-    <li className="flex gap-2.5 rounded border border-line bg-panel2 px-2.5 py-2">
-      <Avatar name={expert.name} muted={!expert.active} />
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
+    <li className="flex gap-2.5 py-2">
+      <span className="pt-px"><Avatar name={expert.name} size={22} muted={!expert.active} /></span>
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-[13px] font-medium">{expert.name}</span>
           <Badge tone={avail.tone}>{avail.label}</Badge>
+          {designation && <span className="text-[12px] text-muted">{designation}</span>}
         </div>
-        {designation && <p className="text-[12px] text-fg/85">{designation}</p>}
         {expert.expertise && expert.expertise.length > 0 && (
-          <ul className="flex flex-wrap gap-1" aria-label={`${expert.name} expertise`}>
-            {expert.expertise.map((x) => (
-              <li key={x}>
-                <Badge tone="muted">{x}</Badge>
-              </li>
-            ))}
-          </ul>
+          <p className="text-[12px] text-muted" aria-label={`${expert.name} expertise`}>
+            Expertise: {expert.expertise.join(", ")}
+          </p>
         )}
         <p className="text-[12px] text-muted">{expert.reason}</p>
         {expert.contact && (
-          <p className="flex items-center gap-1.5 font-mono text-[11.5px] text-muted">
+          <p className="num flex items-center gap-1.5 text-[11.5px] text-muted">
             <Phone size={11} aria-hidden="true" />
             {expert.contact}
           </p>
@@ -51,7 +47,7 @@ function ExpertRow({ expert }: { expert: Expert }) {
 
 export function ExpertList({ experts }: { experts: Expert[] }) {
   return (
-    <ul className="space-y-1.5">
+    <ul className="divide-y divide-line border-y border-line">
       {experts.map((e) => (
         <ExpertRow key={e.id} expert={e} />
       ))}
