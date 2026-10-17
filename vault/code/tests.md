@@ -14,6 +14,8 @@ Docker-free so the [[stop hook]] stays fast.
 | `tests/unit/test_knowledge_capture.py` | note ids / captured_via, only the owner can sign (403), auto-link edges (same subsystem, node scope), document diff + generic chunker ids, mentions. |
 | `tests/unit/test_answer.py` (additions) | relevance cutoff, note dropped when the claim is unsupported, strong-match override, contradicts only if the manual is cited, TACL title clean. |
 | `tests/unit/test_smoke.py` | placeholder |
+| `tests/unit/test_commands.py` | catalog integrity; scoped selection; no free-text fallback; node/RVU/approval guards; dry run; single-use execution; next-step sequence. |
+| `tests/unit/test_simulator.py` | scenario and speed validation; PROD-only audit trend; bounded node/window metrics. |
 
 Note: SQLite mirror ≠ real Postgres. A real-Postgres check was run by hand on 2026-10-16
 (not in CI). See [[todo]] for an integration test.

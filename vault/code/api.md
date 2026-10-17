@@ -7,7 +7,8 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
   Order: `resolve` -> node-mismatch/subsystem checks (`clarify`) -> `lookup` + `hybrid_search` (docs unfiltered by version/node, filtered by subsystem)
   -> gate -> `generate` -> `verify.support_prob` per claim vs its own source -> cards + `answer_log` row.
 - `answer.py:49` `source_card(conn, id)` doc / heuristic card (same fields in answers and `GET /sources/{id}`). `:37` `warm()` loads MiniCheck.
-- `backend/api/main.py:43` `/health`, `:59` `/session` (GET, POST `:64`, in-memory, nodes `node:PROD`/`node:DR`), `:72` `/chat`, `:78` `/sources/{id}`. CORS: localhost:3000.
+- `backend/api/main.py` exposes `/health`, `/session`, `/chat`, `/sources/{id}`, the [[commands]] proposal/review routes, and [[simulator]] scenario/metrics routes. CORS: localhost:3000.
+- `/sources/{id}` checks synthetic command runs before querying Postgres, so simulator output can become a `live` citation.
 - `scripts/ask.py "question" [--node PROD|DR]` calls `answer()` directly and prints entities, path, sources, gate, claims + scores, experts, timings.
 
 ## Rules implemented

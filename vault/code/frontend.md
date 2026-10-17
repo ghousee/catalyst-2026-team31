@@ -1,11 +1,12 @@
 # frontend
 
-Operator console in `frontend/` (Next.js App Router + Tailwind). Left: simulated CAIL 6530 terminal (read-only).
-Right: health sparklines, watcher alerts, chat with cited claims, command proposal/approval cards.
+Task-based CAIL operations workspace in `frontend/` (Next.js App Router + Tailwind). A Google Drive-inspired
+sidebar opens Overview, Systems, Investigations, AI Assistant, Knowledge and Training Simulator. The terminal-first
+layout was removed; command output remains simulated evidence inside the assistant workflow.
 Contract: [[api contract]] (v2 section authoritative). Run instructions: `frontend/README.md`.
 
 ## Entry points
-- `frontend/app/page.tsx` -> `components/Console.tsx` (layout, provider)
+- `frontend/app/page.tsx` -> `components/Console.tsx` -> `components/OperationsWorkspace.tsx` (responsive shell, pages, provider)
 - `frontend/lib/types.ts` — types mirroring the contract, field names exact
 - `frontend/lib/api.ts` — client; `NEXT_PUBLIC_USE_MOCKS` (default true) routes to `mocks/server.ts`, else `fetch` to `NEXT_PUBLIC_API_URL`
 - `frontend/lib/store.tsx` — `ConsoleProvider`: session, chat messages, terminal lines, source dialog, execute -> terminal + live citation
@@ -32,6 +33,8 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - After execute the UI calls `/commands/propose` with question "what next after this output?" to get the follow-up command; mock keys on that phrase and on the last run.
 - Second approver is simulated client-side (auto-approves after 3 s with `second_approver: "raj"`).
 - Dark theme default; theme stored in `localStorage` (try/catch), applied before paint in `app/layout.tsx`.
+- Light theme is now the default; dark theme remains available and is stored in `localStorage`.
+- Global demo/synthetic-data banners make the no-production boundary visible on every page.
 
 ## Contract gaps (not edited in docs/API_CONTRACT.md)
 1. No source lookup: `proposal.source_id`, alert `fix_claims[].source_id` have no `sources[]`. UI assumes `GET /sources/{id}` -> a `Source`.

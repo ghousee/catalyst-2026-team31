@@ -10,7 +10,7 @@
 - [ ] Retrieve: ACL; embed-search over `heuristic.embedding` (embeddings are loaded, no search function yet); wire `lookup` into the ask pipeline (backend agent).
 - [ ] Ingest the EMS Operator Messages manual so event numbers (TMF 185/187...) can be cited and `verified: true`; add a Pathway TS/MP manual (STATUS SERVER).
 - [ ] Veteran review of the seed notes (domain plausibility, esp. `raj:h8` DR note and abort-threshold numbers).
-- [ ] New modules per design §14: simulator, commands (catalog/parser/risk/guards), watcher.
+- [ ] New modules per design §14: simulator + commands are implemented ([[simulator]], [[commands]]); watcher remains.
 - [ ] RAG spike follow-ups ([[rag spike]]): one chunk per message number; stored tsvector; series strategy for
       multi-series manuals (exact `version_id` match cost 0.18 recall@5); larger independent eval set with real
       operator phrasing; near-miss sufficiency-gate cases; subtle MiniCheck negatives; wire `context.py`/`answer.py`.

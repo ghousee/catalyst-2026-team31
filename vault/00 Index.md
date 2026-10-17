@@ -19,6 +19,8 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[stop hook]] — blocks Claude while unit tests fail
 - [[tests]] — what each unit test proves
 - [[frontend]] — Next.js operator console, mocks, contract gaps
+- [[commands]] — allowlisted proposals, deterministic guards, approval, simulated execution
+- [[simulator]] — synthetic scenarios, health metrics, command output, live source cards
 
 ## Design
 - [[core requirements]] — non-negotiables from Ghouse + CAIL (read before designing)

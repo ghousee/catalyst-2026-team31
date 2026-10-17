@@ -168,7 +168,7 @@ def test_misattributed_rule():
 
 
 def test_clean_restores_node_backslash():
-    assert A._clean("♍PROD and УDR") == "\PROD and \DR"
+    assert A._clean("♍PROD and УDR") == r"\PROD and \DR"
 
 
 def test_supported_veteran_paraphrase_is_replaced_by_verbatim(fake):

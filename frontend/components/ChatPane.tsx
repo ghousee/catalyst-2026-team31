@@ -79,10 +79,11 @@ function OverrideLine() {
 export function ChatPane() {
   const { messages, busy, ask, session } = useConsole();
   const [text, setText] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    const log = logRef.current;
+    if (log) log.scrollTop = log.scrollHeight;
   }, [messages.length, busy]);
 
   const submit = (e: React.FormEvent) => {
@@ -95,7 +96,7 @@ export function ChatPane() {
 
   return (
     <section aria-label="Copilot chat" className="flex min-h-0 flex-1 flex-col">
-      <div className="scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" role="log" aria-live="polite" tabIndex={0}>
+      <div ref={logRef} className="scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" role="log" aria-live="polite" tabIndex={0}>
         {messages.length === 0 && (
           <div className="py-6 text-center">
             <p className="text-[13.5px] font-medium">Ask about {session?.node_display ?? "the system"}</p>
@@ -119,7 +120,6 @@ export function ChatPane() {
             Resolving context and checking sources…
           </p>
         )}
-        <div ref={endRef} />
       </div>
       <form onSubmit={submit} className="border-t border-line bg-panel px-4 pb-3 pt-2">
         <OverrideLine />

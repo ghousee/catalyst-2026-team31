@@ -1,5 +1,7 @@
-"""FastAPI app: uvicorn backend.api.main:app --port 8000. Endpoints: /health /session /chat /sources/{id}, plus the routers
-in backend/knowledge.py (/persons, /knowledge*) and backend/documents.py (/documents)."""
+"""FastAPI app: uvicorn backend.api.main:app --port 8000.
+Endpoints: /health /session /chat /sources/{id}; command/simulator demo (/commands/*, /simulator/scenario,
+/metrics, backend/commands + backend/simulator); routers backend/knowledge.py (/persons, /knowledge*) and
+backend/documents.py (/documents)."""
 from contextlib import asynccontextmanager
 
 import httpx
@@ -8,8 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend import documents, knowledge, settings
+from backend.commands.service import command_service
 from backend.pipeline import answer as pipeline
 from backend.pipeline import verify
+from backend.simulator.service import simulator
 
 NODES = [{"id": "node:PROD", "display": "\\PROD"}, {"id": "node:DR", "display": "\\DR"}]
 SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-memory, single demo user
@@ -41,6 +45,28 @@ class ChatIn(BaseModel):
     question: str
     context_override: dict | None = None
     ablation: int | None = None  # accepted, ignored (eval-only flag in the contract)
+
+
+class CommandContext(BaseModel):
+    system: str
+    site: str
+    version: str
+
+
+class ProposeIn(BaseModel):
+    question: str
+    context: CommandContext
+
+
+class ApproveIn(BaseModel):
+    user_id: str
+    typed_node: str | None = None
+    second_approver: str | None = None
+
+
+class ScenarioIn(BaseModel):
+    scenario: str
+    speed: float = 1
 
 
 @app.get("/health")
@@ -80,8 +106,67 @@ def chat(body: ChatIn):
 
 @app.get("/sources/{source_id:path}")
 def get_source(source_id: str):
+    live = simulator.source_card(source_id)
+    if live is not None:
+        return live
     with pipeline.connect() as conn:
         card = pipeline.source_card(conn, source_id)
     if card is None:
         raise HTTPException(404, f"unknown source {source_id}")
     return card
+
+
+@app.post("/commands/propose")
+def propose_command(body: ProposeIn):
+    try:
+        return command_service.propose(body.question, body.context.model_dump(), SESSION["node"])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/commands/{proposal_id}/dryrun")
+def dryrun_command(proposal_id: str):
+    try:
+        return command_service.dryrun(proposal_id)
+    except KeyError as exc:
+        raise HTTPException(404, f"unknown proposal {proposal_id}") from exc
+
+
+@app.post("/commands/{proposal_id}/approve")
+def approve_command(proposal_id: str, body: ApproveIn):
+    try:
+        return command_service.approve(
+            proposal_id,
+            body.user_id,
+            body.typed_node,
+            body.second_approver,
+            SESSION["node"],
+        )
+    except KeyError as exc:
+        raise HTTPException(404, f"unknown proposal {proposal_id}") from exc
+
+
+@app.post("/commands/{proposal_id}/execute")
+def execute_command(proposal_id: str):
+    try:
+        return command_service.execute(proposal_id, SESSION["node"])
+    except KeyError as exc:
+        raise HTTPException(404, f"unknown proposal {proposal_id}") from exc
+    except PermissionError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@app.post("/simulator/scenario")
+def run_scenario(body: ScenarioIn):
+    try:
+        return simulator.start_scenario(body.scenario, body.speed)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/metrics")
+def get_metrics(node: str, window: str = "60m"):
+    try:
+        return simulator.metrics(node, window)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
