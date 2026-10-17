@@ -17,13 +17,12 @@ import {
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, USE_MOCKS } from "@/lib/api";
 import { environmentName, fmtTime, humanizeEnvironmentText } from "@/lib/format";
 import { usePolling } from "@/lib/hooks";
 import { ConsoleProvider, useConsole } from "@/lib/store";
 import type { Alert, ScenarioName } from "@/lib/types";
-import { DOC_SOURCES, HEURISTIC_SOURCES } from "@/mocks/fixtures";
 import { AppIcon, type AppIconName } from "./AppIcon";
 import { AssistantComposer, ChatPane } from "./ChatPane";
 import { NodeSwitcher } from "./NodeSwitcher";
@@ -38,7 +37,7 @@ const NAV: Array<{ id: PageId; label: string; icon: AppIconName }> = [
   { id: "systems", label: "Systems", icon: "systems" },
   { id: "investigations", label: "Investigations", icon: "investigations" },
   { id: "assistant", label: "AI Assistant", icon: "assistant" },
-  { id: "knowledge", label: "Knowledge", icon: "knowledge" },
+  { id: "knowledge", label: "Knowledge Library", icon: "knowledge" },
   { id: "simulator", label: "Training Simulator", icon: "simulator" },
 ];
 
@@ -585,22 +584,103 @@ function AssistantPage() {
   );
 }
 
+type KnowledgeEntry = {
+  id: string;
+  title: string;
+  summary: string;
+  guidance: string;
+  source: "Manual" | "Procedure" | "Expert experience" | "Incident learning";
+  sourceName: string;
+  appliesTo: string[];
+  maintainer: string;
+  contributor?: string;
+  contributorTitle?: string;
+  status: "Approved" | "Reviewed" | "Needs review";
+  lastReviewed: string;
+  nextReview: string;
+  version: string;
+  evidence: string[];
+  relatedSystems: string[];
+  relatedIncidents: string[];
+};
+
+const KNOWLEDGE_ENTRIES: KnowledgeEntry[] = [
+  { id: "doc:TMF-Reference:ch121.185", title: "Audit File Pinned — Event 185", summary: "Explains why an audit trail file cannot be released while its writing transaction remains active.", guidance: "Confirm the owning transaction and its state before considering any intervention. The file remains pinned until the transaction commits or is safely aborted.", source: "Manual", sourceName: "TMF Reference Manual", appliesTo: ["All environments", "TMF", "NonStop L/J-series"], maintainer: "Production Operations", status: "Approved", lastReviewed: "15 Oct 2026", nextReview: "15 Jan 2027", version: "TMF-REF · chapter 121", evidence: ["TMF event 185 definition", "Approved vendor documentation"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-1042", "INC-2291"] },
+  { id: "doc:TMF-Reference:ch121.187", title: "Audit Trail Capacity Critical — Event 187", summary: "Describes the critical-capacity condition that can prevent new transactions from beginning.", guidance: "Treat the condition as time-sensitive. Identify long-running transactions and validate application impact before a controlled response is approved.", source: "Manual", sourceName: "TMF Reference Manual", appliesTo: ["All environments", "TMF", "NonStop L/J-series"], maintainer: "Production Operations", status: "Approved", lastReviewed: "15 Oct 2026", nextReview: "15 Jan 2027", version: "TMF-REF · chapter 121", evidence: ["TMF event 187 definition", "Approved vendor documentation"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-1042"] },
+  { id: "doc:TMF-Reference:ch4.status-audittrail", title: "Check Audit Trail Status", summary: "Read-only procedure for checking audit capacity and identifying pinned audit files.", guidance: "Review STATUS AUDITTRAIL detail output for capacity, pinned-file state, and the reason each file cannot be released.", source: "Procedure", sourceName: "TMF Reference Manual", appliesTo: ["All environments", "TMF"], maintainer: "Production Operations", status: "Approved", lastReviewed: "17 Oct 2026", nextReview: "17 Jan 2027", version: "TMF-REF · chapter 4", evidence: ["TMFCOM STATUS AUDITTRAIL", "Allowlisted read-only diagnostic"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-1042"] },
+  { id: "doc:TMF-Reference:ch4.status-transaction", title: "Check Active Transactions", summary: "Read-only procedure for reviewing transaction identifiers, state, age, and owning process.", guidance: "Use the transaction list to identify unusually old activity. Treat age as an observation, not proof of root cause.", source: "Procedure", sourceName: "TMF Reference Manual", appliesTo: ["All environments", "TMF"], maintainer: "Production Operations", status: "Approved", lastReviewed: "17 Oct 2026", nextReview: "17 Jan 2027", version: "TMF-REF · chapter 4", evidence: ["TMFCOM STATUS TRANSACTION", "Allowlisted read-only diagnostic"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-1042"] },
+  { id: "doc:TMF-Reference:ch4.abort-transaction", title: "Controlled Transaction Abort", summary: "Operator-controlled recovery procedure for backing out a named transaction.", guidance: "This is a state-changing action. Confirm the transaction owner, expected application behavior, approval requirements, and rollback implications before execution.", source: "Procedure", sourceName: "TMF Reference Manual", appliesTo: ["Primary Production", "TMF"], maintainer: "Production Operations", status: "Approved", lastReviewed: "12 Oct 2026", nextReview: "12 Jan 2027", version: "TMF-REF · chapter 4", evidence: ["TMFCOM ABORT TRANSACTION", "Human approval required"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-2291"] },
+  { id: "doc:TMF-Reference:ch4.status-tmf", title: "Check TMF Service Status", summary: "Read-only procedure for reviewing TMF state, transaction enablement, and active workload.", guidance: "Use the service state to confirm whether TMF is operating normally before investigating individual transactions.", source: "Procedure", sourceName: "TMF Reference Manual", appliesTo: ["All environments", "TMF"], maintainer: "Production Operations", status: "Approved", lastReviewed: "17 Oct 2026", nextReview: "17 Jan 2027", version: "TMF-REF · chapter 4", evidence: ["TMFCOM STATUS TMF", "Allowlisted read-only diagnostic"], relatedSystems: ["Payments-01", "Recovery-01"], relatedIncidents: [] },
+  { id: "maria:h7", title: "Quarter-End Transactions Holding Audit Files", summary: "Preserved operational experience linking quarter-end settlement processing to long-running transactions.", guidance: "During quarter-end processing, check the settlement batch transaction before increasing audit capacity or assuming a storage fault.", source: "Expert experience", sourceName: "Structured expert interview", appliesTo: ["Primary Production", "TMF", "Quarter-end settlement"], maintainer: "Production Operations", contributor: "Maria Rossi", contributorTitle: "Senior NonStop Operator · retired", status: "Reviewed", lastReviewed: "30 Sep 2026", nextReview: "30 Dec 2026", version: "Knowledge record h7", evidence: ["3 expert endorsements", "Extends TMF event 185 guidance"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-1042"] },
+  { id: "maria:h11", title: "Audit Trail Capacity During Quarter-End", summary: "Incident-derived warning that waiting for a quarter-end batch may allow audit capacity to become critical.", guidance: "Use this as an escalation signal, not as proof that every quarter-end transaction should be aborted. The record conflicts with general manual guidance and requires specialist review.", source: "Incident learning", sourceName: "INC-2291 debrief", appliesTo: ["Primary Production", "TMF", "Quarter-end settlement"], maintainer: "Production Operations", contributor: "Maria Rossi", contributorTitle: "Senior NonStop Operator · retired", status: "Needs review", lastReviewed: "30 Sep 2026", nextReview: "Review requested", version: "Knowledge record h11", evidence: ["2019 and 2023 incident observations", "Conflicts with TMF event 187 guidance"], relatedSystems: ["Payments-01", "Pathway-02"], relatedIncidents: ["INC-2291"] },
+  { id: "raj:h3", title: "SETTLE-SC Long-Transaction Pattern", summary: "Identifies SETTLE-SC as the Pathway server class historically associated with long settlement transactions.", guidance: "Check SETTLE-SC process and transaction state first, while keeping other server classes in scope until live evidence confirms the pattern.", source: "Expert experience", sourceName: "Specialist referral", appliesTo: ["Primary Production", "Pathway", "Settlement services"], maintainer: "Raj Patel", contributor: "Raj Patel", contributorTitle: "NonStop Systems Specialist", status: "Reviewed", lastReviewed: "2 Oct 2026", nextReview: "2 Jan 2027", version: "Knowledge record h3", evidence: ["Specialist validation", "Extends Pathway server guidance"], relatedSystems: ["Pathway-02", "Reports-01"], relatedIncidents: ["INC-1042"] },
+  { id: "lena:h4", title: "Intermittent Disk Path Failures", summary: "Preserved storage experience associating repeated UP-to-HARDDOWN transitions with path components rather than the drive.", guidance: "Inspect the cable, CLIM, and process-pair path before concluding that the physical drive has failed.", source: "Expert experience", sourceName: "Structured expert interview", appliesTo: ["Primary Production", "Storage", "SCF"], maintainer: "Lena Kowalski", contributor: "Lena Kowalski", contributorTitle: "Storage Administrator", status: "Reviewed", lastReviewed: "28 Sep 2026", nextReview: "28 Dec 2026", version: "Knowledge record h4", evidence: ["4 expert endorsements", "Extends SCF storage guidance"], relatedSystems: ["Storage-03"], relatedIncidents: [] },
+];
+
+type KnowledgeFilter = "all" | "manuals" | "expert" | "incidents" | "review";
+
 function KnowledgePage() {
-  const [filter, setFilter] = useState<"all" | "manuals" | "expert">("all");
-  const entries = useMemo(() => [
-    ...DOC_SOURCES.slice(0, 6).map((source) => ({ id: source.id, name: source.title, detail: source.section ?? "Approved excerpt", type: "Manual", scope: source.applies_to ?? "All supported series", status: "Approved" })),
-    ...HEURISTIC_SOURCES.map((source) => ({ id: source.id, name: `${source.owner_name ?? source.owner} expert note`, detail: humanizeEnvironmentText(source.why), type: "Expert note", scope: humanizeEnvironmentText(source.scope ?? "Scoped"), status: "Approved" })),
-  ], []);
-  const visible = entries.filter((entry) => filter === "all" || (filter === "manuals" ? entry.type === "Manual" : entry.type === "Expert note"));
+  const [filter, setFilter] = useState<KnowledgeFilter>("all");
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(KNOWLEDGE_ENTRIES[0].id);
+  const [correctionStatus, setCorrectionStatus] = useState<string | null>(null);
+  const visible = KNOWLEDGE_ENTRIES.filter((entry) => {
+    const matchesQuery = [entry.title, entry.summary, entry.source, entry.sourceName, entry.maintainer, entry.contributor ?? "", ...entry.appliesTo].join(" ").toLowerCase().includes(query.toLowerCase());
+    const matchesFilter = filter === "all" || (filter === "manuals" && (entry.source === "Manual" || entry.source === "Procedure")) || (filter === "expert" && entry.source === "Expert experience") || (filter === "incidents" && entry.source === "Incident learning") || (filter === "review" && entry.status === "Needs review");
+    return matchesQuery && matchesFilter;
+  });
+  const selected = visible.find((entry) => entry.id === selectedId) ?? visible[0] ?? null;
+  const filters: Array<{ id: KnowledgeFilter; label: string }> = [{ id: "all", label: "All knowledge" }, { id: "manuals", label: "Manuals and procedures" }, { id: "expert", label: "Expert experience" }, { id: "incidents", label: "Incident learnings" }, { id: "review", label: "Needs review" }];
+  const statusClass = (status: KnowledgeEntry["status"]) => status === "Needs review" ? "status-warning" : "status-healthy";
+
   return (
     <div>
-      <SectionTitle title="Knowledge" description="Approved manuals, procedures, and expert knowledge used by CAIL." />
-      <div className="mb-4 flex flex-wrap gap-2">{(["all", "manuals", "expert"] as const).map((item) => <button key={item} type="button" className={`rounded-full border px-4 py-2 text-sm font-medium ${filter === item ? "border-accent bg-accent/10 text-accent" : "border-line bg-panel text-muted hover:text-fg"}`} onClick={() => setFilter(item)}>{item === "all" ? "All knowledge" : item === "manuals" ? "Manuals & runbooks" : "Expert knowledge"}</button>)}</div>
-      <section className="overflow-hidden rounded-xl border border-line bg-panel">
-        <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">Name</th><th className="px-4 py-3 font-medium">Type</th><th className="px-4 py-3 font-medium">Applicable scope</th><th className="px-4 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Review</th></tr></thead><tbody className="divide-y divide-line">{visible.map((entry) => <tr key={entry.id} className="hover:bg-panel2/40"><td className="max-w-md px-5 py-3"><p className="font-medium">{entry.name}</p><p className="mt-1 truncate text-xs text-muted">{entry.detail}</p></td><td className="px-4 py-3 text-muted">{entry.type}</td><td className="px-4 py-3 text-muted">{entry.scope}</td><td className="px-4 py-3"><span className="status-chip status-healthy"><FileCheck2 size={12} />{entry.status}</span></td><td className="px-5 py-3 text-muted">17 Oct 2026</td></tr>)}</tbody></table></div>
-      </section>
-      <p className="mt-4 text-xs text-muted">Expert corrections enter a review queue before they become searchable knowledge.</p>
+      <SectionTitle title="Knowledge library" description="Approved operational guidance and preserved expert experience used to ground CAIL responses." />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field h-10 w-full rounded-xl bg-panel pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search guidance, systems, or contributors" /></label>
+        <span className="text-xs text-muted">{visible.length} knowledge {visible.length === 1 ? "item" : "items"}</span>
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2">{filters.map((item) => <button key={item.id} type="button" className={`rounded-full border px-3.5 py-2 text-sm font-medium ${filter === item.id ? "border-accent bg-accent/10 text-accent" : "border-line bg-panel text-muted hover:text-fg"}`} onClick={() => { setFilter(item.id); setCorrectionStatus(null); }}>{item.label}{item.id === "review" && <span className="ml-1.5 rounded-full bg-warn/10 px-1.5 py-0.5 text-[11px] text-warn">1</span>}</button>)}</div>
+
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_460px]">
+        <section className="overflow-hidden rounded-xl border border-line bg-panel" aria-label="Knowledge items">
+          <div className="divide-y divide-line md:hidden">
+            {visible.map((entry) => { const active = selected?.id === entry.id; return <button key={entry.id} type="button" className={`w-full border-l-2 p-4 text-left ${active ? "border-accent bg-accent/[0.045]" : "border-transparent"}`} onClick={() => { setSelectedId(entry.id); setCorrectionStatus(null); }}><span className="flex items-start justify-between gap-3"><span><span className="block font-semibold text-fg">{entry.title}</span><span className="mt-1 block text-xs text-muted">{entry.source} · {entry.maintainer}</span></span><span className={`status-chip shrink-0 ${statusClass(entry.status)}`}>{entry.status}</span></span><span className="mt-2 block text-xs text-muted">Applies to: {entry.appliesTo.join(" · ")}</span></button>; })}
+            {visible.length === 0 && <p className="p-6 text-center text-sm text-muted">No knowledge items match the selected filters.</p>}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr><th className="px-5 py-3 font-medium">Knowledge item</th><th className="px-4 py-3 font-medium">Source</th><th className="px-4 py-3 font-medium">Applies to</th><th className="px-4 py-3 font-medium">Review status</th><th className="px-5 py-3 font-medium">Last reviewed</th></tr></thead>
+              <tbody className="divide-y divide-line">{visible.map((entry) => { const active = selected?.id === entry.id; return <tr key={entry.id} tabIndex={0} aria-selected={active} className={`cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${active ? "bg-accent/[0.045]" : "hover:bg-panel2/40"}`} onClick={() => { setSelectedId(entry.id); setCorrectionStatus(null); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(entry.id); setCorrectionStatus(null); } }}><td className={`max-w-sm border-l-2 px-4 py-3 pl-5 ${active ? "border-accent" : "border-transparent"}`}><p className="font-semibold text-fg">{entry.title}</p><p className="mt-1 truncate text-xs text-muted">Maintained by {entry.maintainer}</p></td><td className="px-4 py-3 text-muted">{entry.source}</td><td className="px-4 py-3 text-muted"><span className="line-clamp-2">{entry.appliesTo.join(" · ")}</span></td><td className="px-4 py-3"><span className={`status-chip ${statusClass(entry.status)}`}>{entry.status}</span></td><td className="px-5 py-3 text-muted">{entry.lastReviewed}</td></tr>; })}{visible.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted">No knowledge items match the selected filters.</td></tr>}</tbody>
+            </table>
+          </div>
+        </section>
+
+        {selected && <KnowledgeDetail entry={selected} correctionStatus={correctionStatus} onRequestReview={() => setCorrectionStatus("Review request added to the knowledge governance queue.")} />}
+      </div>
+      <p className="mt-4 text-xs text-muted">Only approved or reviewed records can ground CAIL answers. Corrections enter a human review queue before changing searchable knowledge.</p>
     </div>
+  );
+}
+
+function KnowledgeDetail({ entry, correctionStatus, onRequestReview }: { entry: KnowledgeEntry; correctionStatus: string | null; onRequestReview: () => void }) {
+  const statusClass = entry.status === "Needs review" ? "status-warning" : "status-healthy";
+  return (
+    <aside className="overflow-hidden rounded-xl border border-line bg-panel xl:sticky xl:top-0" aria-label={`${entry.title} details`}>
+      <header className="border-b border-line p-5">
+        <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-medium text-accent">Knowledge item</span><span className={`status-chip ${statusClass}`}>{entry.status}</span></div>
+        <h3 className="mt-2 text-lg font-semibold leading-6">{entry.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted">{entry.summary}</p>
+      </header>
+      <section className="border-b border-line p-5"><h4 className="font-semibold">Operational guidance</h4><p className="mt-2 text-sm leading-6 text-muted">{entry.guidance}</p></section>
+      <section className="border-b border-line p-5"><h4 className="font-semibold">Applies to</h4><div className="mt-3 flex flex-wrap gap-2">{entry.appliesTo.map((item) => <span key={item} className="rounded-full bg-panel2 px-2.5 py-1 text-xs text-muted">{item}</span>)}</div></section>
+      <section className="border-b border-line p-5">
+        <h4 className="font-semibold">Source and provenance</h4>
+        <dl className="mt-3 grid gap-x-4 gap-y-3 text-xs sm:grid-cols-2"><div><dt className="text-muted">Source</dt><dd className="mt-0.5 font-medium text-fg">{entry.sourceName}</dd></div><div><dt className="text-muted">Record</dt><dd className="mt-0.5 font-medium text-fg">{entry.version}</dd></div><div><dt className="text-muted">Maintainer</dt><dd className="mt-0.5 font-medium text-fg">{entry.maintainer}</dd></div><div><dt className="text-muted">Contributor</dt><dd className="mt-0.5 font-medium text-fg">{entry.contributor ?? "Approved documentation"}{entry.contributorTitle && <span className="block font-normal text-muted">{entry.contributorTitle}</span>}</dd></div></dl>
+      </section>
+      <section className="border-b border-line p-5"><div className="grid gap-4 sm:grid-cols-2"><div><h4 className="font-semibold">Supporting evidence</h4><ul className="mt-2 space-y-1.5 text-xs text-muted">{entry.evidence.map((item) => <li key={item}>• {item}</li>)}</ul></div><div><h4 className="font-semibold">Related context</h4><p className="mt-2 text-xs text-muted">Systems: {entry.relatedSystems.join(", ") || "None"}</p><p className="mt-1 text-xs text-muted">Incidents: {entry.relatedIncidents.join(", ") || "None recorded"}</p></div></div></section>
+      <section className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h4 className="font-semibold">Review history</h4><p className="mt-1 text-xs text-muted">Last reviewed {entry.lastReviewed} · Next review {entry.nextReview}</p></div><button type="button" className="btn" onClick={onRequestReview}>Suggest correction</button></div>{correctionStatus && <p className="mt-3 rounded-lg border border-ok/25 bg-ok/8 p-3 text-xs text-ok" role="status">{correctionStatus}</p>}</section>
+    </aside>
   );
 }
 
