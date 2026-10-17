@@ -35,7 +35,7 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - Dark theme default; theme stored in `localStorage` (try/catch), applied before paint in `app/layout.tsx`.
 - Light theme is now the default; dark theme remains available and is stored in `localStorage`.
 - Global demo/synthetic-data banners make the no-production boundary visible on every page.
-- The overview uses full-width health telemetry followed by a compact priority insight inside the attention workflow; the previous detached AI summary card was removed.
+- The Dashboard uses full-width health telemetry followed by a compact AI operational summary inside the attention workflow; the previous detached side card was removed.
 - Operator-facing environment names are `Primary Production` and `Disaster Recovery`; raw node ids remain API/command data only. Navigation and summary icons use the attributed Nine One Freeicons outline set in `frontend/public/icons/freeicons/`.
 
 ## Contract gaps (not edited in docs/API_CONTRACT.md)

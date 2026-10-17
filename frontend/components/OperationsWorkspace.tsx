@@ -33,7 +33,7 @@ import { ThemeToggle } from "./ThemeToggle";
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator";
 
 const NAV: Array<{ id: PageId; label: string; icon: AppIconName }> = [
-  { id: "overview", label: "Overview", icon: "overview" },
+  { id: "overview", label: "Dashboard", icon: "overview" },
   { id: "systems", label: "Systems", icon: "systems" },
   { id: "investigations", label: "Investigations", icon: "investigations" },
   { id: "assistant", label: "AI Assistant", icon: "assistant" },
@@ -43,7 +43,7 @@ const NAV: Array<{ id: PageId; label: string; icon: AppIconName }> = [
 
 const METRICS = [
   { id: "audit-capacity-pct", label: "Audit trail", unit: "%", threshold: 80 },
-  { id: "cpu-busy-time", label: "CPU busy", unit: "%", threshold: 85 },
+  { id: "cpu-busy-time", label: "CPU", unit: "%", threshold: 85 },
   { id: "request-qtime", label: "Queue time", unit: " ms", threshold: 40 },
 ];
 
@@ -127,7 +127,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
 
   return (
     <div>
-      <SectionTitle title="Operations overview" description="Understand the state of monitored systems, find what needs attention, and begin an evidence-backed investigation." />
+      <SectionTitle title="Operations dashboard" description="Understand the state of monitored systems, find what needs attention, and begin an evidence-backed investigation." />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Monitored systems" value="24" note="6 connected data sources" icon="systems" />
         <MetricCard label="Healthy" value="19" note="79% reporting normally" icon="overview" tone="ok" />
@@ -152,7 +152,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent"><AppIcon name="assistant" size={21} /></span>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">Priority insight</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">AI operational summary</p>
                 <p className="mt-0.5 text-xs text-muted">Evidence checked 2 minutes ago</p>
               </div>
             </div>
@@ -306,7 +306,7 @@ function WorkspaceShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = (next: PageId) => { setPage(next); setMobileOpen(false); };
-  const current = NAV.find((item) => item.id === page)?.label ?? "Overview";
+  const current = NAV.find((item) => item.id === page)?.label ?? "Dashboard";
 
   return (
     <div className="flex h-screen min-w-0 bg-bg text-fg">
