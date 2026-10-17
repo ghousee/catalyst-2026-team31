@@ -1,272 +1,250 @@
-# NonStop Copilot (CAIL challenge, Team #31)
+# NonStop Copilot — CAIL challenge, Team #31
 
-A local AI operator assistant for HPE NonStop systems. It answers with citations to the HPE manuals
-and to named veterans, proposes commands that run only after approval, and warns early using
-veterans' warning patterns. Every answer is scoped to the node, release and subsystem the operator is on.
+> "How might we use AI to help the next generation of IT operators understand, monitor, and troubleshoot
+> mission-critical enterprise systems through natural language, while preserving the expertise of experienced
+> professionals?" — CAIL challenge statement ([full brief](vault/design/challenge%20brief.md))
 
-**Start here:** `docs/architecture.html` (diagrams) → `docs/SYSTEM_DESIGN.md` → `docs/RAG_SPIKE.md` (measured results)
-→ `vault/00 Index.md` (code map; open `vault/` in Obsidian). Claude Code reads `CLAUDE.md` automatically.
+A local AI operations assistant for **HPE NonStop** operators. It gets **Emerging Veterans** (juniors) to work like
+**Veterans** (seniors) faster:
 
-## Architecture
-Full version with the command path and the knowledge loop: `docs/architecture.html` (open in a browser).
+- **Warns before failures.** A watcher reads monitoring events and metrics. It fires a named veteran's warning
+  pattern ("Grace's pattern: about 20 min before failure") together with that veteran's steps and the manual sections.
+- **Answers in plain English with two kinds of citation:** *which manual section* and *which veteran*. Answers are
+  always scoped to the node (`\PROD` / `\DR`), release series and subsystem the operator is on.
+- **Turns questions into commands** from a verified catalog. Each command is risk-labelled and dry-run on a
+  simulator. It runs only after a human approves; critical commands need a second approver.
+- **Keeps veterans' knowledge.** Veterans teach by talking. A note goes live only after its owner signs it, and is
+  then linked into **Synapse**, the knowledge graph, automatically.
+- **Tracks learning.** Every Emerging Veteran has a learning map: what they have covered, which veterans' notes they
+  have seen, what they have never touched, and the starting level they gave themselves.
+
+Everything runs locally (Postgres + pgvector, Ollama on one 6 GB GPU). No cloud calls and no production access.
+
+**Read next:** [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md) (current design) →
+[docs/API_CONTRACT.md](docs/API_CONTRACT.md) → [vault/00 Index.md](vault/00%20Index.md) (code map, open `vault/` in Obsidian).
+
+## How it works
 
 ```mermaid
-flowchart TB
-  UI["Operator console<br/>CAIL 6530 + copilot UI<br/>session knows the node"]
-  SIM["NonStop simulator<br/>PROD and DR scenarios"]
-  VET["Veterans<br/>Maria, Raj, Lena"]
-  subgraph API["Copilot API (FastAPI, local)"]
-    ASK["Ask<br/>lock context, graph,<br/>search, verify"]
-    CMD["Commands<br/>catalog, risk + node guard,<br/>approve, run on simulator"]
-    WAT["Watcher<br/>veteran patterns as rules,<br/>warns the operator early"]
-    CAP["Capture<br/>interviews, referrals,<br/>debriefs"]
+flowchart LR
+  subgraph SRC["Sources"]
+    MAN["HPE manuals<br/>7 PDFs, 3,777 sections"]
+    VET["Veterans<br/>Teach chat, sign-off"]
+    MON["Monitoring tools<br/>Prognosis REST, MOMI export,<br/>demo replay"]
   end
-  subgraph KG["Knowledge graph (Postgres + pgvector)"]
-    G["Graph +<br/>manual sections"]
-    CAT["Command<br/>catalog"]
-    PAT["Warning<br/>patterns"]
-    NOTES["Veteran<br/>notes"]
+  subgraph CORE["Copilot API (FastAPI, local)"]
+    ING["Ingest<br/>sections, embeddings,<br/>commands and messages"]
+    ASK["Assistant<br/>hybrid search, rerank,<br/>one cited answer"]
+    WAT["Watcher<br/>veteran patterns, graph chains,<br/>metric trends"]
+    CMD["Commands<br/>catalog, risk, guards,<br/>approve, simulate"]
   end
-  subgraph M["Local models"]
-    Q["Qwen 3.5 4B (GPU)"]
-    E["embeddinggemma (CPU)"]
-    MC["MiniCheck (CPU)"]
+  subgraph DB["Synapse (Postgres + pgvector)"]
+    G["graph<br/>1,718 nodes, ~3,560 links"]
+    N["signed veteran notes"]
+    D["manual sections + vectors"]
+    L["question log, learning maps"]
   end
+  UI["Operator console<br/>Next.js"]
+  MAN --> ING --> D
+  ING --> G
+  VET --> N --> G
+  MON -- "events, metrics" --> WAT
   UI -- "question + node" --> ASK
+  ASK --> D
+  ASK --> N
+  ASK --> L
+  WAT --> G
+  WAT -- "alert card" --> UI
   UI -- "approve" --> CMD
-  SIM -- "events, metrics" --> WAT
-  VET -- "interviews, answers" --> CAP
-  ASK -- "context-filtered" --> G
-  CMD -- "looks up" --> CAT
-  WAT -- "matches" --> PAT
-  CAP -- "saves signed" --> NOTES
-  ASK -. "prompt, embed, verify" .-> M
 ```
 
-What happens when an operator asks:
-```mermaid
-flowchart LR
-  A["Lock context<br/>session + aliases"] --> B["Graph lookup<br/>event, fix, owner"] --> C["Manual search<br/>hybrid, filtered"] --> D{"Enough<br/>context?"}
-  A -- unclear --> CL["Clarify card<br/>asks one question"]
-  D -- no --> R["Refer card<br/>who to talk to"]
-  D -- yes --> E["Qwen writes claims<br/>with source ids"] --> F{"MiniCheck"}
-  F -- supported --> G["Answer card<br/>doc, veteran, live citations"]
-  F -- unsupported --> X["Claim dropped"]
-```
-Commands run on the simulator only after approval; warnings go back to the operator console. Risk classes, node/release guards and warning-pattern matching are plain code, never the LLM.
+**Asking a question:** context is locked to the session's node and series. Then hybrid search (vector + keyword)
+runs over the manual sections, plus a vector search over signed veteran notes for this node only. A cross-encoder
+reranks the results, and the top 5 sources go to **Qwen 3.5 4B**. Qwen writes one answer with `[n]` citations,
+names the veteran, and keeps every "do not". If the sources don't cover the question, it says so or asks one short
+question. Typical answer time is 5–8 s on the GPU.
 
-## Accuracy so far (RAG spike, `docs/RAG_SPIKE.md`)
-| Stage | Result |
+**An early warning:** one normalised event shape comes from every source. The watcher runs three plain-code
+detectors (no LLM), and each alert card is built from the graph:
+
+| Detector | Example | Card shows |
+|---|---|---|
+| **Veteran pattern** (a signed warning-pattern note with a rule) | Grace: CPU 101 then busy > 80% and rising within 15 min | Her steps / why / when not, word for word; lead time; read-only checks; backup veteran |
+| **Graph chain** (`precedes` links) | TMF 185 usually comes before TMF 187 | Notes about what comes next; manual sections; checks |
+| **Metric trend** | Audit trail at 66% and rising, full in about 57 min | Notes about the metric; checks |
+
+A veteran's card replaces the chain and trend cards for the same event or metric. Context never leaks: a `\PROD`
+pattern never fires on `\DR`.
+
+## Demo scenarios (Training Simulator → Start)
+Synthetic incidents built from real manual message numbers and played into the watcher as if live:
+
+1. **CPU down and takeover**: the brief's own example (a hardware failure cuts capacity). CPU 101 → Grace's pattern
+   about 20 min before Pathway 1034 (no server available) → PEEK and Pathway checks.
+2. **Audit trail filling**: TMF 185 → trend countdown → Maria's quarter-end pattern about 40 min before TMF 187.
+3. **Disk mirror revive stalled**: path error → Lena's "sector has not moved for 10 min" pattern.
+4. **Pathway no server available**: Pathway 1038 warns before 1034.
+
+## Results (independent 60-question set, `eval/`)
+| Measure | Result |
 |---|---|
-| Right manual section in top 5 (hybrid search + context filter, 27 questions) | 81% (MRR 0.74) |
-| Results from the wrong subsystem: no filter → filter | 15% → 0% |
-| Qwen output valid JSON / claims citing a retrieved source | 100% / 100% (29 claims) |
-| Answer cites the correct manual section (10 questions) | 70% |
-| Answer time, typical / worst | 3.8 s / 6.3 s |
-| MiniCheck separates supported vs unsupported claims | 24 / 24, 1.3 s per claim on CPU |
-| Sufficiency gate (answer vs refer) | 10 / 10 |
+| Correct behaviour (answer / clarify / refer as expected) | 80% |
+| Key facts present in the answer | 89–93% |
+| False refusals | 2% |
+| Context leaks (another node's veteran note used) | **0** |
+| Unsafe or inverted advice ("do not" turned into "do") | **0** |
+| Answers citing the right manual / the right veteran when expected | 100% / 100% |
+| Answer time | 5–8 s typical (Qwen 3.5 4B on an RTX 4050 6 GB) |
 
-Preliminary: small test sets (10–27 items) written by the same agent that built the pipeline, mostly easy
-negatives, manuals only (no knowledge graph yet). An independent question set is the next step.
+Weak spots: correctly refusing out-of-scope questions (about 50%) and asking for clarification when expected.
+Detectors and alert cards: `tests/unit/test_watcher_rules.py` (184 unit tests pass).
 
-## Knowledge graph
-Manual sections and veterans' knowledge share one graph. Every link cites the manual section or note that justifies it,
-and veterans' notes are scoped to the node they apply to. Full interactive view (77 nodes, 142 links):
-run `python scripts/export_graph.py`, then open `docs/knowledge_graph.html` in a browser.
-`python -m backend.graph.from_docs` auto-adds each manual's commands and numbered messages (from section titles, no LLM) and links them to their section; uploads do it too.
+## People
+- **Veterans** (5, fictional): Maria Rossi (TMF, retired), Raj Patel (Pathway/TMF), Lena Kowalski (SCF Storage),
+  Grace Okafor (performance/CPU), Tom Becker (TACL/FUP). They own and sign notes, have `expert_in` links to several
+  subsystems, and are the only people suggested as "who to call".
+- **Emerging Veterans** (10, fictional juniors): 1–2 subsystems each, a learning map, and a starting level. They can
+  write down "Raj told me…" or "I found…", and a veteran has to sign it before it is used.
+- Anyone picks who they are in **You: …** (top bar). "New here?" creates a new Emerging Veteran.
 
-The `TMF 185` neighbourhood (hero scenario). On `\PROD` an operator gets Maria's notes; on `\DR` only Raj's DR note applies:
-```mermaid
-flowchart LR
-  E185(["TMF 185<br/>audit file pinned"])
-  E187(["TMF 187<br/>audit trail critically full"])
-  MAT["Master audit trail (MAT)"]
-  TMF["TMF subsystem"]
-  C1["TMFCOM STATUS AUDITTRAIL, DETAIL<br/>read-only"]
-  C2["TMFCOM STATUS TRANSACTION<br/>read-only"]
-  C3["TMFCOM ABORT TRANSACTION<br/>critical, second approver"]
-  D1["Manual: STATUS AUDITTRAIL output"]
-  D2["Manual: STATUS TRANSACTIONS"]
-  D3["Manual: STATUS AUDITTRAIL part 2"]
-  M7["Maria h7, PROD only<br/>quarter-end warning pattern"]
-  M11["Maria h11, PROD only<br/>don't start with FILESPERVOLUME"]
-  R8["Raj h8, DR only<br/>no settlement batch on DR"]
-  E185 -- about --> TMF
-  E185 -- symptom_of --> MAT
-  E185 -- precedes --> E187
-  E185 -- diagnosed_by --> C1
-  E185 -- diagnosed_by --> C2
-  E185 -- fixed_by --> C3
-  E185 -- fixed_by --> D2
-  E185 -- fixed_by --> M7
-  D1 -- about --> E185
-  M7 -- extends --> D1
-  M11 -- contradicts --> D3
-  R8 -- about --> E185
-  R8 -- extends --> D1
-```
-Veterans and their knowledge are fictional, written for the demo (`kg/seed/`).
+## How knowledge gets in
+| Who / what | How | What gets linked |
+|---|---|---|
+| Veteran | Teach chat or form → draft → owner signs | about (subsystem, commands, events it names), applies_to (node), expert_in +1, agrees/contradicts manual |
+| Emerging Veteran | "Share something you found" / "Raj told me" | Same, after the named veteran signs |
+| New manual | Knowledge → Add document | sections + embeddings, commands and messages from section titles, changed sections flag notes "needs review" |
+| Monitoring tool | `POST /events` (Prognosis REST poller, MOMI export reader; replay for the demo) | alerts on graph nodes |
 
-## What's real in the UI
+## Assumptions and limitations
+- **Real:** the HPE NonStop manuals (public documentation). **Fictional:** the veterans, emerging veterans and their
+  notes (written for the demo, anchored to real manual sections). **Synthetic:** alerts, metrics, command output and
+  incident feeds (simulator and replay). No production systems, customer data or real transactions.
+- Commands never run on a real system. They are dry-run on a simulator, after approval.
+- Monitoring connectors: Prognosis has a REST API (pull open problems as JSON) and MOMI exports logs and sends email
+  or EMS (no API) — see [docs/INTEGRATIONS_PROGNOSIS_MOMI.md](docs/INTEGRATIONS_PROGNOSIS_MOMI.md). Both feed
+  `POST /events`. They are not connected yet: that needs a customer's server and credentials.
+- No incident history yet, so alert cards do not show "warned early in X of Y past incidents".
+- Commands and messages are extracted from manual section titles only. 2,645 of 3,777 sections are searchable but
+  not linked to a graph node.
+- A small local model (4B) keeps everything on-prem; a bigger model would answer better but needs more GPU.
 
-| Screen / element | Source |
-|---|---|
-| AI Assistant (chat, citations, source cards) | Real: `/chat`, `/sources` |
-| Command proposals, approvals, output; metrics charts | Real API, synthetic simulator data |
-| Overview: nodes, subsystems, healthy indicators | Real (`/session`, `/graph`, `/metrics` vs. fixed limits) |
-| Overview: active alerts, AI summary, Needs attention; Investigations badge/page | Demo: scripted alerts (no watcher yet), labelled "demo" |
-| Systems (node x subsystem, notes, manual sections) | Real (`/graph`, `/documents`); live metrics only where the simulator has data |
-| Knowledge (manuals, signed notes) | Real (`/documents`, `/knowledge`) |
-| Knowledge graph page | Real, refreshes every 10 s (`/graph`) |
-| Learning map | Real: per-operator encounters from the question log (`/learning/*`); not a test of knowledge |
-| Training Simulator scenarios | Real API, fictional scenarios |
-
-## Database schema
-Postgres 16 + pgvector (`sql/schema.sql`, migrations in `sql/migrations/`). Main tables:
+## Database (Postgres 16 + pgvector)
 ```mermaid
 erDiagram
   entity {
     text id PK "sub:TMF, evt:TMF-185, cmd:..., node:PROD"
-    text kind "subsystem, series, node, event, object, metric, command"
+    text kind
     text name
-    text_array aliases "shop-floor words for question matching"
-    jsonb props "command risk, source_id"
+    text_array aliases
+    text parent_id
   }
   doc_chunk {
-    text id PK "doc:TMF-Reference:status-audittrail"
+    text id PK
     text section
     text text
-    text system_id FK "subsystem"
-    text edition "which manual edition"
+    text system_id
+    text edition
     vector768 embedding
   }
   person {
-    text id PK "maria, raj, lena"
+    text id PK
     text name
     text role
     int years
-    text availability "on_shift, on_call, off_shift, retired"
-    text contact
+    text availability
+    text level "veteran or emerging"
   }
   heuristic {
-    text id PK "maria:h7"
+    text id PK
     text owner_id FK
     text kind "note or warning_pattern"
     text trigger_text
     text call_text
     text why_text
     text not_when_text
-    text system_id FK "subsystem"
-    text site_id FK "node, NULL = all nodes"
-    text captured_via "interview, referral, debrief"
-    text signed_by FK
+    text system_id
+    text site_id "NULL = all nodes"
     text status "draft, approved, retired"
-    jsonb pattern "watcher trigger"
+    jsonb rule "watcher trigger"
     vector768 embedding
   }
   edge {
     text src PK
-    text rel PK "about, symptom_of, diagnosed_by, fixed_by, precedes, depends_on, extends, contradicts, disagrees_with, expert_in, applies_to"
+    text rel PK
     text dst PK
-    text source_id "manual section or note that justifies the link"
+    real weight
+    text source_id "section or note that justifies it"
+    text created_by "seed, auto, auto-docs, human"
   }
   answer_log {
     bigint id PK
+    text user_id
     text question
     jsonb context
-    text outcome "answer, clarify, refer"
+    text outcome
     text_array citations
   }
-  feedback {
-    bigint id PK
-    bigint answer_log_id FK
-    text source_id
-    text action "endorse, wrong, outdated"
+  self_level {
+    text user_id PK
+    text system_id PK
+    text level "new, some, confident"
   }
-  entity ||--o{ doc_chunk : "subsystem of"
-  entity ||--o{ heuristic : "scopes"
+  alert {
+    text id PK
+    text kind "pattern, chain, trend"
+    text node_id
+    text entity_id
+    text pattern_id FK
+    int lead_min
+    text severity
+    jsonb signal
+  }
   person ||--o{ heuristic : "owns and signs"
   entity ||--o{ edge : "src or dst"
   heuristic ||--o{ edge : "src or dst"
   doc_chunk ||--o{ edge : "cited by"
-  answer_log ||--o{ feedback : "rated by"
+  heuristic ||--o{ alert : "fires"
 ```
-Also: `referral` and `alert` tables for the referral loop and the watcher.
+Schema: `sql/schema.sql`; migrations `sql/migrations/002–007` (apply with `python -m backend.graph.migrate`).
 
-## Status (2026-10-17)
-- Done: schema + context filter, manual ingest (7 HPE manuals, 3,777 chunks), hybrid search, Qwen answer
-  generation, MiniCheck verifier, sufficiency gate, UI on mock data, API contract v2.
-- Done since: knowledge graph (events, commands, objects, 146 cited links) + 3 fictional veterans with 10 signed notes.
-- Next: `/chat` backend wired to the UI, a simple form for veterans to add notes, independent eval set.
-
-## Setup — Windows / PowerShell
-Needs: Git, Python 3.11+, Node 20+, Docker Desktop (running; NVIDIA GPU optional but recommended).
+## Setup (Windows / PowerShell)
+Needs Git, Python 3.11+, Node 20+, Docker Desktop (NVIDIA GPU recommended).
 ```powershell
-# 1. services (Postgres + pgvector, Ollama with GPU)
-Copy-Item .env.example .env              # change PG_PORT/OLLAMA_PORT + URLs if 5432/11434 are taken
-docker compose up -d                     # schema auto-loads on the FIRST start of an empty volume
+# 1. services: Postgres + pgvector, Ollama
+Copy-Item .env.example .env              # change ports/URLs if 5432/11434 are taken (we use 5433 / 11435)
+docker compose up -d
 docker compose exec ollama ollama pull qwen3.5:4b
 docker compose exec ollama ollama pull embeddinggemma
 
 # 2. Python
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1             # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-pytest                                   # should pass
+python -m pytest tests/unit -q
 
-# 3. HPE manuals → data\raw\hpe\  (gitignored; public HPE docs, but don't commit or redistribute them)
-#    Get the PDFs from the HPE NonStop Technical Library (support.hpe.com, docId a00099017en_us)
-#    or ask Ghouse for the copies used here: TACL-Reference, SCF-Storage, TMF-Reference, Pathway,
-#    PEEK, measure, FUP (.pdf + extracted .txt). Then load them:
-python -m backend.ingest.loader          # ~6 min with GPU embeddings
-python scripts/rag_spike.py --all        # optional: reproduce the numbers in docs/RAG_SPIKE.md
+# 3. HPE manuals -> data\raw\hpe\ (gitignored; public HPE docs, don't commit them), then load
+python -m backend.ingest.loader          # sections + embeddings (~6 min with GPU)
+python -m backend.graph.migrate          # migrations 002-007
+python -m backend.graph.load             # Synapse seed: graph, veterans, emerging veterans, notes
+python -m backend.graph.from_docs        # commands and messages from the manuals
+python -m backend.graph.demo_learning    # demo learning history for the emerging veterans
 
-# 4. UI (runs on built-in mock data, no backend needed)
-cd frontend; npm install; npm run dev    # http://localhost:3000
+# 4. run
+python -m uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
+cd frontend; Copy-Item .env.local.example .env.local; npm install; npm run dev   # http://localhost:3000
 ```
-Schema changed? The init script only runs on an empty volume: `docker compose rm -sf db; docker volume rm veteran-kg_pgdata; docker compose up -d db`
-(wipes the DB, keeps the Ollama models). Don't run `npm run build` while `npm run dev` is running.
-
-### Add knowledge and documents (no developer needed)
-With the API and `npm run dev` running:
-- http://localhost:3000/knowledge: a veteran (or a colleague for them) fills in the form; the note is a draft until the owner picks themselves
-  under "Pending sign-off" and clicks Approve & sign. It then answers in the console immediately; confirm the suggested manual sections
-  (agrees / contradicts / skip).
-- http://localhost:3000/documents: upload a .pdf/.txt with a title, subsystem (type a new name to create one) and edition. Uploading the same
-  title again shows what changed; veteran notes tied to changed sections are flagged "needs re-check".
-Panels on these pages can be dragged to resize (arrow keys work on the divider). After pulling this change run `python -m backend.graph.migrate` once and `pip install -r requirements.txt`.
-
-### Run the backend
-```powershell
-python -m backend.graph.load             # once: graph + veteran notes into the DB
-uvicorn backend.api.main:app --port 8000 # /health /session /chat /sources/{id}; MiniCheck loads at startup (~30 s)
-python scripts/ask.py "why is the audit trail filling?" --node DR   # no server needed; prints sources, claims, scores, timings
-```
-Point the UI at it: copy `frontend/.env.local.example` to `frontend/.env.local` (real `session,chat,sources`, the rest stays mocked) and restart `npm run dev`.
-
-## First Claude Code prompts (each in its own session/worktree)
-1. `claude --model opusplan` → plan mode: "Read CLAUDE.md, docs/PLAN.md, sql/schema.sql. Plan the ingestion module for the docs in data/raw: chunk by section, tag system/version/site, embed with embeddinggemma, load into doc_chunk + entity + edge. Ask me about anything ambiguous in the docs."
-2. "Use the implementer agent to build backend/pipeline/context.py per backend/pipeline/README.md, with unit tests."
-3. UI teammate: "Build the Next.js chat UI against the mock responses in docs/API_CONTRACT.md (answer / clarify / refer cards, lanes, context chips, alerts panel)."
-4. Before merging: "Use the reviewer agent on this branch."
-5. Eval: "Use the test-runner agent to run python eval/run_eval.py --config 4."
+Use `127.0.0.1`, not `localhost`: on Windows `localhost` tries IPv6 first and adds about 2 s to every request.
+Don't run `npm run build` while `npm run dev` is running.
 
 ## What's in here
 | Path | What |
 |---|---|
-| `CLAUDE.md` | Rules, pipeline, stack, commands, how to work with Ghouse |
-| `docs/PLAN.md` | Problem, design decisions, knowledge model, UX, loop, spin-offs, scope |
-| `docs/RESEARCH.md` | Competitors, papers → design changes, Jev, model choice, costs, Claude Code practices, all sources |
-| `docs/API_CONTRACT.md` | Exact JSON for /chat, /refer, /feedback, /alerts, /risk |
-| `docs/EVAL.md` | How to build the golden set, metrics, ablation table |
-| `docs/TEAM_AND_SCHEDULE.md` | Roles, weekend schedule, git + Claude Code usage plan |
-| `docs/SYSTEM_DESIGN.md` | **NonStop/CAIL architecture (current)** — read before PLAN.md |
-| `docs/PITCH.md` | 5-minute demo script |
-| `sql/schema.sql` | Entity backbone + doc/person overlays + edges |
-| `eval/` | Golden-set template + scoring harness |
-| `.claude/` | Subagents (sonnet implementer, opus reviewer, haiku test-runner), opusplan default, Stop hook running unit tests |
-
-Notes:
-- The Stop hook (`.claude/hooks/stop_tests.py`) blocks Claude from finishing while `tests/unit` fails, at most once per stop. It calls `python`, so start Claude Code from a shell where the venv is active. If it misbehaves, remove the `hooks` block from `.claude/settings.json`.
-- Check the exact MiniCheck model ID on its GitHub (github.com/Liyan06/MiniCheck) before wiring `verify.py`.
-- Vector dim in `schema.sql` is 768; confirm against `embeddinggemma`'s output and adjust.
+| `backend/pipeline/assistant.py` | Answer path (search, rerank, one cited Qwen answer) |
+| `backend/watcher/` | Early warnings: `rules.py` (detectors), `engine.py` (alerts, cards, replay) |
+| `backend/knowledge.py`, `learning.py`, `documents.py` | Knowledge capture and sign-off, learning maps, document upload |
+| `backend/graph/` | Seed loader, manual extraction, Synapse view, demo learning history |
+| `backend/commands/`, `backend/simulator/` | Command catalog, guards, approval; simulated NonStop |
+| `kg/seed/` | Fictional people, notes and curated links (YAML) |
+| `data/replay/` | Demo incident feeds |
+| `frontend/` | Operator console (Next.js); UI rules in `frontend/CLAUDE.md` |
+| `docs/` | System design, API contract, integrations research, eval |
+| `vault/` | Obsidian notes: code map, decisions (ADRs), requirements, the challenge brief |
