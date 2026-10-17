@@ -20,10 +20,12 @@ from backend.pipeline.retrieve import hybrid_search
 
 DOC_POOL = 20         # manual sections fetched by hybrid search before reranking
 NOTE_POOL = 6         # veteran notes fetched by vector search before reranking
-TOP_K = 6             # sources handed to the LLM after reranking
+TOP_K = 5             # sources handed to the LLM after reranking
 # small CPU cross-encoder (~0.7 s per question); bge-reranker-v2-m3 took 11-20 s on CPU, too slow here
 RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 HISTORY_TURNS = 3
+SOURCE_CHARS = 1000   # per source sent to the LLM (shorter prompt = faster start)
+MAX_ANSWER_TOKENS = 260  # ~120-180 words; long answers were most of the latency
 
 _rr = None
 
@@ -102,7 +104,7 @@ def retrieve(conn, query, node):
 SYSTEM = """You are CAIL's assistant for HPE NonStop operators. The operator is working on node {node} ({series}).
 The numbered sources are the retrieved HPE manual sections and senior operators' notes (the operator did not write
 them). Answer using ONLY those sources. Write like an experienced colleague: start with the direct answer, then the
-steps, in plain short sentences. Put the source number in brackets after every sentence that uses a source, e.g. [2].
+steps, in plain short sentences. Be concise: about 120 words unless the operator asks for more detail. Put the source number in brackets after every sentence that uses a source, e.g. [2].
 VETERAN sources are field experience from named senior operators: when you use one, say whose advice it is
 (e.g. "Maria Rossi's advice:") and keep its meaning exactly, including every "do not". MANUAL sources are HPE manual
 sections; manual editions may be older than the operator's system.
@@ -117,7 +119,7 @@ Never invent commands, numbers, node names or facts that are not in the sources.
 
 
 def build_messages(question, sources, node, series, experts, history=()):
-    src = "\n\n".join(f"[{i + 1}] {'VETERAN' if s['kind'] == 'note' else 'MANUAL'}: {s['text'][:1600]}"
+    src = "\n\n".join(f"[{i + 1}] {'VETERAN' if s['kind'] == 'note' else 'MANUAL'}: {s['text'][:SOURCE_CHARS]}"
                       for i, s in enumerate(sources)) or "(no sources matched)"
     msgs = [{"role": "system", "content": SYSTEM.format(node=node, series=series, experts=experts or "the on-call team")}]
     for h in list(history)[-HISTORY_TURNS:]:
@@ -198,7 +200,7 @@ def answer(question, session, override=None, history=()):
 
         t = time.perf_counter()
         r = llm.chat(build_messages(question, sources, "\\" + node.split(":", 1)[1], series.split(":", 1)[1] + "-series",
-                                    names, history), temperature=0.2, max_tokens=450)
+                                    names, history), temperature=0.2, max_tokens=MAX_ANSWER_TOKENS)
         st["generate"] = round((time.perf_counter() - t) * 1000)
         reply, cites, used = map_citations(_clean(r["content"]), sources)
 
