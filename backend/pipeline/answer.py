@@ -7,6 +7,7 @@ import json
 import os
 import re
 import time
+from itertools import zip_longest
 
 import psycopg
 from pgvector.psycopg import register_vector
@@ -20,11 +21,29 @@ from backend.pipeline.retrieve import hybrid_search
 VERIFY_THRESHOLD = float(os.getenv("VERIFY_THRESHOLD", "0.5"))
 GEN_CHARS = 1800   # per-source text handed to Qwen (MiniCheck sees the full text)
 MAX_DOCS = 6
+MAX_CLAIMS = 4     # fewer claims = faster generation + verification
+MAX_NOTES = 3      # veteran notes per answer (lookup returns them most-relevant first)
+SPECIFIC = {"event", "object", "command", "metric"}  # entity kinds that pin a question down
+
+# the manual as the speaker ("the manual recommends X", "according to the documentation"); a veteran saying
+# "don't rely on the manual's X" is legitimate (that is the contradicts-the-manual feature) and must pass
+_MANUAL_SPEAKS = re.compile(
+    r"\b(?:the\s+)?(?:manual|documentation|docs|reference(?:\s+guide)?)\s+(?:says|states|recommends|requires|advises|"
+    r"suggests|instructs|specifies)\b|\baccording\s+to\s+the\s+(?:manual|documentation|docs|reference)\b", re.I)
+
+
+def misattributed(text, lane, owner_names=()):
+    """True if a claim speaks for the wrong kind of source: a veteran note quoted as 'the manual says',
+    or a manual section quoted as a named veteran. MiniCheck misses this (it scored such a claim 0.97)."""
+    if lane == "veteran":
+        return bool(_MANUAL_SPEAKS.search(text))
+    return any(n and n.split()[0].lower() in text.lower() for n in owner_names)
 
 
 def _clean(text):
-    """Qwen sometimes renders the node backslash as a stray Cyrillic letter (e.g. before PROD); restore it."""
-    text = re.sub(r"[\u0400-\u04ff](?=PROD\b|DR\b)", lambda m: "\\", text)
+    """Qwen sometimes renders the node backslash as a stray non-ASCII character (Cyrillic, a symbol) before
+    PROD/DR; restore it."""
+    text = re.sub(r"[^\x00-\x7f](?=PROD\b|DR\b)", lambda m: "\\", text)
     return re.sub(r"\\{2,}(?=PROD|DR)", lambda m: "\\", text)  # doubled backslash from JSON escaping
 
 
@@ -35,8 +54,11 @@ def connect():
 
 
 def warm():
-    """Load MiniCheck once (verify._load is a lazy module-level singleton)."""
+    """Load MiniCheck once (lazy singleton) and get Qwen + the embedder into memory, so the first question isn't slow."""
     verify._load()
+    embed_query("warm up")
+    from backend.pipeline import llm
+    llm.chat([{"role": "user", "content": "ok"}], max_tokens=1)
 
 
 def _rows(conn, sql, params=()):
@@ -109,6 +131,15 @@ def _clarify(conn, question, kind, current=None):
         return {"type": "clarify", "question": f"You are connected to {current} but mention another node. "
                                                "Which node do you mean?",
                 "options": [{"label": "\\" + r["name"], "value": {"site": r["id"]}} for r in rows]}
+    if kind == "vague":
+        # only a whole subsystem matched ("the disk is acting up"): ask for the symptom, offer that area first
+        ex = _rows(conn, "SELECT name FROM entity WHERE parent_id = %s AND kind IN ('event', 'object') "
+                         "ORDER BY kind, id LIMIT 3", (current,))
+        examples = "; ".join(r["name"] for r in ex)
+        rows = _rows(conn, "SELECT id, name FROM entity WHERE id = %s", (current,))
+        q = "Can you be more specific? What exactly are you seeing" + (f" (for example: {examples})" if examples else "")
+        return {"type": "clarify", "question": q + "? Rephrase with the symptom, or continue with the general area:",
+                "options": [{"label": r["name"], "value": {"system": r["id"]}} for r in rows]}
     rows = _rows(conn, "SELECT id, name FROM entity WHERE id LIKE 'sub:%' ORDER BY id")
     return {"type": "clarify", "question": "Which subsystem is this about?",
             "options": [{"label": r["name"], "value": {"system": r["id"]}} for r in rows]}
@@ -138,6 +169,9 @@ def answer(question, session, override=None):
                     "experts": _all_experts(conn),
                     "quality": _quality(st, t_start, gate_info, 0.0, "session+graph"),
                     "debug": {"stages_ms": st, "entities": []}}
+        specific = any(e["kind"] in SPECIFIC for e in r["entities"])
+        if not specific and not override.get("system"):
+            return _clarify(conn, question, "vague", current=sub)
         ctx = {"system": sub, "version": series, "site": node}
         context = {**ctx, "display": _display(node, series, sub),
                    "confidence": 1.0 if override.get("system") else 0.9}
@@ -152,16 +186,18 @@ def answer(question, session, override=None):
         hits = hybrid_search(conn, question, qvec, {"system": sub, "version": None, "site": None}, k=5)
         _ms(st, "search", t)
 
-        # merge: veteran notes first, then graph docs and search hits (deduped, capped)
+        # merge manual sections (graph-linked, then search hits; deduped, capped) and up to MAX_NOTES veteran notes,
+        # interleaved doc/veteran. Notes-first made Qwen cite only veterans; docs-first made it cite only the manual.
         docs = {}
         for d in [*lk["doc_chunks"][:3], *hits]:
             docs.setdefault(d["id"], d["text"])
-        chunks = [{"id": h["id"], "text": h["text"], "lane": "veteran"} for h in lk["heuristics"]]
-        chunks += [{"id": i, "text": x, "lane": "doc"} for i, x in list(docs.items())[:MAX_DOCS]]
+        doc_chunks = [{"id": i, "text": x, "lane": "doc"} for i, x in list(docs.items())[:MAX_DOCS]]
+        notes = [{"id": h["id"], "text": h["text"], "lane": "veteran"} for h in lk["heuristics"][:MAX_NOTES]]
+        chunks = [c for pair in zip_longest(doc_chunks, notes) for c in pair if c]
         lane_of = {c["id"]: c["lane"] for c in chunks}
         full = {c["id"]: c["text"] for c in chunks}
         lanes = {"doc": sum(c["lane"] == "doc" for c in chunks), "veteran": sum(c["lane"] == "veteran" for c in chunks)}
-        gen_chunks = [{"id": c["id"], "text": c["text"][:GEN_CHARS]} for c in chunks]
+        gen_chunks = [{"id": c["id"], "text": c["text"][:GEN_CHARS], "lane": c["lane"]} for c in chunks]
         debug = {"entities": r["entities"], "path": lk["path"], "retrieved": [
             {"id": c["id"], "lane": c["lane"]} for c in chunks]}
         editions = dict(conn.execute("SELECT id, edition FROM doc_chunk WHERE id = ANY(%s)", (list(docs),)).fetchall())
@@ -170,12 +206,18 @@ def answer(question, session, override=None):
             c["edition"], c["owner"] = editions.get(c["id"]), owners.get(c["id"])
 
         t = time.perf_counter()
-        ok, g = gate.sufficient(question, gen_chunks)
-        _ms(st, "gate", t)
-        try:
-            reason = json.loads(g["content"]).get("reason", "")
-        except ValueError:
-            reason = ""
+        if specific and (lk["heuristics"] or lk["doc_chunks"]):
+            # the graph pinned the question to a specific event/object with linked knowledge: skip the LLM gate
+            # (saves ~2.7 s); generation can still return [] and MiniCheck still drops unsupported claims
+            ok, reason = True, "graph match: " + ", ".join(e["name"] for e in r["entities"] if e["kind"] in SPECIFIC)
+            st["gate"] = 0
+        else:
+            ok, g = gate.sufficient(question, gen_chunks)
+            _ms(st, "gate", t)
+            try:
+                reason = json.loads(g["content"]).get("reason", "")
+            except ValueError:
+                reason = ""
         gate_info = {"sufficient": bool(ok), "reason": reason}
         debug["gate"] = gate_info
 
@@ -189,7 +231,7 @@ def answer(question, session, override=None):
             return refer(f"No verified answer for {context['display']}. {reason}".strip())
 
         t = time.perf_counter()
-        claims, _ = generate.generate(question, gen_chunks)
+        claims, _ = generate.generate(question, gen_chunks, max_claims=MAX_CLAIMS)
         _ms(st, "generate", t)
         if claims is None:
             return refer(f"No verified answer for {context['display']}.")
@@ -200,8 +242,15 @@ def answer(question, session, override=None):
 
         t = time.perf_counter()
         kept = []
-        for c in cited:
-            score = verify.support_prob(full[c["source_id"]], c["claim"])
+        names = list(owners.values())
+        wrong = [c for c in cited if misattributed(c["claim"], lane_of[c["source_id"]], names)]
+        debug["dropped"] += [{"text": c["claim"], "source_id": c["source_id"], "score": None, "why": "misattributed"}
+                             for c in wrong]
+        cited = [c for c in cited if c not in wrong]
+        # verify against the same text Qwen saw (GEN_CHARS), not the whole section: consistent and ~1 window per claim
+        seen = {c["id"]: c["text"] for c in gen_chunks}
+        scores = verify.support_probs([(seen[c["source_id"]], c["claim"]) for c in cited])
+        for c, score in zip(cited, scores):
             if score >= VERIFY_THRESHOLD:
                 kept.append({"text": c["claim"], "lane": lane_of[c["source_id"]], "source_id": c["source_id"],
                              "verified": True, "score": round(score, 3)})

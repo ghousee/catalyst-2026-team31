@@ -30,12 +30,26 @@ def _load():
 
 def support_prob(doc, claim, max_len=2048):
     """P(claim is supported by doc), max over doc windows."""
+    return support_probs([(doc, claim)], max_len)[0]
+
+
+def support_probs(pairs, max_len=2048):
+    """Batch version: [(doc, claim)] -> [P(supported)], one forward pass for all claims and windows."""
+    if not pairs:
+        return []
     torch, tok, mdl = _load()
-    texts = [tok.eos_token.join(["predict: " + w, claim]) for w in windows(doc)]
+    texts, owner = [], []
+    for k, (doc, claim) in enumerate(pairs):
+        for w in windows(doc):
+            texts.append(tok.eos_token.join(["predict: " + w, claim]))
+            owner.append(k)
     enc = tok(texts, max_length=max_len, truncation=True, padding=True, return_tensors="pt")
     with torch.no_grad():
         dec = torch.zeros((enc["input_ids"].size(0), 1), dtype=torch.long)
         logits = mdl(input_ids=enc["input_ids"], attention_mask=enc["attention_mask"],
                      decoder_input_ids=dec).logits.squeeze(1)
-        probs = torch.softmax(logits[:, [3, 209]], dim=-1)[:, 1]
-    return float(probs.max())
+        probs = torch.softmax(logits[:, [3, 209]], dim=-1)[:, 1].tolist()
+    best = [0.0] * len(pairs)
+    for k, p in zip(owner, probs):
+        best[k] = max(best[k], p)
+    return best

@@ -18,6 +18,13 @@ SYSTEM = ("You answer NonStop operator questions using ONLY the numbered sources
           "Return a JSON array of short factual claims; each claim must cite the id of the single source that "
           "supports it in source_id (copy the id exactly). Do not state anything the sources do not say. "
           "If the sources do not answer the question, return an empty array [].")
+# Added when sources carry a lane (MANUAL / VETERAN): answers must cite both kinds, and never put a veteran's
+# advice in the manual's mouth (seen in testing: "the manual recommends X" cited to a veteran note saying not-X).
+LANE_RULES = (" Sources are marked MANUAL or VETERAN. If both kinds are given, return a balanced answer: about "
+              "half the claims from MANUAL sources and half from VETERAN sources (for example 2 and 2), choosing "
+              "the claims that best tell the operator what is happening and what to do. Phrase VETERAN claims as "
+              "the veteran's advice (for example 'Experienced operators check ...'), never as what the manual "
+              "says, and keep their meaning exactly, including any 'do not'.")
 
 
 def label(i, alias):
@@ -25,14 +32,18 @@ def label(i, alias):
 
 
 def build_messages(question, chunks, max_chars=3500, alias=True):
-    """chunks: [{id, text}]. Each source is truncated to max_chars to bound the prompt.
+    """chunks: [{id, text, lane?}]. Each source is truncated to max_chars to bound the prompt.
 
     alias=True labels sources S1..Sn instead of their long ids (the model copies short labels reliably;
     with raw ids it invented ids derived from message numbers inside merged chunks). Use unalias() after.
+    Optional lane ("doc" / "veteran") is shown as MANUAL / VETERAN.
     """
-    src = "\n\n".join(f"[source_id: {label(i, alias) or c['id']}]\n{c['text'][:max_chars]}"
-                     for i, c in enumerate(chunks))
-    return [{"role": "system", "content": SYSTEM},
+    def head(i, c):
+        lane = {"doc": " | MANUAL", "veteran": " | VETERAN"}.get(c.get("lane"), "")
+        return f"[source_id: {label(i, alias) or c['id']}{lane}]"
+    src = "\n\n".join(f"{head(i, c)}\n{c['text'][:max_chars]}" for i, c in enumerate(chunks))
+    system = SYSTEM + (LANE_RULES if any(c.get("lane") for c in chunks) else "")
+    return [{"role": "system", "content": system},
             {"role": "user", "content": f"Sources:\n\n{src}\n\nQuestion: {question}\nJSON:"}]
 
 
@@ -63,8 +74,9 @@ def keep_cited(claims, valid_ids):
     return kept, [c for c in claims if c["source_id"] not in valid]
 
 
-def generate(question, chunks, num_ctx=8192, alias=True, **kw):
+def generate(question, chunks, num_ctx=8192, alias=True, max_claims=6, **kw):
     """Returns (claims_or_None, llm_stats). claims is None when the output was not valid JSON."""
-    r = llm.chat(build_messages(question, chunks, alias=alias), schema=CLAIMS_SCHEMA, num_ctx=num_ctx, **kw)
+    schema = {**CLAIMS_SCHEMA, "maxItems": max_claims}
+    r = llm.chat(build_messages(question, chunks, alias=alias), schema=schema, num_ctx=num_ctx, **kw)
     claims = parse_claims(r["content"])
     return (unalias(claims, chunks) if claims is not None and alias else claims), r

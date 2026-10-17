@@ -46,3 +46,12 @@ def test_verify_windows_split_by_words():
     w = windows(" ".join(str(i) for i in range(1000)), n=400)
     assert len(w) == 3 and len(w[0].split()) == 400 and len(w[2].split()) == 200
     assert windows("") == [""]
+
+
+def test_build_messages_marks_lanes_and_adds_rules():
+    from backend.pipeline.generate import build_messages, LANE_RULES
+    msgs = build_messages("q", [{"id": "doc:a", "text": "t", "lane": "doc"}, {"id": "maria:h7", "text": "u", "lane": "veteran"}])
+    assert "[source_id: S1 | MANUAL]" in msgs[1]["content"] and "[source_id: S2 | VETERAN]" in msgs[1]["content"]
+    assert msgs[0]["content"].endswith(LANE_RULES)
+    plain = build_messages("q", [{"id": "doc:a", "text": "t"}])
+    assert "MANUAL" not in plain[1]["content"] and LANE_RULES not in plain[0]["content"]

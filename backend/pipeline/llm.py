@@ -15,6 +15,7 @@ def chat(messages, schema=None, num_ctx=8192, temperature=0.0, max_tokens=700, t
     """
     url, model = url or settings.OLLAMA_URL, model or settings.LLM_MODEL
     body = {"model": model, "messages": messages, "stream": False, "think": think,
+            "keep_alive": "60m",  # Ollama unloads after 5 idle min by default; a reload cost ~20 s in testing
             "options": {"num_ctx": num_ctx, "temperature": temperature, "num_predict": max_tokens}}
     if schema is not None:
         body["format"] = schema

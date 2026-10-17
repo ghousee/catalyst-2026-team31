@@ -28,3 +28,16 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
 - MiniCheck checks a claim against its source only, so a claim that misreads a veteran note ("the manual recommends X" when the note says not to) can pass. Seen on `maria:h11`.
 - A vague question that resolves to one subsystem ("the disk is acting up" -> Storage) is not clarified; the gate refers it.
 - Tests: `tests/unit/test_answer.py` fakes every stage.
+
+## Tuning (2026-10-17, after first real test)
+- Vague questions (only a whole subsystem matched, e.g. "the disk is acting up") -> clarify asking for the symptom
+  with examples from the graph; picking the area (override) proceeds without a second clarify.
+- LLM sufficiency gate is skipped when the graph matched a specific event/object/command/metric with linked knowledge
+  (saves ~2.7 s); still runs for subsystem-only matches.
+- Sources interleaved doc/veteran (max 6 docs, 3 notes), labelled MANUAL/VETERAN for Qwen, with a "balanced
+  answer" rule (`generate.LANE_RULES`). Notes-first -> only veteran claims; docs-first -> only manual claims.
+- Max 4 claims; MiniCheck batched (`verify.support_probs`) against the same 1,800 chars Qwen saw.
+- `misattributed()` drops claims where a veteran note is quoted as "the manual says/recommends" (or a doc as a
+  named veteran). MiniCheck scored such an inverted claim 0.97. "Don't rely on the manual's X" stays allowed.
+- Ollama `keep_alive: 60m` + `warm()` loads Qwen and the embedder at startup (cold reload cost ~20 s).
+- Measured warm, 5 questions: 8-12.5 s per answer; all 5 cite both a manual section and a veteran.
