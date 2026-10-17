@@ -22,7 +22,9 @@ def main():
     if not list((ROOT / "tests" / "unit").glob("test_*.py")):
         return 0
 
-    r = subprocess.run([sys.executable, "-m", "pytest", "tests/unit", "-q"],
+    venv = ROOT / ".venv" / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+    py = str(venv) if venv.exists() else sys.executable  # project deps live in .venv
+    r = subprocess.run([py, "-m", "pytest", "tests/unit", "-q"],
                        cwd=ROOT, capture_output=True, text=True)
     if r.returncode != 0:
         tail = "\n".join((r.stdout + r.stderr).splitlines()[-25:])
