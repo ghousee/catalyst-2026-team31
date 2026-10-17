@@ -87,4 +87,4 @@ Dev machine is Windows: use Windows paths/commands in docs and scripts; prefer P
 - When an artifact/file changes, reprint the full updated version.
 
 ## Learned rules (append below)
--
+- Never run `npm run build` / `next build` in `frontend/` while a dev server may be running there: both use `.next/` and the build breaks the dev server (CSS/JS 404). Verify with `npx tsc --noEmit` + `npm run lint`; if a build is needed, stop dev first and delete `.next/` after.
