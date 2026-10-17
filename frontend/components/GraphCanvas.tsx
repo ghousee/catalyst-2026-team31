@@ -76,13 +76,20 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
   const [hidden, setHidden] = useState<Set<Kind>>(new Set(["version"]));
   const [focusIds, setFocusIds] = useState<Set<string> | null>(null);
   const [q, setQ] = useState("");
-  const [labels, setLabels] = useState(false); // relation labels on links (off by default: they clutter)
+  const [labels, setLabels] = useState(false);
+  // manual-extracted entities (ids "cmd:auto:..", "evt:auto:..") are ~1,700 nodes: hidden by default, optionally per subsystem
+  const [showAuto, setShowAuto] = useState(false);
+  const [autoSub, setAutoSub] = useState("sub:TMF"); // relation labels on links (off by default: they clutter)
   const [ready, setReady] = useState(false); // vis-network loads asynchronously; re-sync once it exists
   const graph = useMemo(() => buildGraph(data), [data]);
   const graphRef = useRef(graph);
   graphRef.current = graph;
 
-  const visible = (n: GNode) => !hidden.has(n.kind) && (!focusIds || focusIds.has(n.id));
+  const isAuto = (id: string) => id.includes(":auto:");
+  const autoOk = (n: GNode) => !isAuto(n.id) || (showAuto && (autoSub === "all" || n.id.startsWith(`${n.id.split(":")[0]}:auto:${autoSub.replace("sub:", "").toLowerCase()}:`)));
+  const visible = (n: GNode) => !hidden.has(n.kind) && autoOk(n) && (!focusIds || focusIds.has(n.id));
+  const autoCount = useMemo(() => [...graph.nodes.keys()].filter(isAuto).length, [graph]);
+  const subs = useMemo(() => data.entities.filter((e) => e.kind === "system").map((e) => ({ id: e.id, name: e.name })), [data]);
 
   // create the network once
   useEffect(() => {
@@ -134,14 +141,17 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
       color: { color: REL_COLOR[e.rel] ?? "#9ca3af", highlight: "#111827" }, width: e.auto ? 2 : 1,
       title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.auto ? " · auto-created" : ""}`,
     }));
+    // a manual-section node whose links all go to hidden nodes would float alone: hide it too
+    const linked = new Set(es.flatMap((e) => [e.from, e.to]));
+    const nsShown = ns.filter((n) => !n.id.startsWith("doc:") || linked.has(n.id));
     const drop = (set: { getIds: () => string[]; remove: (ids: string[]) => void }, keep: Set<string>) =>
       set.remove(set.getIds().filter((i: string) => !keep.has(i)));
     drop(v.edges, new Set(es.map((e) => e.id)));
-    drop(v.nodes, ids);
-    v.nodes.update(ns);
+    drop(v.nodes, new Set(nsShown.map((n) => n.id)));
+    v.nodes.update(nsShown);
     v.edges.update(es);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, hidden, focusIds, ready, labels]);
+  }, [graph, hidden, focusIds, ready, labels, showAuto, autoSub]);
 
   useEffect(() => {
     vis.current?.net.setOptions({ physics: { enabled: physics } });
@@ -179,6 +189,16 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <button type="button" className="btn" onClick={() => setPhysics((p) => !p)} aria-pressed={!physics}>
           {physics ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />} {physics ? "Freeze layout" : "Resume layout"}
         </button>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={showAuto} onChange={(e) => setShowAuto(e.target.checked)} />
+          Commands &amp; messages from the manuals ({autoCount})
+        </label>
+        {showAuto && (
+          <select className="field h-8 rounded-lg bg-panel px-2" value={autoSub} onChange={(e) => setAutoSub(e.target.value)} aria-label="Subsystem for manual-extracted nodes">
+            {subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <option value="all">All subsystems (slow)</option>
+          </select>
+        )}
         <button type="button" className="btn" onClick={() => setLabels((l) => !l)} aria-pressed={labels}>
           {labels ? "Hide link labels" : "Show link labels"}
         </button>

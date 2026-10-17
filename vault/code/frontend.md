@@ -90,3 +90,10 @@ polls every 15 s. Header says it shows encounters, not what the operator knows. 
 ## Teach panel (2026-10-17)
 - `components/TeachChat.tsx` (top-left of `/knowledge`, SplitPane `knowledge-left` above the manual form): pick who teaches, chat via `admin.teach` (`POST /knowledge/teach`), assistant follow-ups inline,
   then an editable draft (4 texts + node/subsystem/kind) -> Save draft (`admin.addNote`, entered_by = owner) -> shows in Pending sign-off -> existing Approve & sign (links + suggested sections).
+
+## Knowledge graph view (2026-10-17)
+`components/GraphCanvas.tsx` (vis-network 9.1.9 + vis-data 7.1.9, pinned): live view of GET /graph inside
+`KnowledgeGraphPage` ("Graph" tab; "Tables" tab = the old tables). Opens on the curated core; manual-extracted
+entities (ids `cmd:auto:<sub>:..`, `evt:auto:<sub>:..`, ~1,660) behind a checkbox + subsystem picker. Network is
+created once and updated in place (`ready` flag re-syncs after the async import - without it the canvas stayed blank).
+Drag, zoom, click = details panel, double-click = isolate neighbourhood, kind filters, find, auto links dashed.
