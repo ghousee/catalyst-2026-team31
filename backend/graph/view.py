@@ -41,14 +41,14 @@ def recent_changes(notes, links, docs, n=RECENT_N):
 
 
 def shape_graph(entities, edges, notes, persons, docs, link_cap=LINK_CAP):
-    """entities [{id,kind,name,aliases}], edges [{src,rel,dst,source_id,created_by}], notes [{id,owner_name,kind,
+    """entities [{id,kind,name,aliases,parent_id}], edges [{src,rel,dst,source_id,created_by}], notes [{id,owner_name,kind,
     scope,status,needs_review,signed_at,captured_at,call_text}], persons = int, docs [{title,chunks,last_loaded}]."""
     touch = {}
     for e in edges:
         for end in (e["src"], e["dst"]):
             touch[end] = touch.get(end, 0) + 1
     ents = [{"id": x["id"], "kind": x["kind"], "name": x["name"], "aliases": list(x["aliases"] or []),
-             "links": touch.get(x["id"], 0)} for x in entities]
+             "parent_id": x.get("parent_id"), "links": touch.get(x["id"], 0)} for x in entities]
     ordered = sorted(edges, key=lambda e: e["created_by"] == "seed")  # auto/human (the growing part) first; stable
     links = [{k: e[k] for k in ("src", "rel", "dst", "source_id", "created_by")} for e in ordered[:link_cap]]
     return {
@@ -76,7 +76,7 @@ router = APIRouter()
 @router.get("/graph")
 def graph():
     with connect() as conn:
-        ents = _rows(conn, "SELECT id, kind, name, aliases FROM entity ORDER BY kind, id")
+        ents = _rows(conn, "SELECT id, kind, name, aliases, parent_id FROM entity ORDER BY kind, id")
         edges = _rows(conn, "SELECT src, rel, dst, source_id, created_by FROM edge")
         persons = _rows(conn, "SELECT count(*) AS n FROM person")[0]["n"]
         raw = _rows(conn, "SELECT h.id, p.name AS owner_name, h.kind, h.system_id, h.site_id, h.status, h.needs_review, "

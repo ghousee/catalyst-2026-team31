@@ -21,6 +21,11 @@ export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 // Comma list of endpoint groups served by the real API while everything else stays mocked: session,chat,sources
 const REAL = new Set((process.env.NEXT_PUBLIC_REAL_ENDPOINTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));
 const mocked = (group?: "session" | "chat" | "sources" | "commands" | "metrics" | "simulator") => USE_MOCKS && !(group && REAL.has(group));
+/** Endpoint groups the UI can route to the real API; the label in the workspace header is computed from this. */
+export const GROUPS = ["session", "chat", "sources", "commands", "metrics", "simulator"] as const;
+export const liveGroups = () => GROUPS.filter((g) => !mocked(g));
+/** Alerts have no endpoint group yet (no watcher): they are the scripted mock whenever mocks are on. */
+export const ALERTS_ARE_MOCK = USE_MOCKS;
 /** True when chat answers come from the scripted mock, not the backend; the top bar shows a DEMO DATA badge. */
 export const CHAT_IS_MOCK = mocked("chat");
 

@@ -13,7 +13,7 @@ export function ClarifyCard({ msg }: { msg: ClarifyMsg }) {
         <CircleHelp size={16} className="mt-0.5 shrink-0 text-info" aria-hidden="true" />
         {msg.data.question}
       </p>
-      <div className="flex flex-wrap gap-2">
+      {msg.data.options.length > 0 && <div className="flex flex-wrap gap-2">
         {msg.data.options.map((o) => (
           <button
             key={o.label}
@@ -26,7 +26,7 @@ export function ClarifyCard({ msg }: { msg: ClarifyMsg }) {
             {o.label}
           </button>
         ))}
-      </div>
+      </div>}
       {msg.resolved && <p className="text-[12px] text-muted">Context set to “{msg.resolved}”. Asking again.</p>}
     </section>
   );

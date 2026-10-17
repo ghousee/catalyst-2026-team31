@@ -86,6 +86,23 @@ export interface DiffSummary {
   notes_flagged: string[];
 }
 
+/** GET /graph (backend/graph/view.py): a live snapshot of the knowledge graph. */
+export interface GraphSnapshot {
+  counts: {
+    entities: Record<string, number>;
+    links: Record<string, number>;
+    persons: number;
+    notes: { approved: number; draft: number; retired: number; needs_review: number };
+    doc_sections: number;
+    documents: number;
+  };
+  entities: { id: string; kind: string; name: string; aliases: string[]; parent_id: string | null; links: number }[];
+  links: { src: string; rel: string; dst: string; source_id: string | null; created_by: string | null }[];
+  links_total: number;
+  notes: { id: string; owner_name: string; kind: string; scope: string; status: string; needs_review: boolean; signed_at: string; call_text: string }[];
+  recent: { ts: string; type: string; text: string }[];
+}
+
 async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
   const form = body instanceof FormData;
   let res: Response;
@@ -122,6 +139,7 @@ export const admin = {
   link: (id: string, doc_id: string, rel: "extends" | "contradicts") =>
     call<Note>("POST", `/knowledge/${enc(id)}/link`, { doc_id, rel }),
   retire: (id: string) => call<Note>("POST", `/knowledge/${enc(id)}/retire`),
+  graph: () => call<GraphSnapshot>("GET", "/graph"),
   documents: () => call<DocRow[]>("GET", "/documents"),
   upload: (form: FormData) => call<DiffSummary>("POST", "/documents", form),
 };
