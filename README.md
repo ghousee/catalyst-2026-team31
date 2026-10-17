@@ -1,30 +1,44 @@
-# Veteran Knowledge Graph — hackathon starter kit
+# NonStop Copilot (CAIL challenge, Team #31)
 
-Context-aware, citation-mandatory chatbot + proactive watcher that captures veterans' know-how.
-Start with `CLAUDE.md` (Claude Code reads it automatically), then `docs/PLAN.md`.
+A local AI operator assistant for HPE NonStop systems. It answers with citations to the HPE manuals
+and to named veterans, proposes commands that run only after approval, and warns early using
+veterans' warning patterns. Every answer is scoped to the node, release and subsystem the operator is on.
 
-## Tonight (≈30 min) — Windows / PowerShell
-Needs: Git for Windows, Python 3.11+, Docker Desktop (running), Ollama for Windows, `gh` CLI.
+**Start here:** `docs/architecture.html` (diagrams) → `docs/SYSTEM_DESIGN.md` → `docs/RAG_SPIKE.md` (measured results)
+→ `vault/00 Index.md` (code map; open `vault/` in Obsidian). Claude Code reads `CLAUDE.md` automatically.
+
+## Status (2026-10-17)
+- Done: schema + context filter, manual ingest (7 HPE manuals, 3,777 chunks), hybrid search, Qwen answer
+  generation, MiniCheck verifier, sufficiency gate, UI on mock data, API contract v2.
+- Next: knowledge graph + veteran knowledge, `/chat` backend wired to the UI, command catalog + simulator, watcher, eval set.
+
+## Setup — Windows / PowerShell
+Needs: Git, Python 3.11+, Node 20+, Docker Desktop (running; NVIDIA GPU optional but recommended).
 ```powershell
-# 1. repo (when ready to share; until then just commit locally)
-gh repo create veteran-kg --private --source=. --push
-#    then: add teammates, protect main (Settings → Branches → require PR)
+# 1. services (Postgres + pgvector, Ollama with GPU)
+Copy-Item .env.example .env              # change PG_PORT/OLLAMA_PORT + URLs if 5432/11434 are taken
+docker compose up -d                     # schema auto-loads on the FIRST start of an empty volume
+docker compose exec ollama ollama pull qwen3.5:4b
+docker compose exec ollama ollama pull embeddinggemma
 
-# 2. services
-Copy-Item .env.example .env
-docker compose up -d                       # Postgres + pgvector, schema auto-loaded on FIRST start
-ollama pull qwen3.5:4b
-ollama pull embeddinggemma
+# 2. Python
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1               # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+.\.venv\Scripts\Activate.ps1             # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 pip install -r requirements.txt
-pytest                                     # should pass before anything else
+pytest                                   # should pass
 
-# 3. company docs → data\raw\  (gitignored, share by USB/drive, NEVER git)
-#    data\raw already exists in the repo; just drop files in.
+# 3. HPE manuals → data\raw\hpe\  (gitignored; public HPE docs, but don't commit or redistribute them)
+#    Get the PDFs from the HPE NonStop Technical Library (support.hpe.com, docId a00099017en_us)
+#    or ask Ghouse for the copies used here: TACL-Reference, SCF-Storage, TMF-Reference, Pathway,
+#    PEEK, measure, FUP (.pdf + extracted .txt). Then load them:
+python -m backend.ingest.loader          # ~6 min with GPU embeddings
+python scripts/rag_spike.py --all        # optional: reproduce the numbers in docs/RAG_SPIKE.md
+
+# 4. UI (runs on built-in mock data, no backend needed)
+cd frontend; npm install; npm run dev    # http://localhost:3000
 ```
-Schema changed? The init script only runs on an empty volume: `docker compose down -v; docker compose up -d`
-(wipes the DB).
+Schema changed? The init script only runs on an empty volume: `docker compose rm -sf db; docker volume rm veteran-kg_pgdata; docker compose up -d db`
+(wipes the DB, keeps the Ollama models). Don't run `npm run build` while `npm run dev` is running.
 
 ## First Claude Code prompts (each in its own session/worktree)
 1. `claude --model opusplan` → plan mode: "Read CLAUDE.md, docs/PLAN.md, sql/schema.sql. Plan the ingestion module for the docs in data/raw: chunk by section, tag system/version/site, embed with embeddinggemma, load into doc_chunk + entity + edge. Ask me about anything ambiguous in the docs."
