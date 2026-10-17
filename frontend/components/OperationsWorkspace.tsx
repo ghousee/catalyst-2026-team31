@@ -333,7 +333,14 @@ function AssistantPage() {
       <section className="flex min-h-[610px] flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
         <header className="border-b border-line px-4 pt-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
-            <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">INC-1042</h3><span className="status-chip status-warning">Warning</span><span className="status-chip bg-accent/10 text-accent">Investigating</span></div><p className="mt-1 text-xs text-muted">Audit capacity risk · Pathway-02 · detected 2 minutes ago</p></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">INC-1042</h3><span className="status-chip status-warning">Warning</span><span className="status-chip bg-accent/10 text-accent">Under investigation</span></div>
+              <dl className="mt-3 grid gap-x-6 gap-y-2 text-xs sm:grid-cols-3">
+                <div><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-medium text-fg">Master audit trail nearing overflow threshold</dd></div>
+                <div><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-medium text-fg">Pathway-02</dd></div>
+                <div><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-medium text-fg">2 minutes ago</dd></div>
+              </dl>
+            </div>
             <span className="text-xs text-muted">Evidence window: last 60 minutes</span>
           </div>
           <nav className="flex gap-1 overflow-x-auto" aria-label="AI assistant workspace">
@@ -344,8 +351,8 @@ function AssistantPage() {
         <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="scroll min-h-0 overflow-y-auto bg-panel2/25">
             {tab === "investigation" && <div className="space-y-2 p-3 sm:p-4">
-            <InvestigationSection id="incident" label="Incident" preview="Audit capacity is approaching its configured limit." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
-              <p className="text-base font-semibold">Audit capacity is approaching its configured limit.</p><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">The warning was raised after sustained growth in the audit trail. No service interruption has been confirmed.</p><div className="mt-3 flex flex-wrap gap-4 text-xs text-muted"><span>Detected 2 minutes ago</span><span>Primary Production</span><span>INC-1042 · Active</span></div>
+            <InvestigationSection id="incident" label="Incident" preview="Master audit trail nearing overflow threshold." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
+              <p className="text-base font-semibold">Master audit trail nearing overflow threshold.</p><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">Active audit trail capacity is 62% and rising toward the configured 80% overflow threshold. No service interruption has been confirmed.</p><div className="mt-3 grid gap-3 text-xs sm:grid-cols-3"><div><span className="block text-muted">Current usage</span><strong className="mt-0.5 block text-fg">62%</strong></div><div><span className="block text-muted">Overflow threshold</span><strong className="mt-0.5 block text-fg">80%</strong></div><div><span className="block text-muted">Environment</span><strong className="mt-0.5 block text-fg">Primary Production</strong></div></div>
             </InvestigationSection>
             <InvestigationSection id="systems" label="Affected systems" preview="Pathway-02 and TMF" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 systems</span>} open={openSections.has("systems")} onToggle={toggle}>
               <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-line bg-panel2/50 p-3"><p className="font-medium">Pathway-02</p><p className="mt-1 text-xs text-muted">Settlement application · degraded</p></div><div className="rounded-lg border border-line bg-panel2/50 p-3"><p className="font-medium">TMF</p><p className="mt-1 text-xs text-muted">Transaction management · warning</p></div></div>
