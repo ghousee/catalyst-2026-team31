@@ -3,10 +3,10 @@
 Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract: [[api contract]] (v2 authoritative).
 
 ## Entry points
-- `backend/pipeline/answer.py:119` `answer(question, session, override)` -> exactly one of `answer` / `clarify` / `refer`.
+- `backend/pipeline/answer.py:118` `answer(question, session, override)` -> exactly one of `answer` / `clarify` / `refer`.
   Order: `resolve` -> node-mismatch/subsystem checks (`clarify`) -> `lookup` + `hybrid_search` (docs unfiltered by version/node, filtered by subsystem)
   -> gate -> `generate` -> `verify.support_prob` per claim vs its own source -> cards + `answer_log` row.
-- `answer.py:50` `source_card(conn, id)` doc / heuristic card (same fields in answers and `GET /sources/{id}`). `:38` `warm()` loads MiniCheck.
+- `answer.py:49` `source_card(conn, id)` doc / heuristic card (same fields in answers and `GET /sources/{id}`). `:37` `warm()` loads MiniCheck.
 - `backend/api/main.py:43` `/health`, `:59` `/session` (GET, POST `:64`, in-memory, nodes `node:PROD`/`node:DR`), `:72` `/chat`, `:78` `/sources/{id}`. CORS: localhost:3000.
 - `scripts/ask.py "question" [--node PROD|DR]` calls `answer()` directly and prints entities, path, sources, gate, claims + scores, experts, timings.
 
