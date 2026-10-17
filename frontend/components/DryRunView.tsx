@@ -4,7 +4,7 @@ import type { DryRun } from "@/lib/types";
 export function DryRunView({ dry }: { dry: DryRun }) {
   return (
     <section aria-label="Dry run result" className="space-y-2 rounded border border-line bg-panel2 p-3">
-      <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Dry run (simulator, nothing executed)</h4>
+      <h4 className="label">Dry run (simulator, nothing executed)</h4>
       <div>
         <p className="text-[11px] text-muted">Expected output</p>
         <pre className="mt-1 overflow-x-auto rounded bg-[#05080a] p-2 font-mono text-[12px] text-[#7ee2a1]">{dry.expected_output}</pre>

@@ -36,7 +36,7 @@ function Message({ m }: { m: ChatMsg }) {
     case "proposals":
       return (
         <div className="space-y-2">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">{m.title}</h4>
+          <h4 className="label">{m.title}</h4>
           {m.proposals.map((p) => (
             <ProposalCard key={p.id} proposal={p} />
           ))}

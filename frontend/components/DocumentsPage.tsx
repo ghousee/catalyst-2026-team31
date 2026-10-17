@@ -9,7 +9,7 @@ import { TopBar } from "./TopBar";
 function Pane({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="scroll min-h-0 overflow-y-auto p-4">
-      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide">{title}</h2>
+      <h2 className="mb-3 label !text-fg">{title}</h2>
       {children}
     </section>
   );
@@ -111,7 +111,7 @@ function Inner() {
           <SplitPane direction="vertical" id="documents-right" label="documents and flagged notes" initial={0.6} minFirst={120} minSecond={100}>
             <Pane title="Documents">
               <table className="w-full text-left text-[12.5px]">
-                <thead className="text-[11px] uppercase tracking-wide text-muted">
+                <thead className="label !font-normal">
                   <tr><th className="pb-1">Key</th><th>Title</th><th>Edition</th><th>Subsystem</th><th>Chunks</th><th>Last loaded</th></tr>
                 </thead>
                 <tbody>

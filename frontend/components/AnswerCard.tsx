@@ -33,13 +33,13 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
         <ConflictBox claims={flagged} sources={data.sources} />
         {observedClaims.length > 0 && (
           <div>
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Confirmed and documented evidence</h4>
+            <h4 className="mb-2 label">Confirmed and documented evidence</h4>
             <ClaimList claims={observedClaims} sources={data.sources} />
           </div>
         )}
         {veteranClaims.length > 0 && (
           <div className="border-t border-line pt-3">
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Expert guidance · context scoped</h4>
+            <h4 className="mb-2 label">Expert guidance · context scoped</h4>
             <ClaimList claims={veteranClaims} sources={data.sources} />
           </div>
         )}
@@ -70,7 +70,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
       </section>
       {data.experts.length > 0 && (
         <section aria-label="Experts" className="space-y-1.5">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <h4 className="label">
             {hasVeteran ? "Who knows this" : "Not covered by veterans here? Who knows this"}
           </h4>
           <ExpertList experts={data.experts} />

@@ -30,10 +30,11 @@ export function NodeSwitcher() {
 
   return (
     <>
+      <NodeBadge display={session.node_display} large />
       <label className="flex items-center gap-2 text-[12px] text-muted">
         Switch node
         <select
-          className="field py-1"
+          className="field h-8 py-0"
           value={session.node}
           onChange={(e) => {
             setError(null);

@@ -92,7 +92,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
     <article aria-label={`Command proposal: ${p.command}`} className={`card space-y-2.5 border-2 p-3 ${border}`}>
       <header className="flex flex-wrap items-center gap-2">
         <TerminalSquare size={14} className="text-muted" aria-hidden="true" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Proposed command</span>
+        <span className="label">Proposed command</span>
         <span className="ml-auto flex items-center gap-2">
           <RiskBadge risk={p.risk} />
           <span className="text-[11px] text-muted">target</span>

@@ -14,7 +14,7 @@ export function ReferCard({ data }: { data: ChatRefer }) {
             I can’t answer this reliably. <span className="font-normal text-muted">{data.reason}</span>
           </span>
         </p>
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Who to talk to</h4>
+        <h4 className="label">Who to talk to</h4>
         <ExpertList experts={data.experts} />
       </section>
     </div>

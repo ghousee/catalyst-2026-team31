@@ -42,7 +42,7 @@ export function TopBar() {
       <div className="h-6 w-px bg-line" aria-hidden="true" />
       {session ? (
         <div className="flex items-center gap-3" aria-label="Session context">
-          <span className="text-[11px] uppercase tracking-wide text-muted">Node</span>
+          <span className="label !font-normal">Node</span>
           <NodeBadge display={session.node_display} large />
           <dl className="flex items-center gap-4 text-[12.5px]">
             <div className="flex gap-1.5">

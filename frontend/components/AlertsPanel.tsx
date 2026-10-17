@@ -38,7 +38,7 @@ export function AlertsPanel() {
       >
         {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
         <Bell size={14} className={latest ? "text-warn" : "text-muted"} aria-hidden="true" />
-        <span className="text-[12px] font-semibold uppercase tracking-wide">Alerts</span>
+        <span className="label !text-fg">Alerts</span>
         <Badge tone={alerts.length ? "warn" : "muted"}>{alerts.length}</Badge>
         <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted">
           {error

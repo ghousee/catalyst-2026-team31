@@ -223,7 +223,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
           {sel && (
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: STYLE[sel.kind].color }}>{STYLE[sel.kind].label}</p>
+                <p className="label" style={{ color: STYLE[sel.kind].color }}>{STYLE[sel.kind].label}</p>
                 <p className="font-semibold">{sel.label}</p>
               </div>
               <dl className="space-y-1.5 text-xs">
@@ -234,7 +234,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
               {[["Links out", out, "to"], ["Links in", inc, "from"]].map(([title, list, end]) => (
                 (list as typeof out).length > 0 && (
                   <div key={title as string}>
-                    <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{title as string} ({(list as typeof out).length})</p>
+                    <p className="mb-1 label">{title as string} ({(list as typeof out).length})</p>
                     <ul className="space-y-1 text-xs">
                       {(list as typeof out).map((e) => {
                         const other = end === "to" ? e.to : e.from;

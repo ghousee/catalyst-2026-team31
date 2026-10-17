@@ -43,7 +43,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
       </div>
 
       <section aria-label="Evidence">
-        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Evidence</h4>
+        <h4 className="label">Evidence</h4>
         <ul className="mt-1 flex flex-wrap gap-2">
           {a.evidence.map((e, i) => (
             <li key={i} className="rounded border border-line bg-panel2 px-2 py-1 font-mono text-[12px]">
@@ -54,13 +54,13 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
       </section>
 
       <section aria-label="Suggested fix">
-        <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Suggested fix</h4>
+        <h4 className="mb-1 label">Suggested fix</h4>
         <ClaimList claims={a.fix_claims} />
       </section>
 
       {a.next_commands.length > 0 && (
         <section aria-label="Next commands" className="space-y-2">
-          <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Next commands</h4>
+          <h4 className="label">Next commands</h4>
           {a.next_commands.map((p) => (
             <ProposalCard key={p.id} proposal={p} />
           ))}
@@ -68,7 +68,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
       )}
 
       <section aria-label="Backup expert">
-        <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        <h4 className="mb-1 label">
           {firstName} is unavailable? Backup expert
         </h4>
         <ExpertList

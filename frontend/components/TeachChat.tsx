@@ -76,7 +76,7 @@ export function TeachChat({ persons, subs, onSaved }: { persons: Person[]; subs:
         {msgs.length === 0 && <li className="text-[12.5px] text-muted">Tell me something a new operator should know, in your own words.</li>}
         {msgs.map((m, i) => (
           <li key={i} className={`rounded border p-2 text-[13px] ${m.role === "veteran" ? "border-line bg-panel2" : "border-accent/40"}`}>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{m.role === "veteran" ? "You" : "Assistant"}</span>
+            <span className="label">{m.role === "veteran" ? "You" : "Assistant"}</span>
             <p>{m.text}</p>
           </li>
         ))}
@@ -94,7 +94,7 @@ export function TeachChat({ persons, subs, onSaved }: { persons: Person[]; subs:
       )}
       {draft && (
         <div className="card space-y-3 p-3">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Draft (edit anything before saving)</p>
+          <p className="label">Draft (edit anything before saving)</p>
           {LABELS.map(([k, label]) => (
             <label key={k} className="block space-y-1 text-[12px] text-muted">
               <span>{label}</span>

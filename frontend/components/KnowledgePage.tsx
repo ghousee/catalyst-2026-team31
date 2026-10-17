@@ -13,7 +13,7 @@ type Decision = "extends" | "contradicts" | "skipped";
 function Pane({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="scroll min-h-0 overflow-y-auto p-4">
-      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide">{title}</h2>
+      <h2 className="mb-3 label !text-fg">{title}</h2>
       {children}
     </section>
   );
@@ -61,7 +61,7 @@ function SignedResult({ r, onChanged }: { r: ApproveResult; onChanged: () => voi
     <div className="card mb-3 space-y-2 border-ok/50 p-3" role="status">
       <p className="text-[13px] font-semibold text-ok">Signed and live: {r.note.id} (signed by {r.note.signed_by})</p>
       <div>
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Auto-created links</p>
+        <p className="label">Auto-created links</p>
         <ul className="list-disc pl-5 text-[12.5px]">
           {r.auto_links.map((l, i) => (
             <li key={i} className="font-mono">
@@ -71,7 +71,7 @@ function SignedResult({ r, onChanged }: { r: ApproveResult; onChanged: () => voi
         </ul>
       </div>
       <div>
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Does this note agree with the manual?</p>
+        <p className="label">Does this note agree with the manual?</p>
         {r.suggested_sections.length === 0 && <p className="text-[12.5px] text-muted">No manual section suggested.</p>}
         <ul className="space-y-2">
           {r.suggested_sections.map((s) => (

@@ -36,7 +36,7 @@ export function DemoMenu() {
       </button>
       {open && (
         <div role="menu" aria-label="Demo controls" className="card absolute right-0 top-full z-30 mt-1 w-72 space-y-1 p-2 shadow-xl">
-          <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <p className="px-2 py-1 label">
             Run scenario · {USE_MOCKS ? "mock" : "live API"}
           </p>
           {SCENARIOS.map((s) => (

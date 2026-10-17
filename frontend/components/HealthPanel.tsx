@@ -20,7 +20,7 @@ export function HealthPanel() {
   return (
     <section aria-label="System health" className="border-b border-line px-4 py-2.5">
       <div className="mb-1.5 flex items-center justify-between">
-        <h2 className="text-[12px] font-semibold uppercase tracking-wide">Health · last 60 min</h2>
+        <h2 className="label !text-fg">Health · last 60 min</h2>
         {error && <span className="text-[11px] text-crit">Metrics unavailable, retrying…</span>}
       </div>
       <ul className="grid grid-cols-3 gap-3">

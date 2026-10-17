@@ -12,7 +12,7 @@ import { Modal } from "./Modal";
 
 const Row = ({ k, children }: { k: string; children: ReactNode }) => (
   <div className="grid grid-cols-[110px_1fr] gap-2 py-1">
-    <dt className="text-[11px] uppercase tracking-wide text-muted">{k}</dt>
+    <dt className="label !font-normal">{k}</dt>
     <dd className="min-w-0 break-words text-[13px]">{children}</dd>
   </div>
 );
@@ -61,7 +61,7 @@ function Veteran({ s }: { s: HeuristicSource }) {
         </div>
       )}
       <p className="mt-3 rounded bg-panel2 p-3 text-[13px]">
-        <span className="block text-[11px] uppercase tracking-wide text-muted">Why</span>
+        <span className="block label !font-normal">Why</span>
         {s.why}
       </p>
       {s.needs_review && (
@@ -69,7 +69,7 @@ function Veteran({ s }: { s: HeuristicSource }) {
       )}
       {s.not_when && (
         <p className="mt-2 rounded border border-warn/60 bg-warn/10 p-3 text-[13px]">
-          <span className="block text-[11px] uppercase tracking-wide text-muted">Does not apply when</span>
+          <span className="block label !font-normal">Does not apply when</span>
           {s.not_when}
         </p>
       )}
