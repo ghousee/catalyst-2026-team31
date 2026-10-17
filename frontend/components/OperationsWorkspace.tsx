@@ -179,34 +179,139 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   );
 }
 
-const SYSTEM_ROWS = [
-  ["Payments-01", "TMF", "Production", "Healthy", "0", "Now"],
-  ["Pathway-02", "Pathway", "Production", "Warning", "3", "1 min ago"],
-  ["Storage-03", "SCF Storage", "Production", "Warning", "1", "4 min ago"],
-  ["Reports-01", "Pathway", "Test", "Warning", "1", "8 min ago"],
-  ["Recovery-01", "TMF", "DR", "Healthy", "0", "2 min ago"],
-  ["CPU-Cluster-A", "PEEK", "Production", "Healthy", "0", "Now"],
+type SystemRecord = {
+  id: string;
+  subsystem: string;
+  environment: "Primary Production" | "Disaster Recovery" | "Test Environment";
+  health: "Healthy" | "Warning" | "Critical";
+  incidents: number;
+  lastSignal: string;
+  purpose: string;
+  expert: { name: string; title: string; availability: "On call" | "On shift" };
+  backup: { name: string; title: string };
+  contributor?: { name: string; title: string; status: string; knowledge: string };
+  dependencies: string[];
+  knowledge: string[];
+  diagnostics: string[];
+  evidence: string[];
+};
+
+const SYSTEMS: SystemRecord[] = [
+  { id: "Payments-01", subsystem: "TMF", environment: "Primary Production", health: "Healthy", incidents: 0, lastSignal: "Now", purpose: "Coordinates payment transaction processing and settlement handoff.", expert: { name: "Raj Patel", title: "NonStop Systems Specialist", availability: "On call" }, backup: { name: "Lena Kowalski", title: "Storage Administrator" }, contributor: { name: "Maria Rossi", title: "Senior NonStop Operator", status: "Retired · Knowledge contributor", knowledge: "Quarter-end settlement and TMF recovery patterns" }, dependencies: ["Pathway-02", "TMF", "Settlement queue"], knowledge: ["TMF Operations Manual", "Quarter-end settlement runbook"], diagnostics: ["Transaction status", "Queue depth", "TMF process state"], evidence: ["EMS simulator", "Application health", "Approved manuals"] },
+  { id: "Pathway-02", subsystem: "Pathway", environment: "Primary Production", health: "Warning", incidents: 3, lastSignal: "1 min ago", purpose: "Routes settlement requests between applications and TMF services.", expert: { name: "Raj Patel", title: "NonStop Systems Specialist", availability: "On call" }, backup: { name: "Lena Kowalski", title: "Storage Administrator" }, contributor: { name: "Maria Rossi", title: "Senior NonStop Operator", status: "Retired · Knowledge contributor", knowledge: "Audit trail, Pathway and quarter-end failure patterns" }, dependencies: ["Payments-01", "TMF", "Audit trail"], knowledge: ["Pathway Operations Manual", "Audit trail capacity runbook", "6 reviewed expert patterns"], diagnostics: ["Audit trail status", "Pathway server status", "Transaction status"], evidence: ["EMS simulator", "Metrics feed", "Expert knowledge"] },
+  { id: "Storage-03", subsystem: "SCF Storage", environment: "Primary Production", health: "Warning", incidents: 1, lastSignal: "4 min ago", purpose: "Provides disk paths and storage capacity for monitored NonStop workloads.", expert: { name: "Lena Kowalski", title: "Storage Administrator", availability: "On shift" }, backup: { name: "Raj Patel", title: "NonStop Systems Specialist" }, dependencies: ["Payments-01", "Reports-01", "SCF"], knowledge: ["SCF storage operations", "Disk-path recovery procedure"], diagnostics: ["Disk path status", "Capacity summary", "SCF configuration"], evidence: ["Storage metrics", "SCF events", "Approved procedures"] },
+  { id: "Reports-01", subsystem: "Pathway", environment: "Test Environment", health: "Warning", incidents: 1, lastSignal: "8 min ago", purpose: "Generates operational reports in the isolated test environment.", expert: { name: "Raj Patel", title: "NonStop Systems Specialist", availability: "On call" }, backup: { name: "Lena Kowalski", title: "Storage Administrator" }, dependencies: ["Pathway", "Reporting queue"], knowledge: ["Reporting service runbook"], diagnostics: ["Queue latency", "Process status"], evidence: ["Application health", "Test event feed"] },
+  { id: "Recovery-01", subsystem: "TMF", environment: "Disaster Recovery", health: "Healthy", incidents: 0, lastSignal: "2 min ago", purpose: "Maintains the validated recovery context for TMF services.", expert: { name: "Raj Patel", title: "NonStop Systems Specialist", availability: "On call" }, backup: { name: "Lena Kowalski", title: "Storage Administrator" }, contributor: { name: "Maria Rossi", title: "Senior NonStop Operator", status: "Retired · Knowledge contributor", knowledge: "TMF recovery and production-to-DR handoff" }, dependencies: ["TMF", "Recovery storage"], knowledge: ["Disaster recovery runbook", "TMF recovery checklist"], diagnostics: ["Recovery process state", "TMF status"], evidence: ["DR event feed", "Recovery checklist"] },
+  { id: "CPU-Cluster-A", subsystem: "PEEK", environment: "Primary Production", health: "Healthy", incidents: 0, lastSignal: "Now", purpose: "Provides processor health and workload telemetry for production services.", expert: { name: "Raj Patel", title: "NonStop Systems Specialist", availability: "On call" }, backup: { name: "Lena Kowalski", title: "Storage Administrator" }, dependencies: ["PEEK", "Metrics feed"], knowledge: ["Processor monitoring guide"], diagnostics: ["CPU utilization", "Process activity"], evidence: ["PEEK telemetry", "Metrics feed"] },
 ];
 
 function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const [query, setQuery] = useState("");
-  const rows = SYSTEM_ROWS.filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase()));
+  const [healthFilter, setHealthFilter] = useState("All health");
+  const [environmentFilter, setEnvironmentFilter] = useState("All environments");
+  const [selectedId, setSelectedId] = useState("Pathway-02");
+  const rows = SYSTEMS.filter((system) => {
+    const matchesQuery = [system.id, system.subsystem, system.environment, system.expert.name, system.expert.title, system.backup.name, system.contributor?.name ?? ""].join(" ").toLowerCase().includes(query.toLowerCase());
+    const matchesHealth = healthFilter === "All health" || system.health === healthFilter;
+    const matchesEnvironment = environmentFilter === "All environments" || system.environment === environmentFilter;
+    return matchesQuery && matchesHealth && matchesEnvironment;
+  });
+  const selected = rows.find((system) => system.id === selectedId) ?? rows[0] ?? null;
+
   return (
     <div>
-      <SectionTitle title="Systems" description="Search monitored systems and review their current state." />
+      <SectionTitle title="Systems" description="Understand system health, ownership, dependencies, and safe diagnostic coverage." />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <label className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field h-10 w-full rounded-xl bg-panel pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search systems" /></label>
+        <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+          <label className="relative min-w-[240px] flex-1 sm:max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} /><input className="field h-10 w-full rounded-xl bg-panel pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search systems or experts" /></label>
+          <select className="field h-10 rounded-xl bg-panel" value={healthFilter} onChange={(event) => setHealthFilter(event.target.value)} aria-label="Filter systems by health"><option>All health</option><option>Healthy</option><option>Warning</option><option>Critical</option></select>
+          <select className="field h-10 rounded-xl bg-panel" value={environmentFilter} onChange={(event) => setEnvironmentFilter(event.target.value)} aria-label="Filter systems by environment"><option>All environments</option><option>Primary Production</option><option>Disaster Recovery</option><option>Test Environment</option></select>
+        </div>
         <span className="text-xs text-muted">{rows.length} systems shown • data minimized for demo</span>
       </div>
       <section className="overflow-hidden rounded-xl border border-line bg-panel">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr>{["System", "Subsystem", "Environment", "Health", "Alerts", "Updated", ""].map((head) => <th key={head} className="px-5 py-3 font-medium">{head}</th>)}</tr></thead>
-            <tbody className="divide-y divide-line">{rows.map((row) => <tr key={row[0]} className="hover:bg-panel2/40">{row.map((cell, index) => <td key={index} className={`px-5 py-3 ${index === 0 ? "font-medium" : "text-muted"}`}>{index === 3 ? <span className={`status-chip status-${cell.toLowerCase()}`}>{cell}</span> : cell}</td>)}<td className="px-5 py-3 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => onNavigate("assistant")}>Investigate</button></td></tr>)}</tbody>
+        <div className="divide-y divide-line md:hidden">
+          {rows.map((system) => {
+            const active = selected?.id === system.id;
+            return <article key={system.id} className={`border-l-2 p-4 ${active ? "border-accent bg-accent/[0.045]" : "border-transparent"}`}>
+              <div className="flex items-start justify-between gap-3"><button type="button" className="text-left" onClick={() => setSelectedId(system.id)}><span className="font-semibold text-fg">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem} · {system.environment}</span></button><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span></div>
+              <div className="mt-3 flex items-center gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold">{system.expert.name.split(" ").map((part) => part[0]).join("")}</span><div className="min-w-0"><p className="text-sm font-medium">{system.expert.name}</p><p className="truncate text-xs text-muted">{system.expert.title}</p></div></div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-xs"><span className="text-muted">{system.incidents > 0 ? `${system.incidents} active ${system.incidents === 1 ? "incident" : "incidents"}` : "No active incidents"} · signal {system.lastSignal.toLowerCase()}</span><button type="button" className="shrink-0 font-medium text-accent" onClick={() => system.incidents > 0 ? onNavigate("investigations") : setSelectedId(system.id)}>{system.incidents > 0 ? "Review" : "View"}</button></div>
+            </article>;
+          })}
+          {rows.length === 0 && <p className="px-5 py-8 text-center text-sm text-muted">No systems match the selected filters.</p>}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[1060px] text-left text-sm">
+            <thead className="border-b border-line bg-panel2/70 text-xs text-muted"><tr>{["System", "Environment", "Health", "Active incidents", "Primary expert", "Last signal", ""].map((head) => <th key={head} className="px-4 py-3 font-medium first:pl-5 last:pr-5">{head}</th>)}</tr></thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((system) => {
+                const active = selected?.id === system.id;
+                return <tr key={system.id} className={active ? "bg-accent/[0.045]" : "hover:bg-panel2/40"}>
+                  <td className={`border-l-2 px-4 py-3 pl-5 ${active ? "border-accent" : "border-transparent"}`}><button type="button" className="text-left" onClick={() => setSelectedId(system.id)}><span className="block font-semibold text-fg hover:text-accent">{system.id}</span><span className="mt-0.5 block text-xs text-muted">{system.subsystem}</span></button></td>
+                  <td className="px-4 py-3 text-muted">{system.environment}</td>
+                  <td className="px-4 py-3"><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span></td>
+                  <td className="px-4 py-3">{system.incidents > 0 ? <span className="status-chip status-warning">{system.incidents} {system.incidents === 1 ? "warning" : "warnings"}</span> : <span className="text-muted">None</span>}</td>
+                  <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold text-fg">{system.expert.name.split(" ").map((part) => part[0]).join("")}</span><span><strong className="block font-medium text-fg">{system.expert.name}</strong><span className="block text-xs text-muted">{system.expert.title}</span></span></div></td>
+                  <td className="px-4 py-3 text-muted">{system.lastSignal}</td>
+                  <td className="px-5 py-3 text-right"><button type="button" className="text-sm font-medium text-accent hover:underline" onClick={() => system.incidents > 0 ? onNavigate("investigations") : setSelectedId(system.id)}>{system.incidents > 0 ? "Review incident" : "View system"}</button></td>
+                </tr>;
+              })}
+              {rows.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-muted">No systems match the selected filters.</td></tr>}
+            </tbody>
           </table>
         </div>
       </section>
+
+      {selected && <SystemDetail system={selected} onNavigate={onNavigate} />}
     </div>
+  );
+}
+
+function SystemDetail({ system, onNavigate }: { system: SystemRecord; onNavigate: (page: PageId) => void }) {
+  const initials = (name: string) => name.split(" ").map((part) => part[0]).join("");
+  return (
+    <section className="mt-5 overflow-hidden rounded-xl border border-line bg-panel" aria-label={`${system.id} system details`}>
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-semibold">{system.id}</h3><span className={`status-chip status-${system.health.toLowerCase()}`}>{system.health}</span><span className="rounded-full bg-panel2 px-2 py-0.5 text-xs text-muted">{system.environment}</span></div>
+          <p className="mt-1 max-w-3xl text-sm text-muted">{system.purpose}</p>
+        </div>
+        <button type="button" className={system.incidents > 0 ? "btn btn-primary" : "btn"} onClick={() => onNavigate(system.incidents > 0 ? "investigations" : "assistant")}>{system.incidents > 0 ? "Review active incidents" : "Open in AI Assistant"}<ChevronRight size={14} /></button>
+      </header>
+
+      <dl className="grid gap-3 border-b border-line p-4 text-xs sm:grid-cols-3">
+        <div className="rounded-lg bg-panel2 p-3"><dt className="text-muted">Current state</dt><dd className="mt-1 font-semibold text-fg">{system.health}{system.incidents > 0 ? ` · ${system.incidents} active ${system.incidents === 1 ? "incident" : "incidents"}` : " · no active incidents"}</dd></div>
+        <div className="rounded-lg bg-panel2 p-3"><dt className="text-muted">Last telemetry</dt><dd className="mt-1 font-semibold text-fg">{system.lastSignal}</dd></div>
+        <div className="rounded-lg bg-panel2 p-3"><dt className="text-muted">Safe operating mode</dt><dd className="mt-1 inline-flex items-center gap-1.5 font-semibold text-ok"><ShieldCheck size={14} />Read-only diagnostics</dd></div>
+      </dl>
+
+      <div className="grid lg:grid-cols-2">
+        <section className="border-b border-line p-5 lg:border-b-0 lg:border-r">
+          <h4 className="font-semibold">People and expertise</h4>
+          <p className="mt-1 text-xs text-muted">Who can operate, validate, or explain this system.</p>
+          <div className="mt-4 divide-y divide-line">
+            <div className="flex items-center gap-3 pb-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-semibold text-accent">{initials(system.expert.name)}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{system.expert.name}</p><span className={`status-chip ${system.expert.availability === "On shift" ? "status-healthy" : "status-warning"}`}>{system.expert.availability}</span></div><p className="text-xs text-muted">Primary expert · {system.expert.title}</p></div></div>
+            <div className="flex items-center gap-3 py-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold">{initials(system.backup.name)}</span><div><p className="font-medium">{system.backup.name}</p><p className="text-xs text-muted">Backup specialist · {system.backup.title}</p></div></div>
+            {system.contributor && <div className="flex items-start gap-3 pt-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-panel2 text-xs font-semibold">{initials(system.contributor.name)}</span><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{system.contributor.name}</p><span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">{system.contributor.status}</span></div><p className="text-xs text-muted">{system.contributor.title}</p><p className="mt-1 text-xs text-fg">Knowledge: {system.contributor.knowledge}</p></div></div>}
+          </div>
+        </section>
+
+        <section className="p-5">
+          <h4 className="font-semibold">Operational context</h4>
+          <p className="mt-1 text-xs text-muted">Scope CAIL uses when explaining or troubleshooting this system.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div><h5 className="text-xs font-semibold text-fg">Dependencies</h5><ul className="mt-2 space-y-1.5 text-sm text-muted">{system.dependencies.map((item) => <li key={item}>• {item}</li>)}</ul></div>
+            <div><h5 className="text-xs font-semibold text-fg">Evidence sources</h5><ul className="mt-2 space-y-1.5 text-sm text-muted">{system.evidence.map((item) => <li key={item}>• {item}</li>)}</ul></div>
+          </div>
+        </section>
+      </div>
+
+      <div className="grid border-t border-line md:grid-cols-2">
+        <section className="border-b border-line p-5 md:border-b-0 md:border-r"><div className="flex items-center gap-2"><FileCheck2 size={16} className="text-ok" /><h4 className="font-semibold">Approved knowledge</h4></div><ul className="mt-3 space-y-2 text-sm">{system.knowledge.map((item) => <li key={item} className="flex items-center justify-between gap-3"><span>{item}</span><span className="status-chip status-healthy">Approved</span></li>)}</ul></section>
+        <section className="p-5"><div className="flex items-center gap-2"><ShieldCheck size={16} className="text-ok" /><h4 className="font-semibold">Available safe diagnostics</h4></div><ul className="mt-3 space-y-2 text-sm">{system.diagnostics.map((item) => <li key={item} className="flex items-center justify-between gap-3"><span>{item}</span><span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] font-medium text-muted">Read-only</span></li>)}</ul></section>
+      </div>
+    </section>
   );
 }
 
