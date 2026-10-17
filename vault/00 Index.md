@@ -15,6 +15,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 - [[eval harness]] — golden set scoring, contamination, ablation
 - [[stop hook]] — blocks Claude while unit tests fail
 - [[tests]] — what each unit test proves
+- [[frontend]] — Next.js operator console, mocks, contract gaps
 
 ## Design
 - [[core requirements]] — non-negotiables from Ghouse + CAIL (read before designing)
