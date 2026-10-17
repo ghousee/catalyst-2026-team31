@@ -28,17 +28,17 @@ export function AlertsPanel() {
   }, [alerts]);
 
   return (
-    <section aria-label="Watcher alerts" className="border-b border-line">
+    <section aria-label="Watcher alerts" className="space-y-3">
       <button
         type="button"
-        className="flex h-10 w-full items-center gap-2 px-4 text-left hover:bg-panel2"
+        className="flex min-h-10 w-full items-center gap-2 rounded-xl border border-line bg-skysoft/60 px-3 py-2 text-left transition-colors hover:bg-skysoft"
         aria-expanded={open}
         aria-controls="alerts-body"
         onClick={() => setOpen(!open)}
       >
         {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
-        <Bell size={14} className={latest ? "text-warn" : "text-muted"} aria-hidden="true" />
-        <span className="label !text-fg">Alerts</span>
+        {latest ? <span className="live-dot text-warn" aria-hidden="true" /> : <Bell size={14} className="text-muted" aria-hidden="true" />}
+        <span className="label !text-head">Alerts</span>
         <Badge tone={alerts.length ? "warn" : "muted"}>{alerts.length}</Badge>
         <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted">
           {error
@@ -52,7 +52,7 @@ export function AlertsPanel() {
         {latest?.lead_time_min != null && <Badge tone="warn">~{latest.lead_time_min} min</Badge>}
       </button>
       {open && (
-        <div id="alerts-body" className="scroll max-h-[32vh] space-y-3 overflow-y-auto px-4 pb-3">
+        <div id="alerts-body" className="stagger space-y-3">
           {alerts.length === 0 && <p className="text-[12.5px] text-muted">Nothing to show.</p>}
           {alerts.map((a) => (
             <AlertCard key={a.id} alert={a} />

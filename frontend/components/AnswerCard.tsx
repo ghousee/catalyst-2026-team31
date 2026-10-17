@@ -28,7 +28,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
   return (
     <div className="space-y-3">
       <ContextChip display={data.context.display} confidence={data.context.confidence} />
-      <section aria-label="Answer" className="card space-y-3.5 p-4">
+      <section aria-label="Answer" className="card rise space-y-3.5 border-t-4 border-t-sky p-4">
         {data.reply && <ReplyText reply={data.reply} cites={data.reply_citations ?? {}} sources={data.sources} />}
         <ConflictBox claims={flagged} sources={data.sources} />
         {observedClaims.length > 0 && (
@@ -44,7 +44,7 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
           </div>
         )}
         {proposals && proposals.length > 0 && (
-        <div className="border-l-2 border-warn pl-3 text-[12.5px]">
+        <div className="rounded-xl border border-warn/30 bg-warn/10 p-2.5 text-[12.5px]">
           <span className="font-semibold text-warn">Still unknown: </span>
           <span className="text-muted">The root cause remains unconfirmed until the proposed live diagnostic is reviewed.</span>
         </div>
@@ -77,7 +77,8 @@ export function AnswerCard({ msg }: { msg: AnswerMsg }) {
         </section>
       )}
       {proposals === null && (
-        <p className="animate-pulse text-[12px] text-muted" role="status">
+        <p className="flex items-center gap-2 text-[12px] text-muted" role="status">
+          <span className="live-dot text-sky" aria-hidden="true" />
           Looking up a catalog command…
         </p>
       )}

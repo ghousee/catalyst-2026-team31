@@ -21,7 +21,7 @@ export function ReplyText({ reply, cites, sources }: { reply: string; cites: Rec
     return (
       <button key={key} type="button" onClick={() => openSource(id, sources)} title={label(byId.get(id))}
         aria-label={`Open source ${n}: ${label(byId.get(id))}`}
-        className="num mx-px rounded-[2px] text-[0.92em] font-medium text-accent hover:underline">
+        className="num mx-0.5 rounded-md bg-skysoft px-1 text-[0.88em] font-semibold text-accent transition-colors hover:bg-sky/30">
         [{n}]
       </button>
     );

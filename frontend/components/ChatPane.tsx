@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, X } from "lucide-react";
+import { ArrowUp, Bot, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SERIES_OPTIONS, SUBSYSTEM_OPTIONS } from "@/lib/format";
 import { useConsole, type ChatMsg } from "@/lib/store";
@@ -22,7 +22,7 @@ function Message({ m }: { m: ChatMsg }) {
     case "user":
       return (
         <div className="flex justify-end">
-          <p className="max-w-[85%] rounded border border-line bg-panel2 px-3 py-2 text-[13.5px]">{m.text}</p>
+          <p className="rise max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-br from-navy2 to-navy px-3.5 py-2 text-[13.5px] text-white shadow-soft">{m.text}</p>
         </div>
       );
     case "answer":
@@ -43,10 +43,10 @@ function Message({ m }: { m: ChatMsg }) {
         </div>
       );
     case "system":
-      return <p className="border-l-2 border-warn pl-3 text-[12.5px] text-warn">{m.text}</p>;
+      return <p className="rounded-xl border border-warn/30 bg-warn/10 p-3 text-[12.5px] text-warn">{m.text}</p>;
     case "error":
       return (
-        <p role="alert" className="border-l-2 border-crit pl-3 text-[12.5px] text-crit">
+        <p role="alert" className="rounded-xl border border-crit/30 bg-crit/10 p-3 text-[12.5px] text-crit">
           {m.text}
         </p>
       );
@@ -96,10 +96,11 @@ export function ChatPane() {
 
   return (
     <section aria-label="Copilot chat" className="flex min-h-0 flex-1 flex-col">
-      <div ref={logRef} className="scroll min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" role="log" aria-live="polite" tabIndex={0}>
+      <div ref={logRef} className="scroll min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-skysoft/40 to-transparent px-4 py-4" role="log" aria-live="polite" tabIndex={0}>
         {messages.length === 0 && (
-          <div className="py-8 text-center">
-            <p className="text-[13.5px] font-medium">Ask about {session?.node_display ?? "the system"}</p>
+          <div className="rise py-10 text-center">
+            <span className="icon-chip mx-auto mb-3 !h-12 !w-12 !rounded-2xl" style={{ ["--c" as string]: "var(--sky)" }}><Bot size={22} aria-hidden="true" /></span>
+            <p className="font-display text-lg font-semibold text-head">Ask about {session?.node_display ?? "the system"}</p>
             <p className="mt-1 text-[12.5px] text-muted">
               Answers are scoped to your session and cite a manual, a veteran or live output. Commands only run after you approve them.
             </p>
@@ -116,7 +117,8 @@ export function ChatPane() {
           <Message key={m.id} m={m} />
         ))}
         {busy && (
-          <p className="animate-pulse text-[12.5px] text-muted" role="status">
+          <p className="flex items-center gap-2 text-[12.5px] text-muted" role="status">
+            <span className="live-dot text-sky" aria-hidden="true" />
             Resolving context and checking sources…
           </p>
         )}

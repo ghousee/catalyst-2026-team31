@@ -5,6 +5,7 @@ import { fmtTime } from "@/lib/format";
 import type { Alert, Expert } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { Badge, type Tone } from "./Badge";
+import { SubPill } from "./ui";
 import { ClaimList } from "./ClaimList";
 import { ExpertList } from "./ExpertList";
 import { NodeBadge } from "./NodeBadge";
@@ -39,26 +40,26 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
   if (dismissed) return null;
   const backup = a.backup_expert;
   return (
-    <article aria-label={`Alert: ${a.message}`} className="card space-y-3 border-warn/50 p-3">
+    <article aria-label={`Alert: ${a.message}`} className={`card space-y-3 border-l-4 p-4 ${a.severity === "critical" ? "border-l-crit" : a.severity === "warning" ? "border-l-warn" : "border-l-info"}`}>
       <header className="flex flex-wrap items-center gap-2">
         <Badge tone={SEV[a.severity]}>
           <TriangleAlert size={12} aria-hidden="true" />
           {a.severity.toUpperCase()}
         </Badge>
         <NodeBadge display={a.node} />
-        <Badge>{a.subsystem}</Badge>
+        <SubPill name={a.subsystem} />
         <span className="ml-auto text-[11px] text-muted">{fmtTime(a.ts)}</span>
         <button type="button" className="btn h-7 px-2 text-[11.5px]"
           onClick={() => { setDismissed(true); void api.ackAlert(a.id).catch(() => setDismissed(false)); }}>
           Dismiss
         </button>
       </header>
-      <p className="text-[14px] font-semibold leading-snug">{a.message}</p>
+      <p className="font-display text-[16px] font-semibold leading-snug text-head">{a.message}</p>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
         <Origin a={a} />
         {a.lead_time_min != null && (
-          <span className="inline-flex items-center gap-1 text-[12.5px] font-medium text-warn">
+          <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-[12.5px] font-semibold text-warn">
             <Clock size={13} aria-hidden="true" />~{a.lead_time_min} min before failure
           </span>
         )}
@@ -74,7 +75,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
         <h4 className="label">Evidence</h4>
         <ul className="mt-1 flex flex-wrap gap-2">
           {a.evidence.map((e, i) => (
-            <li key={i} className="rounded border border-line bg-panel2 px-2 py-1 font-mono text-[12px]">
+            <li key={i} className="rounded-lg border border-sky/30 bg-skysoft px-2 py-1 font-mono text-[12px] text-fg">
               {e.event ? `${e.event} × ${e.count}` : `${e.metric} = ${e.value}${e.trend ? ` (${e.trend})` : ""}`}
             </li>
           ))}

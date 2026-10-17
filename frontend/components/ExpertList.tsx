@@ -47,7 +47,7 @@ function ExpertRow({ expert }: { expert: Expert }) {
 
 export function ExpertList({ experts }: { experts: Expert[] }) {
   return (
-    <ul className="divide-y divide-line border-y border-line">
+    <ul className="card divide-y divide-line px-3">
       {experts.map((e) => (
         <ExpertRow key={e.id} expert={e} />
       ))}
