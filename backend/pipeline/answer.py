@@ -208,6 +208,19 @@ def _clarify(conn, question, kind, current=None):
             "options": [{"label": r["name"], "value": {"system": r["id"]}} for r in rows]}
 
 
+_SMALLTALK = re.compile(r"^\s*(hi|hello|hey|yo|good (morning|afternoon|evening)|thanks?( you)?|thx|ok(ay)?|cool|"
+                        r"help|what can you do|who are you|how do you work)\b[\s!.?,]*$", re.I)
+HELP_TEXT = ("Hi! I help with HPE NonStop operations. Describe what you're seeing and on which system, for example: "
+             "\"TMF 185 keeps firing and the audit trail is at 65%\", \"Pathway says no server available\", or "
+             "\"a mirror revive seems stuck\". I answer from the manuals and the senior operators' captured knowledge, "
+             "with citations, or tell you who to ask.")
+
+
+def is_smalltalk(question):
+    """Greetings / thanks / 'what can you do': answer with a short help text, never a referral."""
+    return bool(_SMALLTALK.match(question or ""))
+
+
 def is_vague(question):
     """Too little to go on ("its slow", "how do i fix it"): at most VAGUE_TERMS content words."""
     return len(query_terms(question)) <= VAGUE_TERMS
@@ -228,6 +241,8 @@ def answer(question, session, override=None):
     override = {k: v for k, v in (override or {}).items() if v}
     node = override.get("site") or session["node"]
     series = override.get("version") or session["series"]
+    if is_smalltalk(question):
+        return {"type": "clarify", "question": HELP_TEXT, "options": []}
     with connect() as conn:
         t = time.perf_counter()
         r = resolve(conn, question, {"system": override.get("system"), "version": series, "site": node})
@@ -321,7 +336,7 @@ def answer(question, session, override=None):
                     "debug": debug}
 
         if not ok:
-            return refer(f"No verified answer for {context['display']}. {reason}".strip())
+            return refer(f"No verified answer for {context['display']}.")
 
         t = time.perf_counter()
         claims, _ = generate.generate(question, gen_chunks, max_claims=MAX_CLAIMS)

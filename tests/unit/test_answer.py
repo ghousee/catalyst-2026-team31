@@ -266,3 +266,21 @@ def test_linked_to_specific_uses_only_specific_entities():
     path = [{"src": "raj:h8", "rel": "about", "dst": "obj:audit-trail-MAT"}, {"src": "maria:h3", "rel": "about", "dst": "sub:TMF"}]
     ents = [{"id": "obj:audit-trail-MAT", "kind": "object"}, {"id": "sub:TMF", "kind": "system"}]
     assert A.linked_to_specific(path, ents) == {"raj:h8"}
+
+
+@pytest.mark.parametrize("q", ["hello", "Hi!", "thanks", "thank you.", "what can you do?", "good morning"])
+def test_smalltalk_gets_help_not_referral(fake, q):
+    r = A.answer(q, SESSION, {"system": "sub:TMF"})  # even after the user picked an area
+    assert r["type"] == "clarify" and r["options"] == [] and "NonStop" in r["question"]
+
+
+def test_real_questions_are_not_smalltalk():
+    assert not A.is_smalltalk("hello, TMF 185 keeps firing")
+    assert not A.is_smalltalk("help, the audit trail is full")
+
+
+def test_refer_reason_hides_gate_reasoning(fake):
+    fake["resolved"] = {**fake["resolved"], "entities": [{"id": "sub:TMF", "kind": "system", "name": "TMF", "matched": "TMF"}]}
+    fake["gate"] = False
+    r = A.answer("something about tmf retention", SESSION, {"system": "sub:TMF"})
+    assert r["type"] == "refer" and r["reason"] == "No verified answer for \PROD · L-series · TMF."
