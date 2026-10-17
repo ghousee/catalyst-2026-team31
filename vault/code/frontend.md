@@ -39,6 +39,7 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - Operator-facing environment names are `Primary Production` and `Disaster Recovery`; raw node ids remain API/command data only. Navigation and summary icons use the attributed Nine One Freeicons outline set in `frontend/public/icons/freeicons/`.
 - The AI Assistant is incident-first: Investigation uses collapsible Incident, Affected systems, AI assessment, Evidence, Recommended action, Expert knowledge and Timeline sections. Connected terminals and Activity are separate workspace tabs. The incident-aware Ask CAIL composer is a persistent right rail on desktop and stacks below the workspace on smaller screens.
 - Incident headings use explicit HPE-aligned fields: Alert, Affected system and First detected. The audit warning is named `Master audit trail nearing overflow threshold`; usage and threshold values stay in the expanded Incident section.
+- Investigations is now the triage and case-review workspace rather than a second chat surface. It polls the alert API into a compact queue, keeps only Incident expanded by default, and progressively reveals affected systems, confirmed evidence, possible explanation, controlled next step, expert provenance and the incident timeline. The selected case hands off to AI Assistant for conversation and command review.
 
 ## Contract gaps (not edited in docs/API_CONTRACT.md)
 1. No source lookup: `proposal.source_id`, alert `fix_claims[].source_id` have no `sources[]`. UI assumes `GET /sources/{id}` -> a `Source`.

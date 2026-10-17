@@ -19,12 +19,11 @@ import {
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { api, USE_MOCKS } from "@/lib/api";
-import { environmentName, humanizeEnvironmentText } from "@/lib/format";
+import { environmentName, fmtTime, humanizeEnvironmentText } from "@/lib/format";
 import { usePolling } from "@/lib/hooks";
 import { ConsoleProvider, useConsole } from "@/lib/store";
-import type { ScenarioName } from "@/lib/types";
+import type { Alert, ScenarioName } from "@/lib/types";
 import { DOC_SOURCES, HEURISTIC_SOURCES } from "@/mocks/fixtures";
-import { AlertsPanel } from "./AlertsPanel";
 import { AppIcon, type AppIconName } from "./AppIcon";
 import { AssistantComposer, ChatPane } from "./ChatPane";
 import { NodeSwitcher } from "./NodeSwitcher";
@@ -212,26 +211,117 @@ function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
 }
 
 function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
+  const { session } = useConsole();
+  const { data: alerts, error, loading } = usePolling(() => api.getAlerts(), 2000, session?.node ?? "");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<Set<InvestigationSectionId>>(new Set(["incident"]));
+  const activeAlerts = alerts ?? [];
+  const selected = activeAlerts.find((alert) => alert.id === selectedId) ?? activeAlerts[0] ?? null;
+
+  const toggle = (id: InvestigationSectionId) => setOpenSections((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const selectAlert = (alert: Alert) => {
+    setSelectedId(alert.id);
+    setOpenSections(new Set(["incident"]));
+  };
+
   return (
     <div>
-      <SectionTitle title="Investigations" description="Review alerts as evidence-backed investigations. Observations, hypotheses, and unknowns remain visibly separate." />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-        <section className="overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
-          <div className="border-b border-line px-5 py-4"><h3 className="font-semibold">Active watcher alerts</h3><p className="text-xs text-muted">Correlated patterns requiring operator attention</p></div>
-          <AlertsPanel />
-        </section>
-        <aside className="space-y-4">
-          <section className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Investigation discipline</p>
-            <ul className="mt-4 space-y-4 text-sm">
-              <li className="flex gap-3"><CheckCircle2 className="mt-0.5 shrink-0 text-ok" size={17} /><span><strong className="block">Confirmed facts</strong><span className="text-muted">Directly linked to source records.</span></span></li>
-              <li className="flex gap-3"><CircleHelp className="mt-0.5 shrink-0 text-warn" size={17} /><span><strong className="block">Possible explanations</strong><span className="text-muted">Clearly marked as unverified.</span></span></li>
-              <li className="flex gap-3"><ShieldCheck className="mt-0.5 shrink-0 text-accent" size={17} /><span><strong className="block">Controlled next steps</strong><span className="text-muted">Allowlisted and human reviewed.</span></span></li>
-            </ul>
-          </section>
-          <button type="button" className="btn btn-primary w-full py-2.5" onClick={() => onNavigate("assistant")}><AppIcon name="assistant" size={16} /> Open AI investigation</button>
-        </aside>
+      <SectionTitle title="Investigations" description="Triage active incidents, inspect only the detail you need, and hand a selected case to CAIL for guided troubleshooting." />
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium"><strong className="mr-1 text-fg">{activeAlerts.length}</strong><span className="text-muted">active</span></span>
+        <span className="rounded-full border border-warn/30 bg-warn/8 px-3 py-1.5 font-medium text-warn">{activeAlerts.filter((alert) => alert.severity === "warning").length} {activeAlerts.filter((alert) => alert.severity === "warning").length === 1 ? "warning" : "warnings"}</span>
+        <span className="rounded-full border border-line bg-panel px-3 py-1.5 font-medium text-muted">Evidence window: last 60 minutes</span>
       </div>
+
+      <section className="grid min-h-[610px] overflow-hidden rounded-2xl border border-line bg-panel shadow-sm lg:grid-cols-[310px_minmax(0,1fr)]">
+        <aside className="border-b border-line bg-panel2/35 lg:border-b-0 lg:border-r" aria-label="Investigation queue">
+          <div className="border-b border-line px-4 py-4">
+            <h3 className="font-semibold">Investigation queue</h3>
+            <p className="mt-0.5 text-xs text-muted">Cases requiring operator attention</p>
+          </div>
+          <div className="space-y-2 p-3">
+            {loading && <p className="rounded-xl border border-line bg-panel p-4 text-sm text-muted">Loading active investigations…</p>}
+            {error && <p role="alert" className="rounded-xl border border-crit/30 bg-crit/8 p-4 text-sm text-crit">Unable to load investigations: {error}</p>}
+            {!loading && !error && activeAlerts.length === 0 && <div className="rounded-xl border border-line bg-panel p-4"><p className="font-medium">No active investigations</p><p className="mt-1 text-xs text-muted">Watcher alerts will appear here with their evidence trail.</p></div>}
+            {activeAlerts.map((alert) => {
+              const active = selected?.id === alert.id;
+              return (
+                <button key={alert.id} type="button" className={`w-full rounded-xl border p-3 text-left transition-colors ${active ? "border-accent bg-accent/8" : "border-line bg-panel hover:border-accent/35"}`} onClick={() => selectAlert(alert)}>
+                  <div className="flex items-center justify-between gap-2"><span className="text-xs font-semibold text-muted">INC-1042</span><span className={`status-chip ${alert.severity === "critical" ? "status-critical" : "status-warning"}`}>{alert.severity === "critical" ? "Critical" : "Warning"}</span></div>
+                  <p className="mt-2 text-sm font-semibold leading-5">Master audit trail nearing overflow threshold</p>
+                  <p className="mt-2 text-xs text-muted">Pathway-02 · detected 2 minutes ago</p>
+                  <div className="mt-3 flex items-center justify-between text-xs"><span className="font-medium text-warn">~{alert.lead_time_min} min lead time</span><ChevronRight size={14} className={active ? "text-accent" : "text-muted"} /></div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="min-w-0 bg-panel2/20">
+          {selected ? (
+            <>
+              <header className="border-b border-line bg-panel px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">INC-1042</h3><span className={`status-chip ${selected.severity === "critical" ? "status-critical" : "status-warning"}`}>{selected.severity === "critical" ? "Critical" : "Warning"}</span><span className="status-chip bg-accent/10 text-accent">Under investigation</span></div>
+                    <p className="mt-2 text-sm text-muted">Watcher detected a known risk pattern before a confirmed service interruption.</p>
+                  </div>
+                  <button type="button" className="btn btn-primary" onClick={() => onNavigate("assistant")}><AppIcon name="assistant" size={16} /> Open in AI Assistant <ChevronRight size={14} /></button>
+                </div>
+                <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-[minmax(260px,1.5fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)]">
+                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Alert</dt><dd className="mt-0.5 font-semibold text-fg">Master audit trail nearing overflow threshold</dd></div>
+                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">Affected system</dt><dd className="mt-0.5 font-semibold text-fg">Pathway-02</dd></div>
+                  <div className="rounded-xl border border-line bg-panel2/60 px-3 py-2"><dt className="font-medium text-muted">First detected</dt><dd className="mt-0.5 font-semibold text-fg">2 minutes ago</dd></div>
+                </dl>
+              </header>
+
+              <div className="space-y-2 p-3 sm:p-4">
+                <InvestigationSection id="incident" label="Incident" preview="Audit capacity is rising toward the overflow threshold." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
+                  <p className="text-base font-semibold">Audit capacity is approaching its configured limit.</p>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">The active audit trail is filling and matches a previously observed quarter-end pattern. No outage or root cause has been confirmed.</p>
+                  <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3"><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Current usage</span><strong className="mt-1 block text-lg text-fg">{selected.evidence.find((item) => item.metric)?.value ?? 62}%</strong></div><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Configured limit</span><strong className="mt-1 block text-lg text-fg">80%</strong></div><div className="rounded-lg bg-panel2/60 p-3"><span className="block text-muted">Estimated lead time</span><strong className="mt-1 block text-lg text-warn">~{selected.lead_time_min} min</strong></div></div>
+                </InvestigationSection>
+
+                <InvestigationSection id="systems" label="Affected systems" preview="Pathway-02, TMF, and Primary Production context" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 systems</span>} open={openSections.has("systems")} onToggle={toggle}>
+                  <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-line bg-panel p-3"><p className="font-medium">Pathway-02</p><p className="mt-1 text-xs text-muted">Settlement application · at risk</p></div><div className="rounded-lg border border-line bg-panel p-3"><p className="font-medium">{selected.subsystem}</p><p className="mt-1 text-xs text-muted">Transaction management · warning</p></div></div>
+                  <p className="mt-3 text-xs text-muted">Context locked to {environmentName(selected.node)}. Evidence from other environments is excluded.</p>
+                </InvestigationSection>
+
+                <InvestigationSection id="evidence" label="Confirmed evidence" preview={`${selected.evidence.length + selected.fix_claims.filter((claim) => claim.verified).length} verified records linked to this case`} badge={<span className="status-chip status-healthy">Verified sources</span>} open={openSections.has("evidence")} onToggle={toggle}>
+                  <ul className="space-y-3 text-sm">
+                    {selected.evidence.map((item, index) => <li key={`${item.event ?? item.metric}-${index}`} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-line bg-panel p-3"><span>{item.event ? `${item.event} occurred ${item.count ?? 1} times.` : `${item.metric?.replace(/-/g, " ")} is ${item.value}% and ${item.trend}.`}</span><span className="text-xs text-muted">Operational evidence</span></li>)}
+                    {selected.fix_claims.filter((claim) => claim.verified).map((claim) => <li key={claim.source_id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-line bg-panel p-3"><span>{humanizeEnvironmentText(claim.text)}</span><span className="text-xs text-muted">{claim.lane === "doc" ? "Approved manual" : "Expert knowledge"} · {Math.round(claim.score * 100)}%</span></li>)}
+                  </ul>
+                </InvestigationSection>
+
+                <InvestigationSection id="assessment" label="Possible explanation" preview="A long-running transaction may be preventing audit-file reuse." badge={<span className="status-chip status-warning">Unverified</span>} open={openSections.has("assessment")} onToggle={toggle}>
+                  <div className="rounded-lg border border-warn/30 bg-warn/8 p-3"><p className="font-medium text-warn">Working hypothesis</p><p className="mt-1 text-sm leading-6">A long-running quarter-end transaction may be pinning the active audit file and preventing it from being reused.</p></div>
+                  <div className="mt-3 rounded-lg border border-line bg-panel p-3"><p className="text-xs font-semibold uppercase tracking-wide text-muted">Still unknown</p><p className="mt-1 text-sm">The responsible process and root cause remain unconfirmed until the proposed diagnostic is reviewed.</p></div>
+                  <p className="mt-3 text-xs text-muted">Pattern warned early in {selected.backtest.hits}/{selected.backtest.of} comparable incidents, averaging {selected.backtest.avg_lead_min} minutes of lead time. This supports investigation, not a causal conclusion.</p>
+                </InvestigationSection>
+
+                <InvestigationSection id="action" label="Controlled next step" preview="Review a read-only transaction-status diagnostic." badge={<span className="status-chip status-healthy">Read-only</span>} open={openSections.has("action")} onToggle={toggle}>
+                  <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><p className="font-medium">Identify the transaction holding the audit file.</p><p className="mt-1 text-sm text-muted">The command comes from an allowlisted template and must be reviewed by an operator.</p>{selected.next_commands[0] && <code className="mt-3 block overflow-x-auto rounded-lg bg-[#05080a] px-3 py-2 text-sm text-[#7ee2a1]">{selected.next_commands[0].command}</code>}<p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-warn"><ShieldCheck size={14} />Proposed for review only · not executed</p></div><button type="button" className="btn btn-primary" onClick={() => onNavigate("assistant")}>Review with CAIL <ChevronRight size={14} /></button></div>
+                </InvestigationSection>
+
+                <InvestigationSection id="experts" label="Expert knowledge" preview={`${selected.owner_name} pattern with ${selected.backup_expert.name} as backup`} badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 experts</span>} open={openSections.has("experts")} onToggle={toggle}>
+                  <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-line bg-panel p-3"><p className="font-medium">{selected.owner_name}</p><p className="mt-1 text-xs text-muted">Pattern owner · preserved quarter-end experience</p></div><div className="rounded-lg border border-line bg-panel p-3"><p className="font-medium">{selected.backup_expert.name}</p><p className="mt-1 text-xs text-muted">Available backup specialist</p></div></div>
+                </InvestigationSection>
+
+                <InvestigationSection id="timeline" label="Incident timeline" preview="Detection, correlation, and review events" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">4 events</span>} open={openSections.has("timeline")} onToggle={toggle}>
+                  <ol className="divide-y divide-line text-sm"><li className="grid gap-1 py-3 sm:grid-cols-[110px_1fr]"><span className="text-xs text-muted">{fmtTime(selected.ts)}</span><div><p className="font-medium">Watcher opened investigation</p><p className="mt-1 text-xs text-muted">Known pattern and rising audit capacity were correlated.</p></div></li><li className="grid gap-1 py-3 sm:grid-cols-[110px_1fr]"><span className="text-xs text-muted">+ seconds</span><div><p className="font-medium">Evidence validated</p><p className="mt-1 text-xs text-muted">Source records and applicable knowledge were linked.</p></div></li><li className="grid gap-1 py-3 sm:grid-cols-[110px_1fr]"><span className="text-xs text-muted">Pending</span><div><p className="font-medium">Operator review</p><p className="mt-1 text-xs text-muted">No command has been approved or run.</p></div></li></ol>
+                </InvestigationSection>
+              </div>
+            </>
+          ) : <div className="grid min-h-[610px] place-items-center p-8 text-center"><div><AppIcon name="investigations" size={28} className="mx-auto text-muted" /><p className="mt-3 font-medium">Select an investigation</p><p className="mt-1 text-sm text-muted">Choose a case from the queue to inspect its evidence.</p></div></div>}
+        </div>
+      </section>
     </div>
   );
 }
@@ -441,7 +531,7 @@ function WorkspaceShell() {
     <div className="flex h-screen min-w-0 bg-bg text-fg">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-panel transition-transform lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-16 items-center gap-3 border-b border-line px-5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-sm font-bold text-white">C</span><div><p className="font-semibold leading-tight">CAIL</p><p className="text-[11px] text-muted">Operations Assistant</p></div><button type="button" className="ml-auto p-1 text-muted lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
-        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><AppIcon name={item.icon} size={18} />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-crit/10 px-2 py-0.5 text-[11px] text-crit">2</span>}</button>; })}</nav>
+        <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">{NAV.map((item) => { const active = page === item.id; return <button key={item.id} type="button" className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-muted hover:bg-panel2 hover:text-fg"}`} onClick={() => navigate(item.id)}><AppIcon name={item.icon} size={18} />{item.label}{item.id === "investigations" && <span className="ml-auto rounded-full bg-crit/10 px-2 py-0.5 text-[11px] text-crit">1</span>}</button>; })}</nav>
         <div className="border-t border-line p-4"><div className="rounded-xl bg-panel2 p-3"><p className="flex items-center gap-2 text-xs font-medium"><ShieldCheck size={14} className="text-ok" />Advisory mode</p><p className="mt-1 text-[11px] leading-4 text-muted">No production execution or credentials.</p></div><p className="mt-3 text-[10px] text-muted">CAIL Catalyst 2026 prototype</p><a className="mt-1 block text-[10px] text-muted underline-offset-2 hover:underline" href="https://freeicons.io/icon-list/business-%26-management-%28line-style%29" target="_blank" rel="noreferrer">Icons by Nine One · Freeicons.io</a></div>
       </aside>
       {mobileOpen && <button className="fixed inset-0 z-30 bg-black/30 lg:hidden" aria-label="Close navigation backdrop" onClick={() => setMobileOpen(false)} />}
