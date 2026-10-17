@@ -55,3 +55,13 @@ def test_build_messages_marks_lanes_and_adds_rules():
     assert msgs[0]["content"].endswith(LANE_RULES)
     plain = build_messages("q", [{"id": "doc:a", "text": "t"}])
     assert "MANUAL" not in plain[1]["content"] and LANE_RULES not in plain[0]["content"]
+
+
+def test_negation_guard():
+    from backend.pipeline.verify import negation_mismatch as nm
+    src = "Do not use FILESPERVOLUME first when the active volumes have no room."
+    assert nm("Raise FILESPERVOLUME first to add audit files.", src)           # source negates, claim doesn't
+    assert nm("Never abort the transaction before checking the owner.", "Check the owner of the transaction, then abort it.")
+    assert not nm("Do not raise FILESPERVOLUME first on a full trail.", src)     # both negate
+    assert not nm("STATUS AUDITTRAIL shows the capacity of the trail.", "STATUS AUDITTRAIL, DETAIL shows trail capacity. Do not use TMFCOM on a remote node.")
+    assert not nm("The trail fills when a transaction does not end.", "A transaction that does not end pins the trail.")

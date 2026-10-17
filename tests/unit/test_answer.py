@@ -5,7 +5,8 @@ import pytest
 from backend.pipeline import answer as A
 
 SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "t"}
-HEUR = {"id": "maria:h7", "owner_name": "Maria Rossi", "text": "veteran note text"}
+HEUR = {"id": "maria:h7", "owner_name": "Maria Rossi", "text": "veteran note text", "call": "Check the pin first.",
+        "relation": "extends:doc:x", "disagrees_with": []}
 DOC = {"id": "doc:TMF-Reference:x", "text": "doc text", "edition": "ed"}
 EXPERT = {"id": "raj", "name": "Raj", "reason": "r", "active": True}
 
@@ -41,6 +42,8 @@ def fake(monkeypatch):
     monkeypatch.setattr(A, "resolve", lambda conn, q, ctx: state["resolved"])
     monkeypatch.setattr(A, "lookup", lambda conn, ids, ctx: {
         "doc_chunks": [DOC], "heuristics": [HEUR], "experts": [EXPERT], "path": [], "commands": []})
+    monkeypatch.setattr(A, "note_search", lambda conn, qvec, ctx, k=3: state.get("found", []))
+    monkeypatch.setattr(A, "fetch_notes", lambda conn, ids, ctx: {i: state["extra"][i] for i in ids if i in state.get("extra", {})})
     monkeypatch.setattr(A, "embed_query", lambda q: [0.0])
     monkeypatch.setattr(A, "hybrid_search", lambda *a, **k: [])
     monkeypatch.setattr(A.gate, "sufficient", lambda q, c: (state["gate"], {"content": '{"reason": "why"}'}))
@@ -59,6 +62,7 @@ def test_answer_lanes_and_dropped(fake):
     assert r["type"] == "answer" and r["answer_log_id"] == 42
     assert [(c["lane"], c["source_id"], c["verified"]) for c in r["claims"]] == [
         ("veteran", "maria:h7", True), ("doc", "doc:TMF-Reference:x", True)]
+    assert r["claims"][0]["text"] == "Check the pin first." and r["claims"][0]["verbatim"] and r["claims"][0]["score"] == 1.0
     assert r["dropped_claims"] == 2  # one unsupported, one with an unknown source
     assert r["context"]["display"] == r"\PROD · L-series · TMF" and r["context"]["site"] == "node:PROD"
     assert {s["id"] for s in r["sources"]} == {"maria:h7", "doc:TMF-Reference:x"}
@@ -77,7 +81,7 @@ def test_insufficient_refers_with_experts(fake):
 
 
 def test_all_claims_unsupported_refers(fake):
-    fake["claims"] = [{"claim": "weak", "source_id": "maria:h7"}]
+    fake["claims"] = [{"claim": "weak", "source_id": "doc:TMF-Reference:x"}]
     fake["scores"] = {"weak": 0.0}
     assert A.answer("q", SESSION)["type"] == "refer"
 
@@ -120,8 +124,9 @@ def test_misattributed_claims_are_dropped(fake):
                       {"claim": "Experienced operators check STATUS TRANSACTION first.", "source_id": "maria:h7"}]
     fake["scores"] = {c["claim"]: 0.97 for c in fake["claims"]}
     r = A.answer("why is the audit trail filling?", SESSION)
-    assert [c["text"] for c in r["claims"]] == ["Experienced operators check STATUS TRANSACTION first."]
-    assert r["dropped_claims"] == 2
+    # the veteran claim is the note's own call text, whatever Qwen wrote; the doc claim that names a veteran is dropped
+    assert [c["text"] for c in r["claims"]] == ["Check the pin first."]
+    assert r["dropped_claims"] == 1
 
 
 def test_misattributed_rule():
@@ -135,3 +140,40 @@ def test_misattributed_rule():
 
 def test_clean_restores_node_backslash():
     assert A._clean("♍PROD and УDR") == "\PROD and \DR"
+
+
+def test_inverted_veteran_paraphrase_is_replaced_by_verbatim(fake):
+    fake["claims"] = [{"claim": "Start with FILESPERVOLUME first.", "source_id": "maria:h7"}]
+    fake["scores"] = {}
+    r = A.answer("q", SESSION)
+    assert [(c["text"], c["verbatim"]) for c in r["claims"]] == [("Check the pin first.", True)]
+
+
+def test_negation_guard_drops_doc_claim_that_inverts_source(fake):
+    fake["claims"] = [{"claim": "Raise FILESPERVOLUME first.", "source_id": "doc:TMF-Reference:x"}]
+    fake["scores"] = {"Raise FILESPERVOLUME first.": 0.99}
+    DOC["text"] = "Do not raise FILESPERVOLUME first on a full trail."
+    try:
+        r = A.answer("q", SESSION)
+    finally:
+        DOC["text"] = "doc text"
+    assert r["type"] == "refer"
+
+
+def test_veteran_claims_conflict_and_contradicts_marking():
+    n1 = {**HEUR, "id": "m:h12", "call": "Abort it early.", "disagrees_with": ["r:h6"], "relation": "extends:doc:a"}
+    n2 = {**HEUR, "id": "r:h6", "call": "Do not abort it yet.", "disagrees_with": ["m:h12"],
+          "relation": "contradicts:doc:T:abort"}
+    out = A.veteran_claims(["m:h12"], {"m:h12": n1}, {"m:h12": n1, "r:h6": n2})
+    assert [(c["source_id"], c["text"], c["conflict_with"]) for c in out] == [
+        ("m:h12", "Abort it early.", "r:h6"), ("r:h6", "Do not abort it yet.", "m:h12")]
+    assert "contradicts" not in out[0] and out[1]["contradicts"] == "doc:T:abort"
+    # partner not in context (not in the pool): no conflict claim, no flag
+    out = A.veteran_claims(["m:h12"], {"m:h12": n1}, {"m:h12": n1})
+    assert len(out) == 1 and "conflict_with" not in out[0]
+
+
+def test_verbatim_cuts_very_long_call_to_two_sentences():
+    long = " ".join(f"Sentence number {i} is here and padded out." for i in range(20))
+    assert A.verbatim({"call": long}).count(".") == 2
+    assert A.verbatim({"call": "Short one. Two. Three."}) == "Short one. Two. Three."

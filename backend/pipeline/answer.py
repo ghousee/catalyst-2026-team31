@@ -13,7 +13,7 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from backend import settings
-from backend.graph.query import SHORT, _captured, lookup, resolve, scope_text
+from backend.graph.query import SHORT, _captured, fetch_notes, lookup, note_search, resolve, scope_text
 from backend.ingest.embedder import embed_query
 from backend.pipeline import gate, generate, verify
 from backend.pipeline.retrieve import hybrid_search
@@ -38,6 +38,32 @@ def misattributed(text, lane, owner_names=()):
     if lane == "veteran":
         return bool(_MANUAL_SPEAKS.search(text))
     return any(n and n.split()[0].lower() in text.lower() for n in owner_names)
+
+
+def verbatim(note, max_chars=300):
+    """The veteran's own call text; very long ones are cut to the first 2 sentences. Never a paraphrase."""
+    t = (note["call"] or "").strip()
+    return t if len(t) <= max_chars else " ".join(re.split(r"(?<=[.!?])\s+", t)[:2])
+
+
+def veteran_claims(cited_ids, notes, pool):
+    """One verbatim claim per cited note, plus the verbatim claim of any in-context note it disagrees with
+    (both marked conflict_with); a note that contradicts a manual section also carries contradicts=<doc id>.
+    cited_ids: note ids Qwen cited (in order); notes: {id: note} usable now; pool: {id: note} incl. partners."""
+    ids = [i for i in cited_ids if i in notes]
+    for i in list(ids):
+        ids += [o for o in notes[i]["disagrees_with"] if o in pool and o not in ids]
+    out = []
+    for i in ids:
+        n = pool[i]
+        c = {"text": verbatim(n), "lane": "veteran", "source_id": i, "verified": True, "score": 1.0, "verbatim": True}
+        other = next((o for o in n["disagrees_with"] if o in ids), None)
+        if other:
+            c["conflict_with"] = other
+        if n["relation"].startswith("contradicts:"):
+            c["contradicts"] = n["relation"].split(":", 1)[1]
+        out.append(c)
+    return out
 
 
 def _clean(text):
@@ -89,7 +115,8 @@ def source_card(conn, sid):
     card = {"id": h["id"], "kind": "heuristic", "owner": h["owner_id"], "owner_name": h["owner_name"],
             "owner_role": h["owner_role"], "years": h["years"], "captured_via": _captured(h),
             "captured_at": str(h["captured_at"] or ""), "endorsements": h["endorsements"],
-            "last_validated": str(h["last_validated"] or ""), "scope": scope_text(h), "why": h["why_text"] or ""}
+            "last_validated": str(h["last_validated"] or ""), "scope": scope_text(h), "why": h["why_text"] or "",
+            "not_when": h["not_when_text"] or ""}
     if rel:
         card["relation"] = f"{rel[0]['rel']}:{rel[0]['dst']}"
     return card
@@ -191,17 +218,22 @@ def answer(question, session, override=None):
         docs = {}
         for d in [*lk["doc_chunks"][:3], *hits]:
             docs.setdefault(d["id"], d["text"])
-        doc_chunks = [{"id": i, "text": x, "lane": "doc"} for i, x in list(docs.items())[:MAX_DOCS]]
-        notes = [{"id": h["id"], "text": h["text"], "lane": "veteran"} for h in lk["heuristics"][:MAX_NOTES]]
+        editions = dict(conn.execute("SELECT id, edition FROM doc_chunk WHERE id = ANY(%s)", (list(docs),)).fetchall())
+        doc_chunks = [{"id": i, "text": x, "lane": "doc", "edition": editions.get(i)} for i, x in list(docs.items())[:MAX_DOCS]]
+        # veteran notes: graph-linked (lookup) plus the nearest by vector; the search's best hit goes in even when
+        # the graph already linked enough notes
+        found = note_search(conn, qvec, ctx, k=MAX_NOTES)
+        pool = {h["id"]: h for h in [*lk["heuristics"], *found]}
+        order = list(dict.fromkeys([h["id"] for h in [*lk["heuristics"][:2], *found, *lk["heuristics"][2:]]]))[:MAX_NOTES]
+        notes = [{"id": i, "text": pool[i]["text"], "lane": "veteran"} for i in order]
         chunks = [c for pair in zip_longest(doc_chunks, notes) for c in pair if c]
         lane_of = {c["id"]: c["lane"] for c in chunks}
         full = {c["id"]: c["text"] for c in chunks}
         lanes = {"doc": sum(c["lane"] == "doc" for c in chunks), "veteran": sum(c["lane"] == "veteran" for c in chunks)}
-        gen_chunks = [{"id": c["id"], "text": c["text"][:GEN_CHARS], "lane": c["lane"]} for c in chunks]
+        gen_chunks = [{**c, "text": c["text"][:GEN_CHARS]} for c in chunks]
         debug = {"entities": r["entities"], "path": lk["path"], "retrieved": [
             {"id": c["id"], "lane": c["lane"]} for c in chunks]}
-        editions = dict(conn.execute("SELECT id, edition FROM doc_chunk WHERE id = ANY(%s)", (list(docs),)).fetchall())
-        owners = {h["id"]: h["owner_name"] for h in lk["heuristics"]}
+        owners = {h["id"]: h["owner_name"] for h in pool.values()}
         for c in debug["retrieved"]:
             c["edition"], c["owner"] = editions.get(c["id"]), owners.get(c["id"])
 
@@ -241,24 +273,38 @@ def answer(question, session, override=None):
                             for c in uncited]
 
         t = time.perf_counter()
-        kept = []
         names = list(owners.values())
-        wrong = [c for c in cited if misattributed(c["claim"], lane_of[c["source_id"]], names)]
+        seen = {c["id"]: c["text"] for c in gen_chunks}
+        # veteran claims are never Qwen's wording: every note Qwen cited becomes one verbatim claim (MiniCheck
+        # scored a paraphrase that inverted a note at 0.97). Qwen's doc claims are checked as before.
+        cited_notes = list(dict.fromkeys(c["source_id"] for c in cited if lane_of[c["source_id"]] == "veteran"))
+        doc_claims = [c for c in cited if lane_of[c["source_id"]] == "doc"]
+        wrong = [c for c in doc_claims if misattributed(c["claim"], "doc", names)]
+        neg = [c for c in doc_claims if c not in wrong and verify.negation_mismatch(c["claim"], seen[c["source_id"]])]
         debug["dropped"] += [{"text": c["claim"], "source_id": c["source_id"], "score": None, "why": "misattributed"}
                              for c in wrong]
-        cited = [c for c in cited if c not in wrong]
+        debug["dropped"] += [{"text": c["claim"], "source_id": c["source_id"], "score": None, "why": "negation"}
+                             for c in neg]
+        doc_claims = [c for c in doc_claims if c not in wrong and c not in neg]
+        kept = []
         # verify against the same text Qwen saw (GEN_CHARS), not the whole section: consistent and ~1 window per claim
-        seen = {c["id"]: c["text"] for c in gen_chunks}
-        scores = verify.support_probs([(seen[c["source_id"]], c["claim"]) for c in cited])
-        for c, score in zip(cited, scores):
+        scores = verify.support_probs([(seen[c["source_id"]], c["claim"]) for c in doc_claims])
+        for c, score in zip(doc_claims, scores):
             if score >= VERIFY_THRESHOLD:
-                kept.append({"text": c["claim"], "lane": lane_of[c["source_id"]], "source_id": c["source_id"],
+                kept.append({"text": c["claim"], "lane": "doc", "source_id": c["source_id"],
                              "verified": True, "score": round(score, 3)})
             else:
                 debug["dropped"].append({"text": c["claim"], "source_id": c["source_id"], "score": round(score, 3),
                                          "why": "unsupported"})
+        # disagreement partners must be in the context too (note_search/lookup may not have returned them)
+        partners = [o for i in cited_notes for o in pool[i]["disagrees_with"] if o not in pool]
+        pool.update(fetch_notes(conn, partners, ctx))
+        for i in pool:
+            lane_of.setdefault(i, "veteran")
+        vets = veteran_claims(cited_notes, {i: pool[i] for i in cited_notes}, pool)
+        kept = vets + kept  # the operator-specific advice first, then the manual's facts
         _ms(st, "verify", t)
-        total = len(claims)
+        total = len(kept) + len(debug["dropped"])
         if not kept:
             return refer(f"No verified answer for {context['display']}.", total=total)
 
@@ -268,10 +314,10 @@ def answer(question, session, override=None):
         log = conn.execute(
             "INSERT INTO answer_log (user_id, question, context, outcome, citations, dropped_claims) "
             "VALUES (%s, %s, %s::jsonb, 'answer', %s, %s) RETURNING id",
-            (session.get("user", "newhire1"), question, json.dumps(context), used, total - len(kept))).fetchone()[0]
+            (session.get("user", "newhire1"), question, json.dumps(context), used, len(debug["dropped"]))).fetchone()[0]
         conn.commit()
         debug["stages_ms"] = st
         return {"type": "answer", "answer_log_id": log, "context": context, "claims": kept, "sources": sources,
-                "dropped_claims": total - len(kept), "experts": lk["experts"][:3],
+                "dropped_claims": len(debug["dropped"]), "experts": lk["experts"][:3],
                 "quality": _quality(st, t_start, gate_info, context["confidence"], ctx_source, kept, total, lanes),
                 "debug": debug}

@@ -19,7 +19,8 @@ CREATE TABLE doc_chunk (id TEXT PRIMARY KEY, section TEXT, text TEXT, system_id 
                         all_versions INT, all_sites INT, edition TEXT);
 CREATE TABLE heuristic (id TEXT PRIMARY KEY, owner_id TEXT, trigger_text TEXT, call_text TEXT, why_text TEXT,
                         not_when_text TEXT, system_id TEXT, version_id TEXT, site_id TEXT, all_versions INT, all_sites INT,
-                        provenance TEXT, status TEXT, endorsements INT, last_validated TEXT, captured_via TEXT, captured_at TEXT);
+                        provenance TEXT, status TEXT, endorsements INT, last_validated TEXT, captured_via TEXT, captured_at TEXT,
+                        embedding TEXT);
 """
 
 
@@ -80,9 +81,9 @@ CHUNKS = [  # id, section, text, system, version, site, all_versions, all_sites,
 ]
 
 
-def heur(i, owner, system, version, site, status="approved", via="interview"):
+def heur(i, owner, system, version, site, status="approved", via="interview", vec=(1, 0)):
     return (i, owner, f"trig {i}", f"call {i}", f"why {i}", f"notwhen {i}", system, version, site,
-            int(version is None), int(site is None), "interview:2026-09-30", status, 2, "2026-09-30", via, "2026-09-30")
+            int(version is None), int(site is None), "interview:2026-09-30", status, 2, "2026-09-30", via, "2026-09-30", json.dumps(list(vec)))
 
 
 HEURISTICS = [
@@ -103,7 +104,7 @@ def db():
     con.executemany("INSERT INTO edge (src, rel, dst, weight, source_id) VALUES (?,?,?,?,?)", EDGES)
     con.executemany("INSERT INTO person VALUES (?,?,?,?,?,?,?,?,?)", PERSONS)
     con.executemany("INSERT INTO doc_chunk VALUES (?,?,?,?,?,?,?,?,?)", CHUNKS)
-    con.executemany("INSERT INTO heuristic VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", HEURISTICS)
+    con.executemany("INSERT INTO heuristic VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", HEURISTICS)
     yield con
     con.close()
 
@@ -173,6 +174,25 @@ def test_prod_gets_prod_notes_never_drafts(db):
     assert rels["m:h7"] == "extends:doc:T:status"
     assert res["heuristics"][0]["id"] == "m:h1"           # contradictions are shown first
     assert "Maria Rossi" in res["heuristics"][0]["text"] and "notwhen m:h1" in res["heuristics"][0]["text"]
+
+
+def test_note_search_is_context_scoped(db):
+    from backend.graph.query import note_search
+    prod = note_search(db, [1.0, 0.0], PROD, k=5)
+    assert {h["id"] for h in prod} == {"m:h7", "m:h1"}      # no draft, no DR note
+    assert prod[0]["call"].startswith("call ")
+    dr = note_search(db, [1.0, 0.0], DR, k=5)
+    assert {h["id"] for h in dr} == {"d:h2"}                # a \PROD note is never returned on \DR
+    assert "m:h7" not in json.dumps(dr) and "m:h1" not in json.dumps(dr)
+    assert note_search(db, [1.0, 0.0], {**PROD, "site": None}, k=5) == []
+    assert note_search(db, [1.0, 0.0], {**PROD, "version": "rvu:J"}, k=5) == []
+
+
+def test_note_search_ranks_by_cosine_and_fetch_notes_filters_context(db):
+    from backend.graph.query import fetch_notes, note_search
+    db.execute("UPDATE heuristic SET embedding = '[0, 1]' WHERE id = 'm:h1'")
+    assert [h["id"] for h in note_search(db, [0.0, 1.0], PROD, k=1)] == ["m:h1"]
+    assert set(fetch_notes(db, ["m:h7", "d:h2", "m:h9"], PROD)) == {"m:h7"}
 
 
 def test_prod_only_note_never_returned_for_dr(db):

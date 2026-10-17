@@ -36,10 +36,12 @@ def build_messages(question, chunks, max_chars=3500, alias=True):
 
     alias=True labels sources S1..Sn instead of their long ids (the model copies short labels reliably;
     with raw ids it invented ids derived from message numbers inside merged chunks). Use unalias() after.
-    Optional lane ("doc" / "veteran") is shown as MANUAL / VETERAN.
+    Optional lane ("doc" / "veteran") is shown as MANUAL / VETERAN; a doc's optional edition follows MANUAL.
     """
     def head(i, c):
         lane = {"doc": " | MANUAL", "veteran": " | VETERAN"}.get(c.get("lane"), "")
+        if c.get("lane") == "doc" and c.get("edition"):
+            lane += f" | {c['edition']}"  # so Qwen does not overstate an older edition as current behaviour
         return f"[source_id: {label(i, alias) or c['id']}{lane}]"
     src = "\n\n".join(f"{head(i, c)}\n{c['text'][:max_chars]}" for i, c in enumerate(chunks))
     system = SYSTEM + (LANE_RULES if any(c.get("lane") for c in chunks) else "")

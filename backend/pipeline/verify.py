@@ -5,10 +5,42 @@ transformers so we do not need the `minicheck` package (which drags in vllm/nltk
 "predict: <doc chunk>" + </s> + "<claim>", one decoder step, softmax over logits of token ids [3, 209]
 (no-support, support). The document is split into ~400-word windows; the claim score is the max over windows.
 """
+import re
+
 MODEL_ID = "lytang/MiniCheck-Flan-T5-Large"
 WINDOW_WORDS = 400
 
 _model = None
+
+# ---- negation guard: MiniCheck scored a claim that inverted a note ("do not X" -> "do X") at 0.97
+_FILLER = set("a an the of to in on at is are be it its this that and or for with by as from first only".split())
+
+
+def _words(text):
+    return [w for w in re.findall(r"[a-z0-9$]+", text.lower().replace("n't", " not")) if w not in _FILLER]
+
+
+def _neg_windows(text):
+    """For each negation, the set of content words around it in the same sentence (4 after, 2 before)."""
+    out = []
+    for sent in re.split(r"(?<=[.!?;])\s+", text):
+        ws = _words(sent)
+        out += [set(ws[max(0, i - 2):i] + ws[i + 1:i + 5]) - {"not", "never", "cannot", "longer", "no"}
+                for i, w in enumerate(ws) if w in ("not", "never", "cannot") or (w == "no" and ws[i + 1:i + 2] == ["longer"])]
+    return out
+
+
+def negation_mismatch(claim, source):
+    """True if the claim negates something near terms the source does not negate, or the source negates
+    something near >= 2 (or one long) claim terms that the claim does not negate. Simple on purpose; loosen on false drops."""
+    cw, sw = _neg_windows(claim), _neg_windows(source)
+    if any(not any(c & s for s in sw) for c in cw):
+        return True
+    claim_words = set(_words(claim))
+    # a shared long word (FILESPERVOLUME, AUDITTRAIL) is as good as two shared short ones
+    return any(not any(c & s for c in cw) and (len(s & claim_words) >= 2 or any(len(w) >= 8 for w in s & claim_words))
+               for s in sw)
+
 
 
 def windows(doc, n=WINDOW_WORDS):

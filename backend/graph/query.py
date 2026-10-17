@@ -203,6 +203,71 @@ def render_heuristic(h):
             f"Call: {h['call']} Why: {h['why']}{nw}{rel}")
 
 
+def note_dict(h, rel, disagrees=()):
+    """One veteran note as returned by lookup/note_search/fetch_notes. h = heuristic row joined with its owner."""
+    out = {"id": h["id"], "owner": h["owner_id"], "owner_name": h["owner_name"], "owner_role": h["owner_role"],
+           "years": h["years"], "captured_via": _captured(h), "captured_at": str(h["captured_at"] or ""),
+           "endorsements": h["endorsements"], "last_validated": str(h["last_validated"] or ""),
+           "scope": scope_text(h), "why": h["why_text"], "call": h["call_text"], "trigger": h["trigger_text"],
+           "not_when": h["not_when_text"], "relation": rel, "disagrees_with": list(disagrees)}
+    out["text"] = render_heuristic({**out, "captured_via": h["captured_via"] or ""})
+    return out
+
+
+def _vec(v):
+    return json.loads(v) if isinstance(v, str) else [float(x) for x in v]
+
+
+def _approved(conn, ids, ctx):
+    inl, p = _in("h", ids)
+    return _rows(conn, f"SELECT h.*, p.name AS owner_name, p.role AS owner_role, p.years AS years FROM heuristic h "
+                       f"JOIN person p ON p.id = h.owner_id WHERE h.id IN {inl} AND h.status = 'approved' "
+                       f"AND {context_where('h')}", {**p, **context_params(ctx)})
+
+
+def fetch_notes(conn, ids, ctx):
+    """Approved notes with these ids that are inside the context (same filter as lookup). {id: note}.
+    `disagrees_with` lists only partners that are themselves approved and in the context (no id leaks across nodes)."""
+    ids = list(dict.fromkeys(ids))
+    if not ids:
+        return {}
+    rows = _approved(conn, ids, ctx)
+    inl, p = _in("e", ids)
+    edges = _rows(conn, f"SELECT src, rel, dst FROM edge WHERE rel IN ('contradicts', 'extends', 'disagrees_with') "
+                        f"AND (src IN {inl} OR dst IN {inl})", p)
+    others = [e["dst"] if e["src"] in ids else e["src"] for e in edges if e["rel"] == "disagrees_with"]
+    others = [o for o in dict.fromkeys(others) if o not in ids]
+    present = {r["id"] for r in rows} | ({r["id"] for r in _approved(conn, others, ctx)} if others else set())
+    out = {}
+    for h in rows:
+        rels = {}
+        for e in edges:
+            if e["src"] == h["id"] and e["rel"] in ("contradicts", "extends"):
+                rels.setdefault(e["rel"], f"{e['rel']}:{e['dst']}")
+        dis = [e["dst"] if e["src"] == h["id"] else e["src"] for e in edges
+               if e["rel"] == "disagrees_with" and h["id"] in (e["src"], e["dst"])]
+        out[h["id"]] = note_dict(h, rels.get("contradicts") or rels.get("extends") or "about",
+                                 [o for o in dis if o in present])
+    return out
+
+
+def note_search(conn, qvec, ctx, k=3):
+    """Veteran notes nearest to the question vector: approved + inside the context (node/series scoped, same
+    context_where as lookup). Brute-force cosine in Python: there are tens of notes, not thousands."""
+    params = context_params(ctx)
+    rows = _rows(conn, f"SELECT h.id, h.embedding FROM heuristic h WHERE h.status = 'approved' "
+                       f"AND h.embedding IS NOT NULL AND {context_where('h')}", params)
+    qn = sum(x * x for x in qvec) ** 0.5 or 1.0
+    scored = []
+    for r in rows:
+        v = _vec(r["embedding"])
+        vn = sum(x * x for x in v) ** 0.5 or 1.0
+        scored.append((sum(a * b for a, b in zip(qvec, v)) / (qn * vn), r["id"]))
+    top = sorted(scored, reverse=True)[:k]
+    notes = fetch_notes(conn, [i for _, i in top], ctx)
+    return [{**notes[i], "score": round(sc, 3)} for sc, i in top if i in notes]
+
+
 def lookup(conn, entity_ids, ctx, k=10):
     """See module docstring. Raises ValueError if the context has no system and the entities do not imply exactly one."""
     ents = {e["id"]: e for e in _entities(conn)}
@@ -248,12 +313,9 @@ def lookup(conn, entity_ids, ctx, k=10):
                 if o in heur:
                     rels.setdefault("disagrees_with", f"disagrees_with:{o}")
         rel = rels.get("contradicts") or rels.get("disagrees_with") or rels.get("extends") or "about"
-        out = {"id": h["id"], "owner": h["owner_id"], "owner_name": h["owner_name"], "owner_role": h["owner_role"],
-               "years": h["years"], "captured_via": _captured(h), "captured_at": str(h["captured_at"] or ""),
-               "endorsements": h["endorsements"], "last_validated": str(h["last_validated"] or ""),
-               "scope": scope_text(h), "why": h["why_text"], "call": h["call_text"], "trigger": h["trigger_text"],
-               "not_when": h["not_when_text"], "relation": rel}
-        out["text"] = render_heuristic({**out, "captured_via": h["captured_via"] or ""})
+        dis = [e["dst"] if e["src"] == h["id"] else e["src"] for e in hrel
+               if e["rel"] == "disagrees_with" and h["id"] in (e["src"], e["dst"])]
+        out = note_dict(h, rel, [o for o in dis if o in heur])
         out["_rank"] = (0 if rel.startswith("contradicts") else 1 if rel.startswith(("disagrees", "extends")) else 2,
                         depth.get(h["id"], 3), -(h["endorsements"] or 0), h["id"])
         heuristics.append(out)
