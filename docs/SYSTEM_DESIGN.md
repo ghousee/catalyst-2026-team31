@@ -92,6 +92,19 @@ process, line, server class, audit trail), **event** (EMS subsystem + number, e.
 `expert_in`, **`depends_on`** (Pathway server class → TMF → disk volume; for blast radius),
 **`diagnosed_by`** (event/symptom → command).
 
+### Knowledge graph (as built, 2026-10-17)
+Seed in `kg/seed/` (fictional veterans, illustrative knowledge), loaded by `python -m backend.graph.load`, queried by
+`backend/graph/query.py` (`resolve` text to entities, `lookup` entities to cited material), viewable in `docs/knowledge_graph.html`.
+- **Nodes** (`entity.kind`): `system` (subsystem) · `event` (EMS subsystem + number) · `object` (audit trail, `$AUDIT`, server class, CPU) ·
+  `metric` (`audit-capacity-pct`, `cpu-qtime`...) · `command` (catalog template; risk class, subsystem and a real manual `source_id` in `props`) ·
+  `site` (node) · `version` (series); plus `person`, `heuristic` (note or `warning_pattern` with a structured `pattern`) and `doc_chunk`.
+- **Edges** (all carry `source_id`, a real chunk or note): `about`, `symptom_of`, `diagnosed_by`, `fixed_by`, `precedes`, `depends_on`,
+  `expert_in` (weight = resolved cases), `mentions`, `applies_to`, and heuristic relations `extends` / `contradicts` (to a manual chunk) and `disagrees_with` (veteran vs veteran).
+- Hero walk: "why is the audit trail filling" resolves to `evt:TMF-185` + `obj:audit-trail-MAT` and walks to `STATUS AUDITTRAIL`/`STATUS TRANSACTION`,
+  the manual chunks on pinned files, Maria's `\PROD` pattern (on `\DR`, Raj's DR note instead) and the experts.
+- Manuals are tagged all-series with their real edition ([[ADR-005 manual editions apply to all series]]); notes stay node/series scoped.
+
+
 ## 5. Citations (non-negotiable)
 Every claim the user sees is `{text, source_id, lane, verified}`; code drops claims without a valid
 `source_id`, MiniCheck drops claims the source doesn't support. Source cards carry:

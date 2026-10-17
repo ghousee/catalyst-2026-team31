@@ -6,7 +6,10 @@
 - [x] Port clash fixed: PG_PORT/OLLAMA_PORT in `.env` (5433/11435 on Ghouse's laptop); own GPU Ollama service.
 - [x] HPE manuals are in `data/raw/hpe/` (gitignored) and ingested ([[ingest]]).
 - [ ] Real-Postgres integration test for [[retrieve]] (marked, not run by the [[stop hook]]).
-- [ ] Build the rest of retrieve (graph query → ACL). Filtered vector/keyword/hybrid search is done ([[rag spike]]).
+- [x] Knowledge graph: migration 002, seed (10 notes, TMF hero), loader, `resolve`/`lookup`, graph view ([[graph]], [[ADR-005 manual editions apply to all series]]).
+- [ ] Retrieve: ACL; embed-search over `heuristic.embedding` (embeddings are loaded, no search function yet); wire `lookup` into the ask pipeline (backend agent).
+- [ ] Ingest the EMS Operator Messages manual so event numbers (TMF 185/187...) can be cited and `verified: true`; add a Pathway TS/MP manual (STATUS SERVER).
+- [ ] Veteran review of the seed notes (domain plausibility, esp. `raj:h8` DR note and abort-threshold numbers).
 - [ ] New modules per design §14: simulator, commands (catalog/parser/risk/guards), watcher.
 - [ ] RAG spike follow-ups ([[rag spike]]): one chunk per message number; stored tsvector; series strategy for
       multi-series manuals (exact `version_id` match cost 0.18 recall@5); larger independent eval set with real

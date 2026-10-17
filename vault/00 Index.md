@@ -12,6 +12,7 @@ Open `vault/` as an Obsidian vault. Notes use `[[wikilinks]]`.
 ## Code
 - [[schema]] — Postgres tables, context fingerprint, constraints
 - [[retrieve]] — context filter (`context_where`), vector/keyword/hybrid search, generate/gate/verify stages
+- [[graph]] — knowledge graph: seed (fictional veterans), loader, `resolve`/`lookup`, graph view
 - [[ingest]] — manual chunker, embedder, loader (HPE manuals -> doc_chunk)
 - [[eval harness]] — golden set scoring, contamination, ablation
 - [[stop hook]] — blocks Claude while unit tests fail
