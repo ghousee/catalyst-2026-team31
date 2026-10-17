@@ -241,3 +241,11 @@ What the operator has *encountered* through questions, not a test of knowledge.
   "recent": [ { "ts": "...", "question": "...", "outcome": "answer", "subsystem": "TMF (TMFCOM)" } ] }
 ```
 Entities touched = entities the cited veteran notes and manual sections are linked to (`about` edges); coverage = touched / entities of that subsystem.
+
+## POST /knowledge/teach  (Teach chat)
+`{ "owner_id": "lena", "messages": [ { "role": "veteran"|"assistant", "text": "..." } ], "node_hint"?: "DR", "subsystem_hint"?: "sub:TMF" }`
+One Qwen call per turn. `→ { "type": "question", "text": "..." }` (one short follow-up) or
+`{ "type": "draft", "draft": { "trigger_text", "call_text", "why_text", "not_when_text", "node": "PROD"|"DR"|"ALL", "subsystem": "sub:...", "kind": "note"|"warning_pattern" } }`.
+After 3 assistant questions it drafts with what is known (unknown subsystem = `""`, node defaults to `ALL`; the editable form fixes them).
+Code guards: a text field not grounded in the veteran's own words is emptied, never invented; `subsystem` must be an existing `sub:*` entity.
+Nothing is saved: the UI posts the (edited) draft to `POST /knowledge` (entered_by = owner), then the normal approve flow signs and auto-links.

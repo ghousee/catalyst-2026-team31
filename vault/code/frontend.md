@@ -86,3 +86,7 @@ team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.r
 `components/LearningPage.tsx` (nav item right after "Knowledge graph" in `OperationsWorkspace.tsx`), client `lib/learning.ts` (real API, no mocks).
 Operator picker (default `USER_ID`), 4 tiles, per-subsystem table with a coverage bar, never-touched list, recent questions, veterans learned from; `SplitPane` panels,
 polls every 15 s. Header says it shows encounters, not what the operator knows. Backend: [[api]] "Learning map".
+
+## Teach panel (2026-10-17)
+- `components/TeachChat.tsx` (top-left of `/knowledge`, SplitPane `knowledge-left` above the manual form): pick who teaches, chat via `admin.teach` (`POST /knowledge/teach`), assistant follow-ups inline,
+  then an editable draft (4 texts + node/subsystem/kind) -> Save draft (`admin.addNote`, entered_by = owner) -> shows in Pending sign-off -> existing Approve & sign (links + suggested sections).

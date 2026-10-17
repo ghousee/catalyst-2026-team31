@@ -173,3 +173,9 @@ def test_teach_endpoint_makes_one_llm_call(monkeypatch):
     monkeypatch.setattr(K, "_rows", lambda c, q, p=(): [{"id": "sub:SCF-STORAGE", "name": "SCF"}] if "entity" in q else [{"x": 1}])
     out = K.teach(K.TeachIn(owner_id="lena", messages=[K.TeachMsg(role="veteran", text=SAID)]))
     assert out["type"] == "draft" and len(calls) == 1
+
+
+def test_teach_schema_limits_subsystem_to_real_ids():
+    s = K.teach_schema({"sub:TMF", "sub:FUP"})
+    assert s["properties"]["subsystem"]["enum"] == ["sub:FUP", "sub:TMF", "unknown"]
+    assert K.TEACH_SCHEMA["properties"]["subsystem"] == {"type": "string"}  # the shared schema is not mutated

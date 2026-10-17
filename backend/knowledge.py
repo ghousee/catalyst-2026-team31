@@ -243,12 +243,22 @@ Rules:
 - Use ONLY what the operator said, in their own words. Never invent or guess a fact. Leave a field "" if they did not say it.
 - If trigger_text, call_text, node or subsystem is still missing, or something important is unclear, answer action "ask" with ONE short
   question about the single most important gap (when it happens / what to do / why / when it does NOT apply / which node).
+- IMPORTANT: while why_text or not_when_text is still empty and the Assistant has not yet asked about it in the conversation,
+  action MUST be "ask" (ask about why first, then about when it does NOT apply). If the operator already answered or said there is
+  nothing to add, do not ask again.
 - Otherwise answer action "draft" and fill the fields. why_text and not_when_text may stay "" if never mentioned.
+- Questions are plain words for the operator (never ids). Pick the subsystem yourself from the commands/objects they name; ask only if unsure.
 - Do not ask about something the operator already answered.
 Subsystems:
 {subs}"""
 _STOP = {"the", "and", "for", "that", "this", "with", "you", "are", "was", "not", "but", "its", "has", "have", "when",
          "then", "than", "from", "into", "will", "can", "all", "any", "does", "doesn"}
+
+
+def teach_schema(sub_ids):
+    """TEACH_SCHEMA with the subsystem limited to real ids (constrained decoding), or 'unknown'."""
+    props = {**TEACH_SCHEMA["properties"], "subsystem": {"type": "string", "enum": [*sorted(sub_ids), "unknown"]}}
+    return {**TEACH_SCHEMA, "properties": props}
 
 
 def _words(s):
@@ -302,14 +312,15 @@ def teach(body: TeachIn):
         if not _rows(conn, "SELECT 1 FROM person WHERE id = %s", (body.owner_id,)):
             raise HTTPException(404, f"unknown person {body.owner_id}")
         subs = _rows(conn, "SELECT id, name FROM entity WHERE kind = 'system' ORDER BY id")
+    ids = {s["id"] for s in subs}
     convo = "\n".join(f"{'Operator' if m.role == 'veteran' else 'Assistant'}: {m.text}" for m in body.messages)
     hints = "".join(f"\nHint: {k} = {v}" for k, v in (("node", body.node_hint), ("subsystem", body.subsystem_hint)) if v)
     forced = '\nYou have asked enough questions: answer action "draft".' if followups >= MAX_FOLLOWUPS else ""
     sys_prompt = TEACH_PROMPT.format(subs="\n".join(f"{s['id']} ({s['name']})" for s in subs))
     r = llm.chat([{"role": "system", "content": sys_prompt}, {"role": "user", "content": convo + hints + forced}],
-                 schema=TEACH_SCHEMA, max_tokens=500)
+                 schema=teach_schema(ids), max_tokens=500)
     try:
         raw = json.loads(r["content"])
     except ValueError:
         raise HTTPException(502, "the model returned something unreadable, try again")
-    return shape_turn(raw, said, {s["id"] for s in subs}, followups, body.node_hint, body.subsystem_hint)
+    return shape_turn(raw, said, ids, followups, body.node_hint, body.subsystem_hint)

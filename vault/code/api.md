@@ -93,3 +93,9 @@ rank -> one cited Qwen answer with history). See docs/ARCHITECTURE_V2.md. `/chat
 cited notes/chunks to entities whose `parent_id` is that subsystem), coverage = touched / entities in the subsystem, last seen.
 "Touched" needs a cited source, so a question that cited nothing does not count. Gaps = untouched subsystems + events. It is encounter history, not a test of knowledge.
 Gotcha: `/chat` with `context_override: {"site": "node:DR"}` and no `version` returns a 500; send both.
+
+## Teach chat (2026-10-17)
+- `POST /knowledge/teach` (`backend/knowledge.py`, `teach` / `shape_turn`): one `llm.chat` per turn with a JSON schema whose `subsystem` is an enum of the real `sub:*` ids.
+  `shape_turn` (pure, unit-tested) decides question vs draft: model `ask` or a missing trigger/call/node/subsystem -> question (max `MAX_FOLLOWUPS`=3, then draft with what is known);
+  every text field must be `grounded` in the veteran's words (>= 60% of its words said) or it is emptied. Nothing is saved here: the UI posts the draft to `POST /knowledge`, then the existing approve flow.
+- Gotcha: Qwen 4B often drafts on turn 1 and leaves why / not-when empty rather than asking (prompt asks, it ignores); the editable form covers it. Free-text subsystem made it ask for ids: hence the enum schema.
