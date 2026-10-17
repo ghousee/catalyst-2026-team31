@@ -4,7 +4,7 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash .claude/hooks/stop_tests.sh" }
+          { "type": "command", "command": "python .claude/hooks/stop_tests.py" }
         ]
       }
     ]
