@@ -6,6 +6,7 @@ data/processed/
 # secrets
 .env
 .env.*
+!.env.example
 # runtime
 eval/results/
 __pycache__/
