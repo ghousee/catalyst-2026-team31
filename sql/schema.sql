@@ -20,7 +20,10 @@ CREATE TABLE person (
 );
 
 -- ---------- Context fingerprint (shared by chunks + heuristics) ----------
--- system_id/version_id/site_id are REQUIRED filters at query time.
+-- system_id/version_id/site_id are REQUIRED filters at query time. Use
+-- backend.pipeline.retrieve.context_where(): system_id = :system
+--   AND (version_id = :version OR version_id IS NULL) AND (site_id = :site OR site_id IS NULL)
+-- NULL version/site means "explicitly applies to all"; the CHECKs below forbid an accidental NULL.
 
 -- ---------- Doc overlay ----------
 CREATE TABLE doc_chunk (
@@ -28,14 +31,18 @@ CREATE TABLE doc_chunk (
   source_file  TEXT NOT NULL,               -- path under data/raw (not committed)
   section      TEXT,
   text         TEXT NOT NULL,
-  system_id    TEXT REFERENCES entity(id),
-  version_id   TEXT REFERENCES entity(id),  -- NULL = applies to all versions (be explicit!)
-  site_id      TEXT REFERENCES entity(id),
+  system_id    TEXT NOT NULL REFERENCES entity(id),
+  version_id   TEXT REFERENCES entity(id),  -- NULL only when all_versions (enforced below)
+  site_id      TEXT REFERENCES entity(id),  -- NULL only when all_sites (enforced below)
+  all_versions BOOLEAN NOT NULL DEFAULT FALSE,  -- set explicitly at ingest; never inferred
+  all_sites    BOOLEAN NOT NULL DEFAULT FALSE,
   valid_from   DATE,
   valid_to     DATE,
   owner_id     TEXT REFERENCES person(id),  -- doc owner, for referrals
   acl          TEXT[] DEFAULT '{public}',   -- permission-aware retrieval
-  embedding    vector(768)                  -- embeddinggemma dim; adjust if needed
+  embedding    vector(768),                 -- embeddinggemma dim; adjust if needed
+  CHECK ((version_id IS NULL) = all_versions),
+  CHECK ((site_id IS NULL) = all_sites)
 );
 
 -- ---------- Person overlay (veteran heuristics / warning patterns) ----------
@@ -45,15 +52,19 @@ CREATE TABLE heuristic (
   trigger_text  TEXT NOT NULL,              -- "pressure dips + alarm X within 10 min"
   call_text     TEXT NOT NULL,              -- "check valve Y first; almost never the sensor"
   why_text      TEXT,                       -- rationale in their words
-  system_id     TEXT REFERENCES entity(id),
-  version_id    TEXT REFERENCES entity(id),
-  site_id       TEXT REFERENCES entity(id),
+  system_id     TEXT NOT NULL REFERENCES entity(id),
+  version_id    TEXT REFERENCES entity(id), -- NULL only when all_versions
+  site_id       TEXT REFERENCES entity(id), -- NULL only when all_sites
+  all_versions  BOOLEAN NOT NULL DEFAULT FALSE,
+  all_sites     BOOLEAN NOT NULL DEFAULT FALSE,
   provenance    TEXT NOT NULL,              -- 'interview:2026-10-17' | 'ticket:4512' | 'referral:q88'
   status        TEXT DEFAULT 'draft' CHECK (status IN ('draft','approved','retired')),
   endorsements  INT DEFAULT 0,
   last_validated DATE,
   is_trigger    BOOLEAN DEFAULT FALSE,      -- usable by the watcher
-  embedding     vector(768)
+  embedding     vector(768),
+  CHECK ((version_id IS NULL) = all_versions),
+  CHECK ((site_id IS NULL) = all_sites)
 );
 
 -- ---------- Edges (the graph) ----------
