@@ -7,8 +7,8 @@ httpx
 ollama
 pypdf
 python-docx
-torch            # CPU build is fine for MiniCheck
-transformers
+torch            # install the CPU wheel first: pip install torch --index-url https://download.pytorch.org/whl/cpu
+transformers      # MiniCheck-Flan-T5-Large via backend/pipeline/verify.py (model ~3 GB, downloaded on first use)
 sentencepiece
 pytest
 python-dotenv
