@@ -2,20 +2,22 @@
 
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleHelp,
   Clock3,
-  Database,
   FileCheck2,
   FlaskConical,
   Gauge,
   Menu,
   Search,
   ShieldCheck,
+  TerminalSquare,
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, USE_MOCKS } from "@/lib/api";
 import { environmentName, humanizeEnvironmentText } from "@/lib/format";
 import { usePolling } from "@/lib/hooks";
@@ -24,7 +26,7 @@ import type { ScenarioName } from "@/lib/types";
 import { DOC_SOURCES, HEURISTIC_SOURCES } from "@/mocks/fixtures";
 import { AlertsPanel } from "./AlertsPanel";
 import { AppIcon, type AppIconName } from "./AppIcon";
-import { ChatPane } from "./ChatPane";
+import { AssistantComposer, ChatPane } from "./ChatPane";
 import { NodeSwitcher } from "./NodeSwitcher";
 import { SourceDialog } from "./SourceDialog";
 import { Sparkline } from "./Sparkline";
@@ -234,24 +236,140 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
   );
 }
 
+type AssistantTab = "investigation" | "terminals" | "activity";
+type InvestigationSectionId = "incident" | "systems" | "assessment" | "evidence" | "action" | "experts" | "timeline";
+
+function InvestigationSection({ id, label, preview, badge, open, onToggle, children }: {
+  id: InvestigationSectionId;
+  label: string;
+  preview: string;
+  badge?: ReactNode;
+  open: boolean;
+  onToggle: (id: InvestigationSectionId) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`overflow-hidden rounded-xl border bg-panel transition-colors ${open ? "border-accent/35" : "border-line"}`}>
+      <button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-panel2/60" aria-expanded={open} onClick={() => onToggle(id)}>
+        <ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-0" : "-rotate-90"}`} aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-fg">{label}</span>
+            {badge}
+          </span>
+          {!open && <span className="mt-0.5 block truncate text-xs text-muted">{preview}</span>}
+        </span>
+      </button>
+      {open && <div className="border-t border-line px-4 py-4">{children}</div>}
+    </section>
+  );
+}
+
+function ConnectedTerminals() {
+  const { session, terminal } = useConsole();
+  const [system, setSystem] = useState("TMF");
+  const systems = ["Pathway-02", "TMF", "Storage-03"];
+  const fallback: Record<string, string[]> = {
+    "Pathway-02": ["Connected to Pathway monitor (simulated)", "Status: degraded", "Server class SETTLE-SC: running with warnings"],
+    TMF: ["Connected to TMF monitor (simulated)", "Audit trail capacity used: 62%", "No approved diagnostic has run in this session."],
+    "Storage-03": ["Connected to storage monitor (simulated)", "Path errors: above baseline", "Mirrored volume state: online"],
+  };
+  const lines = system === "TMF" && terminal.length > 0 ? terminal.map((line) => humanizeEnvironmentText(line.text)) : (fallback[system] ?? []);
+
+  return (
+    <div className="p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Connected system terminals</h3>
+          <p className="mt-1 text-xs text-muted">Open a scoped terminal without leaving the incident.</p>
+        </div>
+        <span className="status-chip status-healthy">3 connected</span>
+      </div>
+      <div className="mt-4 flex gap-1 overflow-x-auto border-b border-line">
+        {systems.map((item) => <button key={item} type="button" className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${system === item ? "border-accent text-accent" : "border-transparent text-muted hover:text-fg"}`} onClick={() => setSystem(item)}>{item}</button>)}
+      </div>
+      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-[#05080a] text-[#a9e8bd]">
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3 text-xs text-white/65">
+          <TerminalSquare size={15} />
+          <strong className="text-white">{system}</strong>
+          <span>· {environmentName(session?.node_display)}</span>
+          <span className="ml-auto rounded-full border border-emerald-400/30 px-2 py-0.5 text-emerald-300">Read-only</span>
+        </div>
+        <pre className="min-h-[280px] overflow-auto p-4 font-mono text-[13px] leading-6">{lines.join("\n")}</pre>
+        <div className="border-t border-white/10 px-4 py-3 text-xs text-white/55">Approved AI diagnostics appear here with their output and source record.</div>
+      </div>
+    </div>
+  );
+}
+
+function IncidentActivity() {
+  const events = [
+    ["Now", "AI assessment updated", "Four verified evidence records correlated."],
+    ["2 min ago", "Warning detected", "Audit capacity crossed the watch threshold."],
+    ["3 min ago", "Expert pattern matched", "Quarter-end settlement pattern matched with moderate confidence."],
+    ["8 min ago", "Metric trend changed", "Audit capacity began rising above its hourly baseline."],
+  ];
+  return <ol className="divide-y divide-line p-4 sm:p-5">{events.map(([time, title, detail]) => <li key={time} className="grid gap-1 py-4 sm:grid-cols-[100px_1fr]"><span className="text-xs text-muted">{time}</span><div><p className="text-sm font-medium">{title}</p><p className="mt-1 text-xs text-muted">{detail}</p></div></li>)}</ol>;
+}
+
 function AssistantPage() {
+  const { messages } = useConsole();
+  const [tab, setTab] = useState<AssistantTab>("investigation");
+  const [openSections, setOpenSections] = useState<Set<InvestigationSectionId>>(new Set(["incident"]));
+
+  useEffect(() => {
+    if (messages.length > 0) setOpenSections(new Set(["assessment"]));
+  }, [messages.length]);
+
+  const toggle = (id: InvestigationSectionId) => setOpenSections((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
   return (
     <div className="flex h-full min-h-[680px] flex-col">
-      <SectionTitle eyebrow="Advisory only" title="AI troubleshooting assistant" description="Ask questions in everyday language. CAIL grounds each answer in approved knowledge and scoped operational evidence." />
-      <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_340px]">
-        <section className="flex min-h-[570px] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm"><ChatPane /></section>
-        <aside className="space-y-4">
-          <section className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
-            <div className="flex items-center gap-2"><Database size={17} className="text-accent" /><h3 className="font-semibold">Investigation context</h3></div>
-            <dl className="mt-4 space-y-3 text-sm"><div><dt className="text-xs text-muted">Selected system</dt><dd className="mt-0.5 font-medium">Pathway-02</dd></div><div><dt className="text-xs text-muted">Incident</dt><dd className="mt-0.5 font-medium">INC-1042 • Active</dd></div><div><dt className="text-xs text-muted">Evidence window</dt><dd className="mt-0.5 font-medium">Last 60 minutes</dd></div></dl>
-          </section>
-          <section className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
-            <h3 className="font-semibold">How to read an answer</h3>
-            <ul className="mt-4 space-y-3 text-sm text-muted"><li className="flex gap-2"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-ok" />Facts have source citations.</li><li className="flex gap-2"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-warn" />Uncertainty is stated explicitly.</li><li className="flex gap-2"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />Commands require review and guards.</li></ul>
-          </section>
-          <section className="rounded-2xl border border-warn/30 bg-warn/8 p-4 text-sm"><p className="font-medium text-warn">No production execution</p><p className="mt-1 text-xs leading-5 text-muted">All command output in this prototype is simulated and retained only as investigation evidence.</p></section>
-        </aside>
-      </div>
+      <SectionTitle eyebrow="Advisory only" title="AI troubleshooting assistant" description="Investigate one incident at a time, reveal details as needed, and keep every diagnostic action under operator control." />
+      <section className="flex min-h-[610px] flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-sm">
+        <header className="border-b border-line px-4 pt-4 sm:px-5">
+          <div className="flex flex-wrap items-start justify-between gap-3 pb-3">
+            <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">INC-1042</h3><span className="status-chip status-warning">Warning</span><span className="status-chip bg-accent/10 text-accent">Investigating</span></div><p className="mt-1 text-xs text-muted">Audit capacity risk · Pathway-02 · detected 2 minutes ago</p></div>
+            <span className="text-xs text-muted">Evidence window: last 60 minutes</span>
+          </div>
+          <nav className="flex gap-1 overflow-x-auto" aria-label="AI assistant workspace">
+            {(["investigation", "terminals", "activity"] as const).map((item) => <button key={item} type="button" className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium capitalize ${tab === item ? "border-accent text-accent" : "border-transparent text-muted hover:text-fg"}`} onClick={() => setTab(item)}>{item === "investigation" ? <AppIcon name="investigations" size={16} /> : item === "terminals" ? <TerminalSquare size={16} /> : <Clock3 size={16} />}{item === "terminals" ? "Connected terminals" : item}{item === "terminals" && <span className="rounded-full bg-panel2 px-1.5 text-[10px]">3</span>}</button>)}
+          </nav>
+        </header>
+
+        <div className="scroll min-h-0 flex-1 overflow-y-auto bg-panel2/25">
+          {tab === "investigation" && <div className="space-y-2 p-3 sm:p-4">
+            <InvestigationSection id="incident" label="Incident" preview="Audit capacity is approaching its configured limit." badge={<span className="status-chip status-warning">Warning</span>} open={openSections.has("incident")} onToggle={toggle}>
+              <p className="text-base font-semibold">Audit capacity is approaching its configured limit.</p><p className="mt-2 max-w-3xl text-sm leading-6 text-muted">The warning was raised after sustained growth in the audit trail. No service interruption has been confirmed.</p><div className="mt-3 flex flex-wrap gap-4 text-xs text-muted"><span>Detected 2 minutes ago</span><span>Primary Production</span><span>INC-1042 · Active</span></div>
+            </InvestigationSection>
+            <InvestigationSection id="systems" label="Affected systems" preview="Pathway-02 and TMF" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 systems</span>} open={openSections.has("systems")} onToggle={toggle}>
+              <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-line bg-panel2/50 p-3"><p className="font-medium">Pathway-02</p><p className="mt-1 text-xs text-muted">Settlement application · degraded</p></div><div className="rounded-lg border border-line bg-panel2/50 p-3"><p className="font-medium">TMF</p><p className="mt-1 text-xs text-muted">Transaction management · warning</p></div></div>
+            </InvestigationSection>
+            <InvestigationSection id="assessment" label="AI assessment" preview="A transaction may be preventing audit-file reuse." badge={<span className="status-chip status-warning">Moderate confidence</span>} open={openSections.has("assessment")} onToggle={toggle}>
+              <ChatPane showComposer={false} />
+            </InvestigationSection>
+            <InvestigationSection id="evidence" label="Evidence" preview="4 verified records from live, manual and expert sources" badge={<span className="status-chip status-healthy">4 verified</span>} open={openSections.has("evidence")} onToggle={toggle}>
+              <ul className="space-y-3 text-sm"><li className="flex items-start justify-between gap-3"><span>Audit capacity is 62% and rising.</span><span className="text-xs text-muted">Live metric</span></li><li className="flex items-start justify-between gap-3"><span>TMF event 185 occurred twice.</span><span className="text-xs text-muted">EMS simulator</span></li><li className="flex items-start justify-between gap-3"><span>Quarter-end transaction pattern matched.</span><span className="text-xs text-muted">Expert knowledge</span></li></ul>
+            </InvestigationSection>
+            <InvestigationSection id="action" label="Recommended action" preview="Run a read-only audit-trail diagnostic." badge={<span className="status-chip status-healthy">Read-only check</span>} open={openSections.has("action")} onToggle={toggle}>
+              <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-medium">Identify which transaction is holding the audit file.</p><p className="mt-1 text-sm text-muted">The check is allowlisted, read-only and requires operator approval.</p><code className="mt-3 block rounded-lg bg-[#05080a] px-3 py-2 text-sm text-[#7ee2a1]">TMFCOM STATUS AUDITTRAIL, DETAIL</code></div><button type="button" className="btn btn-primary" onClick={() => setOpenSections(new Set(["assessment"]))}>Review with AI <ChevronRight size={14} /></button></div>
+            </InvestigationSection>
+            <InvestigationSection id="experts" label="Expert knowledge" preview="Maria Rossi and Raj Patel" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">2 experts</span>} open={openSections.has("experts")} onToggle={toggle}>
+              <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-line p-3"><p className="font-medium">Maria Rossi</p><p className="mt-1 text-xs text-muted">24 years · TMF and audit trails · preserved knowledge</p></div><div className="rounded-lg border border-line p-3"><p className="font-medium">Raj Patel</p><p className="mt-1 text-xs text-muted">15 years · Pathway and TMF · on call</p></div></div>
+            </InvestigationSection>
+            <InvestigationSection id="timeline" label="Incident timeline" preview="6 recorded events" badge={<span className="rounded-full bg-panel2 px-2 py-0.5 text-[11px] text-muted">6 events</span>} open={openSections.has("timeline")} onToggle={toggle}>
+              <IncidentActivity />
+            </InvestigationSection>
+          </div>}
+          {tab === "terminals" && <ConnectedTerminals />}
+          {tab === "activity" && <IncidentActivity />}
+        </div>
+        <AssistantComposer />
+      </section>
     </div>
   );
 }

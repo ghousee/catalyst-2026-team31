@@ -76,7 +76,7 @@ function OverrideLine() {
   );
 }
 
-export function ChatPane() {
+export function ChatPane({ showComposer = true }: { showComposer?: boolean }) {
   const { messages, busy, ask, session } = useConsole();
   const [text, setText] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
@@ -121,7 +121,7 @@ export function ChatPane() {
           </p>
         )}
       </div>
-      <form onSubmit={submit} className="border-t border-line bg-panel px-4 pb-3 pt-2">
+      {showComposer && <form onSubmit={submit} className="border-t border-line bg-panel px-4 pb-3 pt-2">
         <OverrideLine />
         <div className="mt-1 flex gap-2">
           <input
@@ -137,7 +137,43 @@ export function ChatPane() {
             Ask
           </button>
         </div>
-      </form>
+      </form>}
     </section>
+  );
+}
+
+export function AssistantComposer() {
+  const { busy, ask, session } = useConsole();
+  const [text, setText] = useState("");
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const question = text.trim();
+    if (!question || busy) return;
+    setText("");
+    void ask(question);
+  };
+
+  return (
+    <form onSubmit={submit} className="border-t border-line bg-panel p-3 sm:p-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
+        <span>Ask about this incident</span>
+        <span>Context: {environmentName(session?.node_display)}</span>
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="field min-w-0 flex-1"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Ask about INC-1042 or request another diagnostic check..."
+          aria-label="Ask the AI troubleshooting assistant"
+          autoComplete="off"
+        />
+        <button type="submit" className="btn btn-primary" disabled={busy || !text.trim() || !session}>
+          <ArrowUp size={15} aria-hidden="true" />
+          Ask
+        </button>
+      </div>
+    </form>
   );
 }
