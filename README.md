@@ -7,6 +7,68 @@ veterans' warning patterns. Every answer is scoped to the node, release and subs
 **Start here:** `docs/architecture.html` (diagrams) → `docs/SYSTEM_DESIGN.md` → `docs/RAG_SPIKE.md` (measured results)
 → `vault/00 Index.md` (code map; open `vault/` in Obsidian). Claude Code reads `CLAUDE.md` automatically.
 
+## Architecture
+Full version with the command path and the knowledge loop: `docs/architecture.html` (open in a browser).
+
+```mermaid
+flowchart TB
+  UI["Operator console<br/>CAIL 6530 + copilot UI<br/>session knows the node"]
+  SIM["NonStop simulator<br/>PROD and DR scenarios"]
+  VET["Veterans<br/>Maria, Raj, Lena"]
+  subgraph API["Copilot API (FastAPI, local)"]
+    ASK["Ask<br/>lock context, graph,<br/>search, verify"]
+    CMD["Commands<br/>catalog, risk + node guard,<br/>approve, run on simulator"]
+    WAT["Watcher<br/>veteran patterns as rules,<br/>warns the operator early"]
+    CAP["Capture<br/>interviews, referrals,<br/>debriefs"]
+  end
+  subgraph KG["Knowledge graph (Postgres + pgvector)"]
+    G["Graph +<br/>manual sections"]
+    CAT["Command<br/>catalog"]
+    PAT["Warning<br/>patterns"]
+    NOTES["Veteran<br/>notes"]
+  end
+  subgraph M["Local models"]
+    Q["Qwen 3.5 4B (GPU)"]
+    E["embeddinggemma (CPU)"]
+    MC["MiniCheck (CPU)"]
+  end
+  UI -- "question + node" --> ASK
+  UI -- "approve" --> CMD
+  SIM -- "events, metrics" --> WAT
+  VET -- "interviews, answers" --> CAP
+  ASK -- "context-filtered" --> G
+  CMD -- "looks up" --> CAT
+  WAT -- "matches" --> PAT
+  CAP -- "saves signed" --> NOTES
+  ASK -. "prompt, embed, verify" .-> M
+```
+
+What happens when an operator asks:
+```mermaid
+flowchart LR
+  A["Lock context<br/>session + aliases"] --> B["Graph lookup<br/>event, fix, owner"] --> C["Manual search<br/>hybrid, filtered"] --> D{"Enough<br/>context?"}
+  A -- unclear --> CL["Clarify card<br/>asks one question"]
+  D -- no --> R["Refer card<br/>who to talk to"]
+  D -- yes --> E["Qwen writes claims<br/>with source ids"] --> F{"MiniCheck"}
+  F -- supported --> G["Answer card<br/>doc, veteran, live citations"]
+  F -- unsupported --> X["Claim dropped"]
+```
+Commands run on the simulator only after approval; warnings go back to the operator console. Risk classes, node/release guards and warning-pattern matching are plain code, never the LLM.
+
+## Accuracy so far (RAG spike, `docs/RAG_SPIKE.md`)
+| Stage | Result |
+|---|---|
+| Right manual section in top 5 (hybrid search + context filter, 27 questions) | 81% (MRR 0.74) |
+| Results from the wrong subsystem: no filter → filter | 15% → 0% |
+| Qwen output valid JSON / claims citing a retrieved source | 100% / 100% (29 claims) |
+| Answer cites the correct manual section (10 questions) | 70% |
+| Answer time, typical / worst | 3.8 s / 6.3 s |
+| MiniCheck separates supported vs unsupported claims | 24 / 24, 1.3 s per claim on CPU |
+| Sufficiency gate (answer vs refer) | 10 / 10 |
+
+Preliminary: small test sets (10–27 items) written by the same agent that built the pipeline, mostly easy
+negatives, manuals only (no knowledge graph yet). An independent question set is the next step.
+
 ## Status (2026-10-17)
 - Done: schema + context filter, manual ingest (7 HPE manuals, 3,777 chunks), hybrid search, Qwen answer
   generation, MiniCheck verifier, sufficiency gate, UI on mock data, API contract v2.
