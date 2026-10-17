@@ -44,13 +44,13 @@ type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowled
 
 const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard; hue: Hue }> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, hue: "sky" },
-  { id: "systems", label: "Systems", icon: Server, hue: "teal" },
   { id: "investigations", label: "Investigations", icon: BellRing, hue: "amber" },
+  { id: "systems", label: "Systems", icon: Server, hue: "teal" },
   { id: "assistant", label: "AI Assistant", icon: Bot, hue: "indigo" },
-  { id: "knowledge", label: "Knowledge", icon: BookOpen, hue: "green" },
   { id: "simulator", label: "Training Simulator", icon: GraduationCap, hue: "rose" },
   { id: "graph", label: "Synapse", icon: Network, hue: "violet" },
   { id: "learning", label: "Learning map", icon: Map, hue: "sky" },
+  { id: "knowledge", label: "Knowledge", icon: BookOpen, hue: "green" },
 ];
 
 const METRICS = [
