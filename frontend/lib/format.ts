@@ -37,6 +37,24 @@ export const SERIES_OPTIONS = [
   { id: "rvu:J", label: "J-series" },
 ];
 
+/** Human-readable environment name for internal NonStop node identifiers. */
+export function environmentName(value?: string | null): string {
+  if (!value) return "Selected environment";
+  const normalized = value.toUpperCase();
+  if (normalized.includes("PROD")) return "Primary Production";
+  if (normalized.includes("DR")) return "Disaster Recovery";
+  return value.replace(/^node:/i, "").replace(/^\\/, "");
+}
+
+/** Keep internal node ids out of operator-facing prose while preserving the API contract. */
+export function humanizeEnvironmentText(value: string): string {
+  return value
+    .replace(/\\PROD\b/g, "Primary Production")
+    .replace(/\\DR\b/g, "Disaster Recovery")
+    .replace(/node:PROD\b/gi, "Primary Production")
+    .replace(/node:DR\b/gi, "Disaster Recovery");
+}
+
 /** Short chip label derived from a source id when no inline source is available. */
 export function labelFromId(id: string): string {
   if (id.startsWith("doc:")) return id.split(":").slice(1).join(" ").replace(/-/g, " ");

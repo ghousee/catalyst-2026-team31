@@ -3,37 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --bg: 10 13 18;
-  --panel: 16 21 28;
-  --panel2: 23 30 40;
-  --line: 42 52 66;
-  --fg: 226 232 240;
-  --muted: 142 154 170;
+  --bg: 246 248 251;
+  --panel: 255 255 255;
+  --panel2: 239 244 250;
+  --line: 217 225 234;
+  --fg: 20 32 51;
+  --muted: 95 111 130;
+  --accent: 37 99 235;
+  --accent-hover: 29 78 216;
+  --ok: 22 134 90;
+  --warn: 182 92 0;
+  --crit: 199 53 53;
+  --info: 37 99 235;
+  --prod: 180 73 20;
+  --dr: 3 105 161;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: 15 23 42;
+  --panel: 17 24 39;
+  --panel2: 30 41 59;
+  --line: 51 65 85;
+  --fg: 248 250 252;
+  --muted: 203 213 225;
   --accent: 96 165 250;
-  --ok: 52 211 130;
-  --warn: 251 176 40;
-  --crit: 255 99 99;
-  --info: 125 183 255;
+  --accent-hover: 59 130 246;
+  --ok: 74 222 128;
+  --warn: 251 191 36;
+  --crit: 248 113 113;
+  --info: 96 165 250;
   --prod: 255 107 61;
   --dr: 45 190 240;
   color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  --bg: 243 245 248;
-  --panel: 255 255 255;
-  --panel2: 238 242 247;
-  --line: 208 216 227;
-  --fg: 18 26 38;
-  --muted: 84 98 116;
-  --accent: 20 92 190;
-  --ok: 10 122 66;
-  --warn: 150 84 0;
-  --crit: 190 32 32;
-  --info: 20 92 190;
-  --prod: 196 60 14;
-  --dr: 2 98 150;
-  color-scheme: light;
 }
 
 html,
@@ -56,13 +58,13 @@ body {
 
 @layer components {
   .card {
-    @apply rounded-lg border border-line bg-panel;
+    @apply rounded-xl border border-line bg-panel;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-line bg-panel2 px-3 py-1.5 text-[13px] font-medium text-fg transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-line;
   }
   .btn-primary {
-    @apply border-accent/70 bg-accent/15 text-accent hover:bg-accent/25;
+    @apply border-accent bg-accent text-white shadow-sm hover:border-accent-hover hover:bg-accent-hover;
   }
   .btn-danger {
     @apply border-crit/70 bg-crit/15 text-crit hover:bg-crit/25;
@@ -71,12 +73,37 @@ body {
     @apply inline-flex max-w-full items-center gap-1 rounded border border-line bg-panel2 px-1.5 py-0.5 text-[11px] text-muted hover:border-accent/70 hover:text-fg;
   }
   .field {
-    @apply rounded-md border border-line bg-bg px-2.5 py-1.5 text-[13px] text-fg placeholder:text-muted;
+    @apply rounded-md border border-line bg-panel px-2.5 py-1.5 text-[13px] text-fg placeholder:text-muted focus:border-accent;
   }
   .scroll {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--line)) transparent;
   }
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.status-healthy {
+  background: rgb(var(--ok) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--ok) / 0.2);
+  color: rgb(var(--ok));
+}
+.status-warning {
+  background: rgb(var(--warn) / 0.11);
+  box-shadow: inset 0 0 0 1px rgb(var(--warn) / 0.22);
+  color: rgb(var(--warn));
+}
+.status-critical {
+  background: rgb(var(--crit) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--crit) / 0.2);
+  color: rgb(var(--crit));
 }
 
 @keyframes blink {

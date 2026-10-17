@@ -1,4 +1,5 @@
 import { Phone } from "lucide-react";
+import { humanizeEnvironmentText } from "@/lib/format";
 import type { Expert } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { Badge, type Tone } from "./Badge";
@@ -37,7 +38,7 @@ function ExpertRow({ expert }: { expert: Expert }) {
             ))}
           </ul>
         )}
-        <p className="text-[12px] text-muted">{expert.reason}</p>
+        <p className="text-[12px] text-muted">{humanizeEnvironmentText(expert.reason)}</p>
         {expert.contact && (
           <p className="flex items-center gap-1.5 font-mono text-[11.5px] text-muted">
             <Phone size={11} aria-hidden="true" />

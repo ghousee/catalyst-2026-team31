@@ -1,5 +1,5 @@
 import { Clock, History, TriangleAlert } from "lucide-react";
-import { fmtTime } from "@/lib/format";
+import { fmtTime, humanizeEnvironmentText } from "@/lib/format";
 import type { Alert } from "@/lib/types";
 import { Avatar } from "./Avatar";
 import { Badge, type Tone } from "./Badge";
@@ -23,7 +23,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
         <Badge>{a.subsystem}</Badge>
         <span className="ml-auto text-[11px] text-muted">{fmtTime(a.ts)}</span>
       </header>
-      <p className="text-[14px] font-semibold leading-snug">{a.message}</p>
+      <p className="text-[14px] font-semibold leading-snug">{humanizeEnvironmentText(a.message)}</p>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
         <span className="inline-flex items-center gap-2 text-[12.5px]">

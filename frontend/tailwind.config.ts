@@ -14,6 +14,7 @@ const config: Config = {
         fg: c("fg"),
         muted: c("muted"),
         accent: c("accent"),
+        "accent-hover": c("accent-hover"),
         ok: c("ok"),
         warn: c("warn"),
         crit: c("crit"),

@@ -134,4 +134,4 @@ def test_misattributed_rule():
 
 
 def test_clean_restores_node_backslash():
-    assert A._clean("♍PROD and УDR") == "\PROD and \DR"
+    assert A._clean("♍PROD and УDR") == r"\PROD and \DR"

@@ -3,7 +3,7 @@
 import { Crosshair } from "lucide-react";
 import { useState } from "react";
 import { useDismiss } from "@/lib/hooks";
-import { SERIES_OPTIONS, SUBSYSTEM_OPTIONS } from "@/lib/format";
+import { environmentName, humanizeEnvironmentText, SERIES_OPTIONS, SUBSYSTEM_OPTIONS } from "@/lib/format";
 import { useConsole } from "@/lib/store";
 import type { ContextOverride } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export function ContextChip({ display, confidence }: { display: string; confiden
         title="Change the context used for your next question"
       >
         <Crosshair size={12} aria-hidden="true" />
-        <span>Assuming {display}</span>
+        <span>Assuming {humanizeEnvironmentText(display)}</span>
         {confidence !== undefined && <span className="text-muted">· {Math.round(confidence * 100)}%</span>}
         <span className="text-muted underline">change</span>
       </button>
@@ -41,10 +41,10 @@ export function ContextChip({ display, confidence }: { display: string; confiden
           <label className="block text-[12px]">
             Node
             <select className="field mt-1 w-full" value={draft.site ?? ""} onChange={set("site")}>
-              <option value="">Session ({session?.node_display ?? "…"})</option>
+              <option value="">Session ({environmentName(session?.node_display)})</option>
               {session?.nodes_available.map((n) => (
                 <option key={n.id} value={n.id}>
-                  {n.display}
+                  {environmentName(n.display)}
                 </option>
               ))}
             </select>

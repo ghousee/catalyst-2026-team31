@@ -42,7 +42,7 @@ export function ApprovalControls({ proposal: p, stage, disabled, reason, needsDr
         </span>
         <button type="button" className="btn btn-primary" disabled={stage === "executing"} onClick={onExecute}>
           <Play size={13} aria-hidden="true" />
-          {stage === "executing" ? "Executing…" : "Execute (simulated)"}
+          {stage === "executing" ? "Running simulation…" : "Run simulated check"}
         </button>
       </div>
     );
@@ -77,7 +77,7 @@ export function ApprovalControls({ proposal: p, stage, disabled, reason, needsDr
         onClick={() => onApprove(kind === "type_node" ? typed : null, null)}
       >
         <ShieldCheck size={13} aria-hidden="true" />
-        {busy ? "Checking…" : kind === "second_approver" ? "Request second approver" : "Approve"}
+        {busy ? "Checking…" : kind === "second_approver" ? "Request second approver" : "Approve for simulation"}
       </button>
       {blockedByDry && !disabled && <span className="self-center text-[12px] text-muted">Run a dry run before approving.</span>}
       {stage === "rejected" && (

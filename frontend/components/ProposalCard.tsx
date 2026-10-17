@@ -3,7 +3,7 @@
 import { FlaskConical, Play, TerminalSquare } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { fmtTime } from "@/lib/format";
+import { environmentName, fmtTime } from "@/lib/format";
 import { USER_ID, useConsole } from "@/lib/store";
 import type { DryRun, ExecuteResponse, Proposal } from "@/lib/types";
 import { ApprovalControls, type Stage } from "./ApprovalControls";
@@ -30,7 +30,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
   const blockers: string[] = [];
   if (!p.guards.node_match || sessionMismatch)
     blockers.push(
-      `Node guard: command targets ${p.node}${session ? ` but the session is on ${session.node_display}` : ""}. Re-ask on the current node.`,
+      `Environment guard: command targets ${environmentName(p.node)}${session ? ` but the session is on ${environmentName(session.node_display)}` : ""}. Re-ask in the current environment.`,
     );
   if (!p.guards.rvu_ok) blockers.push("RVU guard: this command template does not apply to the node's series/RVU.");
   const blocked = blockers.length > 0;
@@ -117,7 +117,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
       {done && result ? (
         <div role="status" className="flex flex-wrap items-center gap-2 rounded border border-ok/40 bg-ok/10 p-2 text-[12.5px] text-ok">
           <Play size={13} aria-hidden="true" />
-          Executed (simulated) at {fmtTime(result.ts)}. Output is in the terminal pane.
+          Simulated check completed at {fmtTime(result.ts)}. Output was captured as live investigation evidence.
           <CitationChip sourceId={result.source_id} lane="live" />
         </div>
       ) : (

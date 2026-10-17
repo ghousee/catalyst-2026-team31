@@ -1,11 +1,12 @@
 # frontend
 
-Operator console in `frontend/` (Next.js App Router + Tailwind). Left: simulated CAIL 6530 terminal (read-only).
-Right: health sparklines, watcher alerts, chat with cited claims, command proposal/approval cards.
+Task-based CAIL operations workspace in `frontend/` (Next.js App Router + Tailwind). A Google Drive-inspired
+sidebar opens Overview, Systems, Investigations, AI Assistant, Knowledge and Training Simulator. The terminal-first
+layout was removed; command output remains simulated evidence inside the assistant workflow.
 Contract: [[api contract]] (v2 section authoritative). Run instructions: `frontend/README.md`.
 
 ## Entry points
-- `frontend/app/page.tsx` -> `components/Console.tsx` (layout, provider)
+- `frontend/app/page.tsx` -> `components/Console.tsx` -> `components/OperationsWorkspace.tsx` (responsive shell, pages, provider)
 - `frontend/lib/types.ts` — types mirroring the contract, field names exact
 - `frontend/lib/api.ts` — client; `NEXT_PUBLIC_USE_MOCKS` (default true) routes to `mocks/server.ts`, else `fetch` to `NEXT_PUBLIC_API_URL`
 - `frontend/lib/store.tsx` — `ConsoleProvider`: session, chat messages, terminal lines, source dialog, execute -> terminal + live citation
@@ -32,6 +33,15 @@ Contract: [[api contract]] (v2 section authoritative). Run instructions: `fronte
 - After execute the UI calls `/commands/propose` with question "what next after this output?" to get the follow-up command; mock keys on that phrase and on the last run.
 - Second approver is simulated client-side (auto-approves after 3 s with `second_approver: "raj"`).
 - Dark theme default; theme stored in `localStorage` (try/catch), applied before paint in `app/layout.tsx`.
+- Light theme is now the default; dark theme remains available and is stored in `localStorage`.
+- Global demo/synthetic-data banners make the no-production boundary visible on every page.
+- The Dashboard uses full-width health telemetry followed by a compact AI operational summary inside the attention workflow; the previous detached side card was removed.
+- Operator-facing environment names are `Primary Production` and `Disaster Recovery`; raw node ids remain API/command data only. Navigation and summary icons use the attributed Nine One Freeicons outline set in `frontend/public/icons/freeicons/`.
+- The AI Assistant is incident-first: Investigation uses collapsible Incident, Affected systems, AI assessment, Evidence, Recommended action, Expert knowledge and Timeline sections. Connected terminals and Activity are separate workspace tabs. The incident-aware Ask CAIL composer is a persistent right rail on desktop and stacks below the workspace on smaller screens.
+- Incident headings use explicit HPE-aligned fields: Alert, Affected system and First detected. The audit warning is named `Master audit trail nearing overflow threshold`; usage and threshold values stay in the expanded Incident section.
+- Investigations is now the triage and case-review workspace rather than a second chat surface. It polls the alert API into a compact queue, keeps only Incident expanded by default, and progressively reveals affected systems, confirmed evidence, possible explanation, controlled next step, expert provenance and the incident timeline. The selected case hands off to AI Assistant for conversation and command review.
+- Theme tokens use a restrained CAIL semantic palette: blue is reserved for navigation and operator actions, green for healthy/verified state, amber for attention and red for critical failure. Light mode uses a cool off-white canvas with high-contrast navy text; dark mode uses slate surfaces and brighter accessible secondary text. Primary actions are solid blue and status chips include both labels and subtle borders rather than relying on color alone.
+- Investigation surfaces follow a visible elevation hierarchy: the case workspace uses the off-white canvas, queue and nested information tiles use the pale-blue secondary surface, and collapsible case cards remain white. Selected queue items use a blue tint and accent border.
 
 ## Contract gaps (not edited in docs/API_CONTRACT.md)
 1. No source lookup: `proposal.source_id`, alert `fix_claims[].source_id` have no `sources[]`. UI assumes `GET /sources/{id}` -> a `Source`.

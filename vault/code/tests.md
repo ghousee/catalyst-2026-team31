@@ -12,6 +12,8 @@ Docker-free so the [[stop hook]] stays fast.
 | `tests/unit/test_generate_gate_verify.py` | claim JSON parsing, `keep_cited` drops uncited claims, S1..Sn alias round-trip, gate parse (truncated JSON = no verdict), MiniCheck windows. |
 | `tests/unit/test_graph_query.py` | [[graph]]: alias/stem/event-number resolution, subsystem tie -> None, walk depth/hubs, `lookup` on a SQLite mirror: \PROD note never returned (or cited) for \DR, drafts hidden, unresolved node gets no node-scoped notes, manuals apply to all series, commands scoped to subsystem, seed files consistent. |
 | `tests/unit/test_smoke.py` | placeholder |
+| `tests/unit/test_commands.py` | catalog integrity; scoped selection; no free-text fallback; node/RVU/approval guards; dry run; single-use execution; next-step sequence. |
+| `tests/unit/test_simulator.py` | scenario and speed validation; PROD-only audit trend; bounded node/window metrics. |
 
 Note: SQLite mirror ≠ real Postgres. A real-Postgres check was run by hand on 2026-10-16
 (not in CI). See [[todo]] for an integration test.
