@@ -209,13 +209,15 @@ def note_dict(h, rel, disagrees=()):
            "years": h["years"], "captured_via": _captured(h), "captured_at": str(h["captured_at"] or ""),
            "endorsements": h["endorsements"], "last_validated": str(h["last_validated"] or ""),
            "scope": scope_text(h), "why": h["why_text"], "call": h["call_text"], "trigger": h["trigger_text"],
-           "not_when": h["not_when_text"], "relation": rel, "disagrees_with": list(disagrees)}
+           "not_when": h["not_when_text"], "relation": rel, "disagrees_with": list(dict.fromkeys(disagrees))}
     out["text"] = render_heuristic({**out, "captured_via": h["captured_via"] or ""})
     return out
 
 
 def _vec(v):
-    return json.loads(v) if isinstance(v, str) else [float(x) for x in v]
+    if isinstance(v, str):
+        return json.loads(v)
+    return v.to_list() if hasattr(v, "to_list") else [float(x) for x in v]  # pgvector Vector / array / list
 
 
 def _approved(conn, ids, ctx):
