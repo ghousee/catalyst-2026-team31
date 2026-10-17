@@ -21,6 +21,8 @@ export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 // Comma list of endpoint groups served by the real API while everything else stays mocked: session,chat,sources
 const REAL = new Set((process.env.NEXT_PUBLIC_REAL_ENDPOINTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));
 const mocked = (group?: "session" | "chat" | "sources") => USE_MOCKS && !(group && REAL.has(group));
+/** True when chat answers come from the scripted mock, not the backend; the top bar shows a DEMO DATA badge. */
+export const CHAT_IS_MOCK = mocked("chat");
 
 export class ApiError extends Error {
   constructor(

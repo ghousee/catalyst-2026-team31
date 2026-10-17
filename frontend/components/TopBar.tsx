@@ -1,8 +1,10 @@
 "use client";
 
 import { RefreshCw, ServerCrash } from "lucide-react";
+import { CHAT_IS_MOCK } from "@/lib/api";
 import { useConsole } from "@/lib/store";
 import { AccuracyBadge } from "./AccuracyBadge";
+import { Badge } from "./Badge";
 import { DemoMenu } from "./DemoMenu";
 import { NodeBadge } from "./NodeBadge";
 import { NodeSwitcher } from "./NodeSwitcher";
@@ -44,6 +46,14 @@ export function TopBar() {
         <span className="text-[13px] text-muted">Connecting to session…</span>
       )}
       <div className="ml-auto flex items-center gap-3">
+        {CHAT_IS_MOCK && (
+          <Badge
+            tone="warn"
+            title="Chat answers are scripted demo data, not the real backend. To connect: run the API (uvicorn) and copy frontend/.env.local.example to .env.local, then restart npm run dev."
+          >
+            DEMO DATA · not connected to backend
+          </Badge>
+        )}
         <AccuracyBadge />
         <NodeSwitcher />
         <DemoMenu />
