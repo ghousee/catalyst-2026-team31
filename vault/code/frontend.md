@@ -72,3 +72,12 @@ team · years, expertise tags, why-this-person, contact. No "Ask" button; `api.r
   The console is NOT resizable here (feat/ui-redesign owns Console.tsx); `Console.tsx` is untouched.
 - `TopBar.tsx` got nav links (Console / Knowledge / Documents). `ClaimList.tsx` and `SourceDialog.tsx` show the needs-review warning (`needs_review?` in `lib/types.ts`).
 - Command cards stay mocked (the command workflow lives on the teammate's branch).
+
+## Real vs demo in OperationsWorkspace (2026-10-17, rewired)
+`OperationsWorkspace.tsx` was rewired from hardcoded demo content to live data (styling untouched). **Bernard: pull main before further changes to it.**
+- **Real:** Overview cards (nodes from `/session`, subsystems from `/graph`, healthy indicators = `/metrics` latest < `METRICS` limit); System health charts (simulator metrics);
+  Systems page (node x subsystem from `/graph`, notes in scope, manual sections from `/documents`, live metrics only for the session node where the graph's `met:` parent matches); Knowledge page (`/documents` + `/knowledge?status=approved`, links to `/knowledge` and `/documents`);
+  Knowledge graph page (`components/KnowledgeGraphPage.tsx`, `/graph` polled every 10 s, SplitPane panes, `useGraph` shared with Systems/Overview); Assistant, commands, simulator.
+- **Demo:** alerts. `api.getAlerts` is always the mock while `USE_MOCKS` (`ALERTS_ARE_MOCK` in `lib/api.ts`; no endpoint group yet). Active alerts card, AI operational summary (top alert), Needs attention rows, Investigations badge and page are labelled "demo".
+- Header label is computed from `liveGroups()` (`NEXT_PUBLIC_REAL_ENDPOINTS`): "Live: knowledge · graph · ... — Demo: alerts ...".
+- `lib/admin.ts` `admin.graph()` + `GraphSnapshot` type. `ClarifyCard` hides the button row when `options` is empty.

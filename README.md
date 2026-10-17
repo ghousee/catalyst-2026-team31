@@ -106,6 +106,19 @@ flowchart LR
 ```
 Veterans and their knowledge are fictional, written for the demo (`kg/seed/`).
 
+## What's real in the UI
+
+| Screen / element | Source |
+|---|---|
+| AI Assistant (chat, citations, source cards) | Real: `/chat`, `/sources` |
+| Command proposals, approvals, output; metrics charts | Real API, synthetic simulator data |
+| Overview: nodes, subsystems, healthy indicators | Real (`/session`, `/graph`, `/metrics` vs. fixed limits) |
+| Overview: active alerts, AI summary, Needs attention; Investigations badge/page | Demo: scripted alerts (no watcher yet), labelled "demo" |
+| Systems (node x subsystem, notes, manual sections) | Real (`/graph`, `/documents`); live metrics only where the simulator has data |
+| Knowledge (manuals, signed notes) | Real (`/documents`, `/knowledge`) |
+| Knowledge graph page | Real, refreshes every 10 s (`/graph`) |
+| Training Simulator scenarios | Real API, fictional scenarios |
+
 ## Database schema
 Postgres 16 + pgvector (`sql/schema.sql`, migrations in `sql/migrations/`). Main tables:
 ```mermaid

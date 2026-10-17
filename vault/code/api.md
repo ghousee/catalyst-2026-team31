@@ -72,3 +72,9 @@ Backend for the UI. One pipeline function, a thin FastAPI shell, a CLI. Contract
 - Routers: `backend/knowledge.py` (`/persons`, `/knowledge*`), `backend/documents.py` (`/documents`) included in `main.py`. Contract: `docs/API_CONTRACT.md` v3.
 - Expert card "author of N approved note(s) that apply here" = the owner's approved notes in the context (`graph.query.lookup`).
 - `answer.clean_title` repairs the TACL kerning glitch ("Com m and(s)") in section titles shown on source cards.
+
+## GET /graph (2026-10-17) — `backend/graph/view.py`
+Read-only snapshot for the UI's Knowledge graph page. `shape_graph` is pure (tested in `test_knowledge_capture.py`).
+`{counts{entities by kind, links by rel, persons, notes{approved,draft,retired,needs_review}, doc_sections, documents}, entities[{id,kind,name,aliases,parent_id,links}],
+links[{src,rel,dst,source_id,created_by}] (cap 500, auto/human before seed), links_total, notes[{id,owner_name,kind,scope,status,needs_review,signed_at,call_text}] (cap 200),
+recent[...20]}`. Edges have no timestamp, so `recent` = notes signed/drafted, plus auto/human links dated by their note, plus document loads, newest first.
