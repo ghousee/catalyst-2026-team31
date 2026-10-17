@@ -38,6 +38,9 @@ export function setMe(me: Me) {
 export const toUserId = (name: string) =>
   name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32);
 
+/** What the UI calls each role: seniors are Veterans, juniors are Emerging Veterans. */
+export const roleLabel = (role: Me["role"]) => (role === "senior" ? "Veteran" : "Emerging Veteran");
+
 export function useMe(): Me {
   return useSyncExternalStore(
     (l) => {

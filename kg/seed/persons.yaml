@@ -27,3 +27,33 @@ persons:
     availability: on_shift
     active: true
     contact: 'ext. 4302 · Infrastructure desk'
+  - id: grace
+    name: Grace Okafor
+    role: Senior Performance & Capacity Analyst
+    team: Production Operations
+    years: 27
+    expertise: [PEEK, Measure, CPU takeover, Capacity]
+    availability: on_call
+    active: true
+    contact: 'ext. 4520 · on-call pager 555-0178'
+  - id: tom
+    name: Tom Becker
+    role: Senior Systems Programmer
+    team: Systems Engineering
+    years: 21
+    expertise: [TACL, FUP, Batch scripting]
+    availability: off_shift
+    active: true
+    contact: 'ext. 4188 · Systems desk'
+
+  # ---- Emerging veterans (juniors in training): level emerging, 1-2 subsystems each, never suggested as "who to call"
+  - {id: aisha, name: Aisha Rahman, role: Emerging Veteran (Operator II), team: Production Operations, years: 2, expertise: [TMF], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: ben, name: Ben Carter, role: Emerging Veteran (Operator I), team: Production Operations, years: 1, expertise: [Pathway, TACL], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: chloe, name: Chloe Martin, role: Emerging Veteran (Operator II), team: Infrastructure, years: 2, expertise: [SCF Storage], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: diego, name: Diego Alvarez, role: Emerging Veteran (Operator I), team: Production Operations, years: 1, expertise: [PEEK, Measure], availability: off_shift, active: true, contact: null, level: emerging}
+  - {id: emeka, name: Emeka Obi, role: Emerging Veteran (Operator I), team: Production Operations, years: 1, expertise: [TMF, FUP], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: fatima, name: Fatima Zahra, role: Emerging Veteran (Operator II), team: Production Operations, years: 3, expertise: [Pathway], availability: on_call, active: true, contact: null, level: emerging}
+  - {id: hiro, name: Hiro Tanaka, role: Emerging Veteran (Operator II), team: Systems Engineering, years: 2, expertise: [TACL], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: isla, name: Isla Murphy, role: Emerging Veteran (Operator I), team: Infrastructure, years: 1, expertise: [SCF Storage, TMF], availability: off_shift, active: true, contact: null, level: emerging}
+  - {id: jonah, name: Jonah Weiss, role: Emerging Veteran (Operator I), team: Production Operations, years: 0, expertise: [Measure], availability: on_shift, active: true, contact: null, level: emerging}
+  - {id: keya, name: Keya Shah, role: Emerging Veteran (Operator I), team: Systems Engineering, years: 1, expertise: [FUP, PEEK], availability: on_shift, active: true, contact: null, level: emerging}

@@ -149,17 +149,18 @@ def map_citations(text, sources):
 
 
 def experts_for(conn, subsystems, note_owner_names):
-    """People to ask: owners of the notes used first, then the strongest expert_in links for these subsystems."""
+    """People to ask: owners of the notes used first, then the strongest expert_in links for these subsystems.
+    Veterans only: emerging veterans (juniors in training) are never suggested as the expert."""
     if not subsystems:
         rows = conn.execute("SELECT id, name, role, team, years, expertise, availability, contact, active FROM person "
-                            "ORDER BY active DESC, name").fetchall()
+                            "WHERE level = 'veteran' ORDER BY active DESC, name").fetchall()
         weights = {}
     else:
         rows = conn.execute(
             """SELECT p.id, p.name, p.role, p.team, p.years, p.expertise, p.availability, p.contact, p.active,
                       max(e.weight) AS w
                FROM person p JOIN edge e ON e.src = p.id AND e.rel = 'expert_in'
-               WHERE e.dst = ANY(%s) GROUP BY p.id ORDER BY max(e.weight) DESC""", (list(subsystems),)).fetchall()
+               WHERE e.dst = ANY(%s) AND p.level = 'veteran' GROUP BY p.id ORDER BY max(e.weight) DESC""", (list(subsystems),)).fetchall()
         weights = {r[0]: r[9] for r in rows}
     out = []
     for r in rows:

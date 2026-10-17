@@ -238,3 +238,93 @@ heuristics:
     about: ['evt:DISK-5034', 'met:revive-current-sector', 'obj:vol-DATA01', 'cmd:scf.status_disk_detail']
     extends: ['doc:SCF-Storage:stopping-a-revive-operation']
 
+
+  # ======================= Grace Okafor (performance & capacity) =======================
+  # The CAIL brief's own scenario: a hardware failure cuts capacity and the survivors take the load.
+  - id: 'grace:h1'
+    owner: grace
+    kind: warning_pattern
+    system: 'sub:PEEK'
+    version: 'rvu:L'
+    site: 'node:PROD'
+    trigger: 'On \PROD a CPU goes down (CPU 101, backup takeover) and within 15 minutes CPU busy on the surviving processors is above 80% and still rising.'
+    call: "Run PEEK /CPU n/ on each surviving processor and find the one that took over the most process pairs. Check PATHCOM STATUS TERM for server classes whose servers now run there. Move load by lowering that class's MAXSERVERS on the busy CPU after a second operator agrees; do not restart the failed CPU's primaries by hand."
+    why: "After a takeover the backups wake up on the neighbouring CPU, so one survivor carries two CPUs' work. Busy climbs, the disk process request queue grows, and in our experience Pathway starts returning 1034 (no server available) to the ATM front end about 20 minutes later."
+    not_when: 'The CPU was taken down on purpose for maintenance and its load was moved beforehand, or busy is falling again on its own.'
+    provenance: 'debrief:INC-3107'
+    captured_via: incident
+    captured_at: 2026-10-02
+    signed_by: grace
+    signed_at: 2026-10-02
+    status: approved
+    endorsements: 2
+    last_validated: 2026-10-02
+    is_trigger: true
+    rule: {type: count, event: 'evt:CPU-101', count: 1, window_min: 15, metric: 'met:cpu-busy-time', above: 80, rising: true, lead_min: 20}
+    about: ['evt:CPU-101', 'met:cpu-busy-time', 'met:request-qtime', 'obj:CPUs', 'obj:CPU-2', 'evt:PATHWAY-1034']
+    mentions: ['obj:sc-SETTLE', 'cmd:peek.cpu', 'cmd:pathcom.status_term']
+    extends: ['doc:PEEK:specifying-a-processor-with-the-cpu-option']
+
+  - id: 'grace:h2'
+    owner: grace
+    kind: note
+    system: 'sub:MEASURE'
+    version: 'rvu:L'
+    site: all
+    trigger: 'A Measure CPU report shows CPU-BUSY-TIME close to 100% on one processor of an L-series (NonStop X) system.'
+    call: 'Check the per-core figures and the CPU queue time (CPU-QTIME) before calling it a capacity problem. High busy with a short queue is usually fine; a growing queue is the real warning.'
+    why: 'On multi-core L-series processors the CPU entity sums the cores, so the busy number reads higher than on the old J-series machines people learned on. Several false alarms were raised on busy alone.'
+    not_when: 'J-series or H-series systems, where one CPU is one core and the old thresholds still hold.'
+    provenance: 'interview:2026-10-03'
+    captured_via: interview
+    captured_at: 2026-10-03
+    signed_by: grace
+    signed_at: 2026-10-03
+    status: approved
+    endorsements: 1
+    last_validated: 2026-10-03
+    about: ['met:cpu-busy-time', 'met:cpu-qtime', 'obj:CPUs']
+    extends: ['doc:measure:cpu-157']
+
+  # ======================= Tom Becker (TACL / FUP) =======================
+  - id: 'tom:h1'
+    owner: tom
+    kind: note
+    system: 'sub:FUP'
+    version: all
+    site: all
+    trigger: 'A file cannot be purged or reloaded because it is in use, and nobody knows who has it open.'
+    call: "Run FUP LISTOPENS on the file to get the opener's process name, then TACL STATUS on that process to see its program and who started it. Ask the owner before stopping anything."
+    why: 'Night batch jobs often keep files open after their real work is done. Stopping the wrong process on \PROD has stopped a settlement step before.'
+    not_when: 'The opener is a TMF or disk process ($TMP, $DATAnn). Then it is a TMF question, not a stray opener.'
+    provenance: 'interview:2026-10-04'
+    captured_via: interview
+    captured_at: 2026-10-04
+    signed_by: tom
+    signed_at: 2026-10-04
+    status: approved
+    endorsements: 2
+    last_validated: 2026-10-04
+    about: ['cmd:fup.listopens', 'cmd:tacl.status_term']
+    extends: ['doc:FUP:listopens']
+
+  - id: 'tom:h2'
+    owner: tom
+    kind: note
+    system: 'sub:TACL'
+    version: all
+    site: all
+    trigger: 'A TACL macro that works on \DR fails or touches the wrong volume when run on \PROD.'
+    call: 'Before running it, check the session defaults (#DEFAULTS) and any =DEFINEs, and pass the node and volume as macro arguments. Never hard-code \node.$volume inside a macro.'
+    why: 'Most macros were written on one node and carry its defaults. The same command text then means a different file on the other node, which is exactly the "same buttons, different system" trap.'
+    not_when: 'Macros that already take the node and volume as arguments and print them before acting.'
+    provenance: 'interview:2026-10-04'
+    captured_via: interview
+    captured_at: 2026-10-04
+    signed_by: tom
+    signed_at: 2026-10-04
+    status: approved
+    endorsements: 3
+    last_validated: 2026-10-04
+    about: ['cmd:tacl.status_term']
+    extends: ['doc:TACL-Reference:macro-variables']

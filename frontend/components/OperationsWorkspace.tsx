@@ -49,7 +49,7 @@ const NAV: Array<{ id: PageId; label: string; icon: typeof LayoutDashboard; hue:
   { id: "assistant", label: "AI Assistant", icon: Bot, hue: "indigo" },
   { id: "knowledge", label: "Knowledge", icon: BookOpen, hue: "green" },
   { id: "simulator", label: "Training Simulator", icon: GraduationCap, hue: "rose" },
-  { id: "graph", label: "Knowledge graph", icon: Network, hue: "violet" },
+  { id: "graph", label: "Synapse", icon: Network, hue: "violet" },
   { id: "learning", label: "Learning map", icon: Map, hue: "sky" },
 ];
 
@@ -151,7 +151,7 @@ function OverviewPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           note={session ? session.nodes_available.map((n) => n.display).join(", ") : "Connecting"} />
         <StatCard hue="teal" icon={<Network size={18} aria-hidden="true" />} label="Subsystems in graph"
           value={subsystems === undefined ? <Skeleton className="h-8 w-10" /> : <CountUp value={subsystems} />}
-          note={graph.error ? "Graph unavailable" : "Live knowledge graph"} />
+          note={graph.error ? "Graph unavailable" : "Live in Synapse"} />
         <StatCard hue={withData.length && healthy < withData.length ? "amber" : "green"} icon={<Activity size={18} aria-hidden="true" />} label="Indicators under limit"
           value={withData.length ? <span><CountUp value={healthy} /> <span className="text-lg font-medium text-muted">of {withData.length}</span></span> : "n/a"}
           note={`${session?.node_display ?? "node"}, simulator metrics`} />
@@ -218,7 +218,7 @@ function SystemsPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const rows = all.filter((r) => Object.values(r).join(" ").toLowerCase().includes(query.toLowerCase()));
   return (
     <div>
-      <SectionTitle page="systems" title="Systems" description="Nodes and subsystems from the knowledge graph, with the veteran notes and manual sections in scope." />
+      <SectionTitle page="systems" title="Systems" description="Nodes and subsystems from Synapse (the knowledge graph), with the veteran notes and manual sections in scope." />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <label className="relative min-w-[260px] flex-1 sm:max-w-md"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" size={15} aria-hidden="true" /><input className="field h-9 w-full pl-8" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search systems" aria-label="Search systems" /></label>
         <span className="num text-xs text-muted">{rows.length} rows</span>
@@ -386,7 +386,7 @@ function WorkspaceShell() {
       {mobileOpen && <button className="fixed inset-0 z-30 bg-navy/40 lg:hidden" aria-label="Close navigation backdrop" onClick={() => setMobileOpen(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-panel/95 px-4 backdrop-blur sm:px-6">
+        <header className="relative z-40 flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-panel/95 px-4 backdrop-blur sm:px-6">
           <span aria-hidden="true" className="flow-band absolute inset-x-0 top-0 h-[3px]" />
           <button type="button" className="btn px-2 lg:hidden" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={17} /></button>
           <div className="hidden min-w-0 flex-1 sm:block"><label className="relative block max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="field h-9 w-full rounded-full bg-skysoft/60 pl-9" placeholder="Search systems, investigations, knowledge" aria-label="Global search" /></label></div>

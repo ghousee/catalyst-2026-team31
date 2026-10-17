@@ -24,7 +24,8 @@ CREATE TABLE person (
   expertise    TEXT[] DEFAULT '{}',
   availability TEXT CHECK (availability IS NULL OR availability IN ('on_shift','on_call','off_shift','retired')),
   active       BOOLEAN DEFAULT TRUE,
-  contact      TEXT
+  contact      TEXT,
+  level        TEXT NOT NULL DEFAULT 'veteran' CHECK (level IN ('veteran', 'emerging'))  -- (007) emerging = junior in training
 );
 
 -- ---------- Context fingerprint (shared by chunks + heuristics) ----------

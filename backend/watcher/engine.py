@@ -17,7 +17,7 @@ from backend.watcher import rules
 BUFFER_HOURS = 3
 REPLAYS = settings.ROOT / "data" / "replay"
 SCENARIO_REPLAY = {"audit_trail_fill": "quarter_end_audit", "disk_revive_stall": "revive_stall",
-                   "pathway_no_server": "pathway_no_server"}  # simulator page buttons
+                   "pathway_no_server": "pathway_no_server", "cpu_down": "cpu_down"}  # simulator page buttons
 NODE_DISPLAY = {"node:PROD": "\\PROD", "node:DR": "\\DR"}
 
 

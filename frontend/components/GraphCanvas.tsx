@@ -8,7 +8,7 @@ import type { GraphSnapshot } from "@/lib/admin";
  *  Drag nodes, zoom, click for details, double-click to isolate a neighbourhood. Updates in place when /graph changes,
  *  so newly signed notes and auto-created links appear without resetting the layout. */
 
-type Kind = "system" | "event" | "object" | "metric" | "command" | "site" | "version" | "person" | "note" | "doc" | "other";
+type Kind = "system" | "event" | "object" | "metric" | "command" | "site" | "version" | "person" | "emerging" | "note" | "doc" | "other";
 
 const STYLE: Record<Kind, { color: string; shape: string; size: number; label: string }> = {
   system: { color: "#1b56b2", shape: "dot", size: 26, label: "Subsystem" },
@@ -19,6 +19,7 @@ const STYLE: Record<Kind, { color: string; shape: string; size: number; label: s
   site: { color: "#d9480f", shape: "hexagon", size: 20, label: "Node" },
   version: { color: "#94a3b8", shape: "hexagon", size: 12, label: "Series" },
   person: { color: "#6a3fc4", shape: "star", size: 24, label: "Veteran" },
+  emerging: { color: "#0e9aa7", shape: "triangle", size: 14, label: "Emerging Veteran" },
   note: { color: "#e08a00", shape: "dot", size: 16, label: "Veteran note" },
   doc: { color: "#a9bbd3", shape: "box", size: 10, label: "Manual section" },
   other: { color: "#9ca3af", shape: "dot", size: 10, label: "Other" },
@@ -36,6 +37,7 @@ function kindOf(id: string): Kind {
 /** Nodes = entities + veteran notes + people + manual sections that appear in links. Pure; used for diffing. */
 function buildGraph(data: GraphSnapshot) {
   const owners = new Map(data.notes.map((n) => [n.id.split(":")[0], n.owner_name]));
+  const people = new Map((data.people ?? []).map((p) => [p.id, p]));
   const nodes = new Map<string, GNode>();
   for (const e of data.entities) {
     const k = (Object.keys(STYLE).includes(e.kind) ? e.kind : "other") as Kind;
@@ -51,7 +53,9 @@ function buildGraph(data: GraphSnapshot) {
     for (const id of [l.src, l.dst]) {
       if (nodes.has(id)) continue;
       if (l.rel === "expert_in" && id === l.src) {
-        nodes.set(id, { id, kind: "person", label: owners.get(id) ?? id, detail: { Kind: "Veteran", Id: id } });
+        const p = people.get(id);
+        const kind: Kind = p?.level === "emerging" ? "emerging" : "person";
+        nodes.set(id, { id, kind, label: p?.name ?? owners.get(id) ?? id, detail: { Kind: STYLE[kind].label, Id: id, Role: p?.role ?? "" } });
       } else {
         const k = kindOf(id);
         const label = k === "doc" ? id.replace(/^doc:/, "").replace(/-/g, " ").slice(0, 38) : id;
@@ -217,7 +221,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2" style={{ borderColor: REL_COLOR.contradicts }} aria-hidden="true" />contradicts</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
-        <div ref={box} className="min-h-0 flex-1 rounded-xl border border-line bg-panel shadow-soft" aria-label="Knowledge graph canvas" role="img" />
+        <div ref={box} className="min-h-0 flex-1 rounded-xl border border-line bg-panel shadow-soft" aria-label="Synapse knowledge graph canvas" role="img" />
         <aside className="scroll w-72 shrink-0 overflow-auto rounded-xl border border-line bg-panel shadow-soft p-3 text-sm" aria-label="Selected node details">
           {!sel && <p className="text-muted">Click a node to see what it is and how it connects. Double-click to show only its neighbours.</p>}
           {sel && (

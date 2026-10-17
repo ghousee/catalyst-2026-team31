@@ -159,7 +159,8 @@ class LinkIn(BaseModel):
 @router.get("/persons")
 def persons():
     with connect() as conn:
-        rows = _rows(conn, "SELECT id, name, role, team, years, expertise, availability, active FROM person ORDER BY name")
+        rows = _rows(conn, "SELECT id, name, role, team, years, expertise, availability, active, level FROM person "
+                           "ORDER BY level DESC, name")  # veterans first
     return [{**r, "expertise": list(r["expertise"] or [])} for r in rows]
 
 

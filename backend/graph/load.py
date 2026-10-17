@@ -93,11 +93,11 @@ def upsert(conn, entities, persons, heuristics, edges, embed=True, cpu=False):
                     (e["id"], e["kind"], e["name"], e["aliases"], e.get("parent_id"), Json(e.get("props") or {})))
         for p in persons:
             cur.execute(
-                """INSERT INTO person (id, name, role, team, years, expertise, availability, active, contact)
-                   VALUES (%(id)s,%(name)s,%(role)s,%(team)s,%(years)s,%(expertise)s,%(availability)s,%(active)s,%(contact)s)
+                """INSERT INTO person (id, name, role, team, years, expertise, availability, active, contact, level)
+                   VALUES (%(id)s,%(name)s,%(role)s,%(team)s,%(years)s,%(expertise)s,%(availability)s,%(active)s,%(contact)s,%(level)s)
                    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, role=EXCLUDED.role, team=EXCLUDED.team,
                      years=EXCLUDED.years, expertise=EXCLUDED.expertise, availability=EXCLUDED.availability,
-                     active=EXCLUDED.active, contact=EXCLUDED.contact""", p)
+                     active=EXCLUDED.active, contact=EXCLUDED.contact, level=EXCLUDED.level""", {"level": "veteran", **p})
         vecs = [None] * len(heuristics)
         if embed:
             vecs, _ = embedder.embed([embedder.doc_text(h["trigger"][:80], f"{h['trigger']} {h['call']} {h['why']}")
@@ -108,10 +108,10 @@ def upsert(conn, entities, persons, heuristics, edges, embed=True, cpu=False):
             cur.execute(
                 """INSERT INTO heuristic (id, owner_id, trigger_text, call_text, why_text, not_when_text, system_id,
                      version_id, site_id, all_versions, all_sites, provenance, status, endorsements, last_validated,
-                     is_trigger, kind, pattern, captured_via, captured_at, signed_by, signed_at, embedding)
+                     is_trigger, kind, pattern, captured_via, captured_at, signed_by, signed_at, embedding, rule)
                    VALUES (%(id)s,%(owner)s,%(trigger)s,%(call)s,%(why)s,%(not_when)s,%(system)s,%(vid)s,%(sid)s,%(av)s,%(as_)s,
                      %(provenance)s,%(status)s,%(endorsements)s,%(last_validated)s,%(is_trigger)s,%(kind)s,%(pattern)s,
-                     %(captured_via)s,%(captured_at)s,%(signed_by)s,%(signed_at)s,%(emb)s::vector)
+                     %(captured_via)s,%(captured_at)s,%(signed_by)s,%(signed_at)s,%(emb)s::vector,%(rule)s)
                    ON CONFLICT (id) DO UPDATE SET owner_id=EXCLUDED.owner_id, trigger_text=EXCLUDED.trigger_text,
                      call_text=EXCLUDED.call_text, why_text=EXCLUDED.why_text, not_when_text=EXCLUDED.not_when_text,
                      system_id=EXCLUDED.system_id, version_id=EXCLUDED.version_id, site_id=EXCLUDED.site_id,
@@ -119,10 +119,11 @@ def upsert(conn, entities, persons, heuristics, edges, embed=True, cpu=False):
                      status=EXCLUDED.status, endorsements=EXCLUDED.endorsements, last_validated=EXCLUDED.last_validated,
                      is_trigger=EXCLUDED.is_trigger, kind=EXCLUDED.kind, pattern=EXCLUDED.pattern,
                      captured_via=EXCLUDED.captured_via, captured_at=EXCLUDED.captured_at, signed_by=EXCLUDED.signed_by,
-                     signed_at=EXCLUDED.signed_at, embedding=COALESCE(EXCLUDED.embedding, heuristic.embedding)""",
+                     signed_at=EXCLUDED.signed_at, embedding=COALESCE(EXCLUDED.embedding, heuristic.embedding),
+                     rule=COALESCE(EXCLUDED.rule, heuristic.rule)""",
                 {**h, "vid": vid, "sid": sid, "av": vid is None, "as_": sid is None,
                  "is_trigger": h.get("is_trigger", False), "not_when": h.get("not_when"),
-                 "pattern": Json(h["pattern"]) if h.get("pattern") else None,
+                 "pattern": Json(h["pattern"]) if h.get("pattern") else None, "rule": Json(h["rule"]) if h.get("rule") else None,
                  "last_validated": h.get("last_validated"), "signed_by": h.get("signed_by"), "signed_at": h.get("signed_at"),
                  "emb": None if v is None else "[" + ",".join(map(str, v)) + "]"})
         cur.execute("DELETE FROM edge WHERE created_by = 'seed'")

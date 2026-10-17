@@ -8,7 +8,12 @@ export interface Person {
   role: string | null;
   availability: string | null;
   active: boolean;
+  /** veteran = senior (owns, teaches, signs); emerging = Emerging Veteran (junior in training) */
+  level?: "veteran" | "emerging";
 }
+
+/** Veterans own and sign knowledge; Emerging Veterans are juniors in training. */
+export const isVeteran = (p: Person) => p.level !== "emerging";
 
 export interface NewPerson {
   id: string;
@@ -121,6 +126,8 @@ export interface GraphSnapshot {
     entities: Record<string, number>;
     links: Record<string, number>;
     persons: number;
+    veterans?: number;
+    emerging?: number;
     notes: { approved: number; draft: number; retired: number; needs_review: number };
     doc_sections: number;
     documents: number;
@@ -128,6 +135,7 @@ export interface GraphSnapshot {
   entities: { id: string; kind: string; name: string; aliases: string[]; parent_id: string | null; links: number }[];
   links: { src: string; rel: string; dst: string; source_id: string | null; created_by: string | null }[];
   links_total: number;
+  people?: { id: string; name: string; role: string | null; level: "veteran" | "emerging" }[];
   notes: { id: string; owner_name: string; kind: string; scope: string; status: string; needs_review: boolean; signed_at: string; call_text: string }[];
   recent: { ts: string; type: string; text: string }[];
 }

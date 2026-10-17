@@ -30,7 +30,7 @@ function Origin({ a }: { a: Alert }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium">
       <Icon size={14} aria-hidden="true" className="text-muted" />
-      {a.kind === "trend" ? "Metric trend" : "Knowledge graph: usually comes before"}
+      {a.kind === "trend" ? "Metric trend" : "Synapse: usually comes before"}
     </span>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { admin, subName, type ApproveResult, type DocRow, type Note, type Person } from "@/lib/admin";
+import { admin, isVeteran, subName, type ApproveResult, type DocRow, type Note, type Person } from "@/lib/admin";
 import { getMe, toUserId } from "@/lib/me";
 import { ConsoleProvider } from "@/lib/store";
 import { SplitPane } from "./SplitPane";
@@ -97,7 +97,7 @@ function SignedResult({ r, onChanged }: { r: ApproveResult; onChanged: () => voi
 
 const NO_PERSON = { id: "", name: "", role: "", team: "", years: "", expertise: "", availability: "on_shift", contact: "" };
 
-/** Add a senior so they can teach and sign straight away (POST /persons). */
+/** Add a veteran so they can teach and sign straight away (POST /persons). */
 function AddPerson({ onAdded }: { onAdded: () => Promise<void> }) {
   const [p, setP] = useState(NO_PERSON);
   const [msg, setMsg] = useState<string | null>(null);
@@ -125,7 +125,7 @@ function AddPerson({ onAdded }: { onAdded: () => Promise<void> }) {
   );
   return (
     <details className="mt-5 border-t border-line pt-3">
-      <summary className="cursor-pointer text-[13px] font-medium">Add a senior</summary>
+      <summary className="cursor-pointer text-[13px] font-medium">Add a veteran</summary>
       <form onSubmit={submit} className="mt-3 grid grid-cols-2 gap-3">
         {input("name", "Name", true)}
         {input("id", "Id (optional, from the name)")}
@@ -140,7 +140,7 @@ function AddPerson({ onAdded }: { onAdded: () => Promise<void> }) {
         {input("expertise", "Expertise (comma separated)")}
         {input("contact", "Contact")}
         <div className="col-span-2 flex items-center gap-3">
-          <button type="submit" className="btn btn-primary" disabled={!toUserId(p.name)}>Add senior</button>
+          <button type="submit" className="btn btn-primary" disabled={!toUserId(p.name)}>Add veteran</button>
           {msg && <p role="status" className="text-[12.5px] text-ok">{msg}</p>}
           {err && <p role="alert" className="text-[12.5px] text-crit">{err}</p>}
         </div>
@@ -176,14 +176,14 @@ function Inner() {
     }
   }, []);
 
-  const loadPersons = useCallback(async () => setPersons(await admin.persons()), []);
+  const loadPersons = useCallback(async () => setPersons((await admin.persons()).filter(isVeteran)), []);
 
   useEffect(() => {
     void (async () => {
       try {
         const [p, docs] = await Promise.all([admin.persons(), admin.documents()]);
         const me = getMe();
-        setPersons(p);
+        setPersons(p.filter(isVeteran));  // only veterans own, teach and sign
         setOwner((o) => o || (me.role === "senior" ? me.id : p[0]?.id) || "");
         setEnteredBy((o) => o || me.id);
         const ids = [...new Set(docs.map((d: DocRow) => d.subsystem))].sort();
@@ -254,7 +254,7 @@ function Inner() {
           <Pane title="Add knowledge">
             <form onSubmit={submit} className="space-y-3">
               <Field label="Owner (whose knowledge it is; only they can sign it)">{personSelect(owner, setOwner, "Owner")}</Field>
-              <Field label="Entered by (who is typing it: anyone, e.g. a junior writing down what a senior said)">
+              <Field label="Entered by (who is typing it: anyone, e.g. an emerging veteran writing down what a veteran said)">
                 <input className="field w-full" aria-label="Entered by" required value={enteredBy} onChange={(e) => setEnteredBy(e.target.value)} />
               </Field>
               <Field label="Kind">

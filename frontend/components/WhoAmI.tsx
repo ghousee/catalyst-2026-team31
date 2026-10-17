@@ -2,10 +2,10 @@
 
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { admin, type Person } from "@/lib/admin";
+import { admin, isVeteran, type Person } from "@/lib/admin";
 import { useDismiss } from "@/lib/hooks";
 import { learning, type LearningUser } from "@/lib/learning";
-import { setMe, toUserId, useMe } from "@/lib/me";
+import { roleLabel, setMe, toUserId, useMe } from "@/lib/me";
 
 /** Top-bar picker: who is using the app. Seniors are person rows; a junior is any name (their Learning map is keyed by it). */
 export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
@@ -40,7 +40,7 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
     <div ref={ref} className="relative">
       <button type="button" className="btn h-8 gap-1.5 text-[12.5px]" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}>
         <span className="text-muted">You:</span> <span className="max-w-[140px] truncate font-medium">{me.name}</span>
-        <span className="text-muted">· {me.role}</span>
+        <span className="text-muted">· {roleLabel(me.role)}</span>
         <ChevronDown size={13} aria-hidden="true" />
       </button>
       {open && (
@@ -51,11 +51,11 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
               <input className="field h-8 min-w-0 flex-1" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Your name" />
               <button type="submit" className="btn btn-primary h-8" disabled={!toUserId(name)}>Start</button>
             </div>
-            <p className="text-[11.5px] text-muted">Starts you as a junior with your own Learning map.</p>
+            <p className="text-[11.5px] text-muted">Starts you as an Emerging Veteran with your own Learning map.</p>
           </form>
-          <p className="mt-3 border-t border-line pt-2 text-xs text-muted">Seniors (can teach and sign notes)</p>
+          <p className="mt-3 border-t border-line pt-2 text-xs text-muted">Veterans (can teach and sign notes)</p>
           <ul>
-            {persons.map((p) => (
+            {persons.filter(isVeteran).map((p) => (
               <li key={p.id}>
                 <button type="button" className="w-full py-1 text-left hover:text-accent" onClick={() => pick(p.id, p.name, "senior")}>
                   {p.name} <span className="text-xs text-muted">{p.role ?? ""}</span>
@@ -63,7 +63,17 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
               </li>
             ))}
           </ul>
-          {juniors.some((j) => !seniorIds.has(j.user_id)) && <p className="mt-2 border-t border-line pt-2 text-xs text-muted">Juniors</p>}
+          {persons.some((p) => !isVeteran(p)) && <p className="mt-2 border-t border-line pt-2 text-xs text-muted">Emerging Veterans</p>}
+          <ul>
+            {persons.filter((p) => !isVeteran(p)).map((p) => (
+              <li key={p.id}>
+                <button type="button" className="w-full py-1 text-left hover:text-accent" onClick={() => pick(p.id, p.name, "junior")}>
+                  {p.name} <span className="text-xs text-muted">{p.role ?? ""}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {juniors.some((j) => !seniorIds.has(j.user_id)) && <p className="mt-2 border-t border-line pt-2 text-xs text-muted">Other learners</p>}
           <ul>
             {juniors.filter((j) => !seniorIds.has(j.user_id)).map((j) => (
               <li key={j.user_id}>

@@ -1,0 +1,70 @@
+# Recorded-style feed (synthetic): the CAIL brief's hardware-failure scenario. t = seconds into the incident.
+{"t": 0, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 55, "text": "surviving CPU busy 55.0%"}
+{"t": 1, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12, "text": "disk process request queue time 12.0 ms"}
+{"t": 2, "node": "node:DR", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 18.0, "text": "CPU busy 18%"}
+{"t": 60, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 55, "text": "surviving CPU busy 55.0%"}
+{"t": 61, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12, "text": "disk process request queue time 12.0 ms"}
+{"t": 120, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 55.0, "text": "surviving CPU busy 55.0%"}
+{"t": 121, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12, "text": "disk process request queue time 12.0 ms"}
+{"t": 125, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:CPU-101", "text": "CPU 101: processor 2 down; backup processes taking over on CPU 3"}
+{"t": 180, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 58.0, "text": "surviving CPU busy 58.0%"}
+{"t": 181, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12, "text": "disk process request queue time 12.0 ms"}
+{"t": 240, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 61.0, "text": "surviving CPU busy 61.0%"}
+{"t": 241, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 12.0, "text": "disk process request queue time 12.0 ms"}
+{"t": 300, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 64.0, "text": "surviving CPU busy 64.0%"}
+{"t": 301, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 13.4, "text": "disk process request queue time 13.4 ms"}
+{"t": 360, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 67.0, "text": "surviving CPU busy 67.0%"}
+{"t": 361, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 14.8, "text": "disk process request queue time 14.8 ms"}
+{"t": 420, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 70.0, "text": "surviving CPU busy 70.0%"}
+{"t": 421, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 16.2, "text": "disk process request queue time 16.2 ms"}
+{"t": 480, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 73.0, "text": "surviving CPU busy 73.0%"}
+{"t": 481, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 17.6, "text": "disk process request queue time 17.6 ms"}
+{"t": 540, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 76.0, "text": "surviving CPU busy 76.0%"}
+{"t": 541, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 19.0, "text": "disk process request queue time 19.0 ms"}
+{"t": 600, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 79.0, "text": "surviving CPU busy 79.0%"}
+{"t": 601, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 20.4, "text": "disk process request queue time 20.4 ms"}
+{"t": 602, "node": "node:DR", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 18.0, "text": "CPU busy 18%"}
+{"t": 660, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 82.0, "text": "surviving CPU busy 82.0%"}
+{"t": 661, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 21.8, "text": "disk process request queue time 21.8 ms"}
+{"t": 720, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 85.0, "text": "surviving CPU busy 85.0%"}
+{"t": 721, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 23.2, "text": "disk process request queue time 23.2 ms"}
+{"t": 780, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 88.0, "text": "surviving CPU busy 88.0%"}
+{"t": 781, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 24.6, "text": "disk process request queue time 24.6 ms"}
+{"t": 840, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 91.0, "text": "surviving CPU busy 91.0%"}
+{"t": 841, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 26.0, "text": "disk process request queue time 26.0 ms"}
+{"t": 900, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 94.0, "text": "surviving CPU busy 94.0%"}
+{"t": 901, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 27.4, "text": "disk process request queue time 27.4 ms"}
+{"t": 960, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 961, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 28.8, "text": "disk process request queue time 28.8 ms"}
+{"t": 1020, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1021, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 30.2, "text": "disk process request queue time 30.2 ms"}
+{"t": 1080, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1081, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 31.6, "text": "disk process request queue time 31.6 ms"}
+{"t": 1140, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1141, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 33.0, "text": "disk process request queue time 33.0 ms"}
+{"t": 1200, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1201, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 34.4, "text": "disk process request queue time 34.4 ms"}
+{"t": 1202, "node": "node:DR", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 18.0, "text": "CPU busy 18%"}
+{"t": 1260, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1260, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:PATHWAY-1038", "text": "PATHWAY 1038: SERVER CLASS SETTLE-SC, server process limit (MAXSERVERS 8) reached"}
+{"t": 1261, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 35.8, "text": "disk process request queue time 35.8 ms"}
+{"t": 1320, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1321, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 37.2, "text": "disk process request queue time 37.2 ms"}
+{"t": 1380, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1381, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 38.6, "text": "disk process request queue time 38.6 ms"}
+{"t": 1440, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1441, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 40.0, "text": "disk process request queue time 40.0 ms"}
+{"t": 1500, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1501, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 41.4, "text": "disk process request queue time 41.4 ms"}
+{"t": 1560, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1561, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 42.8, "text": "disk process request queue time 42.8 ms"}
+{"t": 1620, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1621, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 44.2, "text": "disk process request queue time 44.2 ms"}
+{"t": 1680, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1680, "node": "node:PROD", "tool": "momi", "kind": "event", "entity": "evt:PATHWAY-1034", "text": "PATHWAY 1034: no server available for SERVER CLASS SETTLE-SC"}
+{"t": 1681, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 45.6, "text": "disk process request queue time 45.6 ms"}
+{"t": 1740, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1741, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 47.0, "text": "disk process request queue time 47.0 ms"}
+{"t": 1800, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 97, "text": "surviving CPU busy 97.0%"}
+{"t": 1801, "node": "node:PROD", "tool": "prognosis", "kind": "metric", "entity": "met:request-qtime", "value": 48.4, "text": "disk process request queue time 48.4 ms"}
+{"t": 1802, "node": "node:DR", "tool": "prognosis", "kind": "metric", "entity": "met:cpu-busy-time", "value": 18.0, "text": "CPU busy 18%"}

@@ -2,7 +2,7 @@
 
 import { BookMarked, Compass, MessageCircleQuestion, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { admin, type Person } from "@/lib/admin";
+import { admin, isVeteran, type Person } from "@/lib/admin";
 import { usePolling } from "@/lib/hooks";
 import { learning, type Level, type LearningMap, type LearningSubsystem } from "@/lib/learning";
 import { useMe } from "@/lib/me";
@@ -25,6 +25,9 @@ export function LearningPage() {
   const [sharing, setSharing] = useState(false);
   useEffect(() => setUser(me.id), [me.id]);
   const users = usePolling(() => learning.users(), 15000, "learning-users");
+  const people = usePolling(() => admin.persons(), 60000, "learning-people");
+  const names = new Map((people.data ?? []).map((p) => [p.id, p.name]));
+  const label = (id: string, q: number) => `${names.get(id) ?? id}${id === me.id ? " (you)" : ""} · ${q} questions`;
   const map = usePolling(() => learning.map(user), 15000, `learning-${user}-${rev}`);
   const options = users.data?.some((u) => u.user_id === user) ? users.data : [{ user_id: user, questions: 0, last_seen: "" }, ...(users.data ?? [])];
   const data = map.data?.user_id === user ? map.data : null;
@@ -37,7 +40,12 @@ export function LearningPage() {
         <label className="flex items-center gap-2 text-sm">
           <span className="font-medium">Operator</span>
           <select className="field h-9 px-3" value={user} onChange={(e) => setUser(e.target.value)} aria-label="Operator">
-            {options.map((u) => <option key={u.user_id} value={u.user_id}>{u.user_id}{u.user_id === me.id ? " (you)" : ""} ({u.questions} questions)</option>)}
+            <optgroup label="Emerging Veterans">
+              {options.filter((u) => names.has(u.user_id)).map((u) => <option key={u.user_id} value={u.user_id}>{label(u.user_id, u.questions)}</option>)}
+            </optgroup>
+            <optgroup label="Other learners (not in the people list)">
+              {options.filter((u) => !names.has(u.user_id)).map((u) => <option key={u.user_id} value={u.user_id}>{label(u.user_id, u.questions)}</option>)}
+            </optgroup>
           </select>
         </label>
         {mine && <button type="button" className="btn ml-auto" aria-expanded={sharing} onClick={() => setSharing((s) => !s)}>Share something you found</button>}
@@ -70,7 +78,7 @@ function ShareFinding({ me, subs, onDone }: { me: string; subs: LearningSubsyste
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    admin.persons().then((p) => { setPersons(p); setF((x) => ({ ...x, owner_id: x.owner_id || p[0]?.id || "" })); }).catch(() => setErr("Cannot load seniors"));
+    admin.persons().then((all) => { const p = all.filter(isVeteran); setPersons(p); setF((x) => ({ ...x, owner_id: x.owner_id || p[0]?.id || "" })); }).catch(() => setErr("Cannot load veterans"));
   }, []);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const submit = async (e: React.FormEvent) => {
@@ -86,14 +94,14 @@ function ShareFinding({ me, subs, onDone }: { me: string; subs: LearningSubsyste
   };
   return (
     <form onSubmit={submit} className="card rise mb-4 grid gap-3 p-4 text-[13px] md:grid-cols-2">
-      <p className="text-muted md:col-span-2">Found something that worked? Write it down and pick a senior to confirm it. Your name stays on it as the person who found it.</p>
+      <p className="text-muted md:col-span-2">Found something that worked? Write it down and pick a veteran to confirm it. Your name stays on it as the person who found it.</p>
       <label className="space-y-1"><span className="text-xs text-muted">When you see this</span><textarea required className="field min-h-[56px] w-full" value={f.trigger_text} onChange={set("trigger_text")} /></label>
       <label className="space-y-1"><span className="text-xs text-muted">What worked</span><textarea required className="field min-h-[56px] w-full" value={f.call_text} onChange={set("call_text")} /></label>
       <label className="space-y-1 md:col-span-2"><span className="text-xs text-muted">Why you think it works (optional)</span><input className="field w-full" value={f.why_text} onChange={set("why_text")} /></label>
       <div className="flex flex-wrap items-end gap-3 md:col-span-2">
         <label className="space-y-1"><span className="block text-xs text-muted">Subsystem</span><select className="field" value={f.subsystem} onChange={set("subsystem")}>{subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <label className="space-y-1"><span className="block text-xs text-muted">Node</span><select className="field" value={f.node} onChange={set("node")}><option value="ALL">all nodes</option><option value="PROD">\PROD only</option><option value="DR">\DR only</option></select></label>
-        <label className="space-y-1"><span className="block text-xs text-muted">Senior to confirm</span><select className="field" value={f.owner_id} onChange={set("owner_id")}>{persons.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label className="space-y-1"><span className="block text-xs text-muted">Veteran to confirm</span><select className="field" value={f.owner_id} onChange={set("owner_id")}>{persons.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <button type="submit" className="btn btn-primary" disabled={!f.owner_id}>Send for sign-off</button>
         <button type="button" className="btn" onClick={onDone}>Close</button>
       </div>

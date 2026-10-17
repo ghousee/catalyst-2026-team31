@@ -79,7 +79,8 @@ def graph():
     with connect() as conn:
         ents = _rows(conn, "SELECT id, kind, name, aliases, parent_id FROM entity ORDER BY kind, id")
         edges = _rows(conn, "SELECT src, rel, dst, source_id, created_by FROM edge")
-        persons = _rows(conn, "SELECT count(*) AS n FROM person")[0]["n"]
+        people = _rows(conn, "SELECT id, name, role, level FROM person ORDER BY level DESC, name")
+        persons = len(people)
         raw = _rows(conn, "SELECT h.id, p.name AS owner_name, h.kind, h.system_id, h.site_id, h.status, h.needs_review, "
                           "h.signed_at, h.captured_at, h.call_text FROM heuristic h JOIN person p ON p.id = h.owner_id "
                           "ORDER BY h.signed_at DESC NULLS LAST, h.captured_at DESC NULLS LAST, h.id")
@@ -92,4 +93,8 @@ def graph():
               "scope": f"{r['system_id'].replace('sub:', '')} / {r['site_id'].replace('node:', '') if r['site_id'] else 'all nodes'}",
               "status": r["status"], "needs_review": bool(r["needs_review"]), "signed_at": str(r["signed_at"] or ""),
               "captured_at": str(r["captured_at"] or ""), "call_text": r["call_text"]} for r in raw]
-    return shape_graph(ents, edges, notes, persons, docs)
+    out = shape_graph(ents, edges, notes, persons, docs)
+    out["people"] = people  # veterans and emerging veterans, so the canvas can name and style them
+    out["counts"]["veterans"] = sum(1 for p in people if p["level"] == "veteran")
+    out["counts"]["emerging"] = persons - out["counts"]["veterans"]
+    return out

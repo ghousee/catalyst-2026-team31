@@ -43,7 +43,7 @@ export function KnowledgeGraphPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Knowledge graph" icon={<Network size={18} aria-hidden="true" />} description="Live from the database, refreshed every 10 s." aside={<span className="inline-flex items-center gap-2 rounded-full border border-ok/35 bg-ok/10 px-3 py-1 text-xs font-semibold text-ok"><span className="live-dot" aria-hidden="true" />Live</span>} />
+      <PageHeader title="Synapse" icon={<Network size={18} aria-hidden="true" />} description="The knowledge graph: manuals, veterans, emerging veterans and how they connect. Live from the database, refreshed every 10 s." aside={<span className="inline-flex items-center gap-2 rounded-full border border-ok/35 bg-ok/10 px-3 py-1 text-xs font-semibold text-ok"><span className="live-dot" aria-hidden="true" />Live</span>} />
       {error && <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/10 p-3 text-sm text-crit">Graph unavailable: {error}</p>}
       {!data && loading && <p className="text-sm text-muted">Loading graph...</p>}
       {data && <Body data={data} q={q} setQ={setQ} has={has} />}
@@ -61,7 +61,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
       <dl className="stagger grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard hue="sky" icon={<Network size={18} aria-hidden="true" />} label="Entities" value={<CountUp value={sum(c.entities)} />} note={breakdown(c.entities)} />
         <StatCard hue="indigo" icon={<Link2 size={18} aria-hidden="true" />} label="Links" value={<CountUp value={sum(c.links)} />} note={breakdown(c.links)} />
-        <StatCard hue="violet" icon={<Users size={18} aria-hidden="true" />} label="People" value={<CountUp value={c.persons} />} note="veterans who own notes" />
+        <StatCard hue="violet" icon={<Users size={18} aria-hidden="true" />} label="People" value={<CountUp value={c.persons} />} note={c.veterans != null ? `${c.veterans} veterans · ${c.emerging ?? 0} emerging veterans` : "veterans and emerging veterans"} />
         <StatCard hue="amber" icon={<NotebookPen size={18} aria-hidden="true" />} label="Expert notes" value={<CountUp value={c.notes.approved} />} note={`approved · ${c.notes.draft} draft · ${c.notes.needs_review} needs review · ${c.notes.retired} retired`} />
         <StatCard hue="teal" icon={<BookOpen size={18} aria-hidden="true" />} label="Manual sections" value={<CountUp value={c.doc_sections} />} note={`in ${c.documents} documents`} />
       </dl>
