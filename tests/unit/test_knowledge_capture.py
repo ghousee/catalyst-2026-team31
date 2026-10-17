@@ -113,3 +113,63 @@ def test_shape_graph_counts_caps_and_recent():
     assert len(g["links"]) == 2 and g["links_total"] == 3
     assert all(x["created_by"] == "auto" for x in g["links"])  # auto links survive the cap, seed is cut
     assert [r["type"] for r in g["recent"]] == ["note_signed", "links_auto", "document_loaded"]
+
+
+# ---------------------------------------------------------------- teach chat
+SUBS = {"sub:SCF-STORAGE", "sub:TMF"}
+SAID = "on DR, when SCF STATUS DISK shows a path DOWN after a CLIM restart, wait 5 minutes before resetting"
+RAW = {"action": "draft", "question": "", "trigger_text": "SCF STATUS DISK shows a path DOWN after a CLIM restart",
+       "call_text": "wait 5 minutes before resetting", "why_text": "", "not_when_text": "", "node": "DR",
+       "subsystem": "sub:SCF-STORAGE", "kind": "note"}
+
+
+def test_teach_complete_turn_is_a_draft():
+    r = K.shape_turn(RAW, SAID, SUBS, 0)
+    assert r["type"] == "draft" and r["draft"]["node"] == "DR" and r["draft"]["subsystem"] == "sub:SCF-STORAGE"
+
+
+def test_teach_model_ask_is_a_question():
+    r = K.shape_turn({**RAW, "action": "ask", "question": "Why wait?"}, SAID, SUBS, 0)
+    assert r == {"type": "question", "text": "Why wait?"}
+
+
+def test_teach_missing_content_forces_question_even_if_model_says_draft():
+    assert K.shape_turn({**RAW, "call_text": ""}, SAID, SUBS, 0)["type"] == "question"
+
+
+def test_teach_unknown_subsystem_asks_then_uses_hint():
+    bad = {**RAW, "subsystem": "sub:MADEUP"}
+    assert K.shape_turn(bad, SAID, SUBS, 0)["type"] == "question"
+    assert K.shape_turn(bad, SAID, SUBS, 0, subsystem_hint="sub:TMF")["draft"]["subsystem"] == "sub:TMF"
+
+
+def test_teach_after_max_followups_drafts_with_what_is_known():
+    bad = {**RAW, "subsystem": "sub:MADEUP", "node": "unknown", "action": "ask", "question": "more?"}
+    r = K.shape_turn(bad, SAID, SUBS, K.MAX_FOLLOWUPS)
+    assert r["type"] == "draft" and r["draft"]["subsystem"] == "" and r["draft"]["node"] == "ALL"
+
+
+def test_teach_never_returns_invented_fields():
+    inv = {**RAW, "why_text": "because the controller firmware re-negotiates links slowly",
+           "not_when_text": "if the storage pool is encrypted"}
+    d = K.shape_turn(inv, SAID, SUBS, 0)["draft"]
+    assert d["why_text"] == "" and d["not_when_text"] == ""
+    said2 = SAID + ". It usually recovers on its own. Does not apply if both paths are down."
+    ok = K.shape_turn({**RAW, "why_text": "it usually recovers on its own", "not_when_text": "both paths are down"},
+                      said2, SUBS, 0)
+    assert ok["draft"]["why_text"] and ok["draft"]["not_when_text"]
+
+
+def test_teach_endpoint_makes_one_llm_call(monkeypatch):
+    import contextlib
+    import json as _j
+    calls = []
+    monkeypatch.setattr(K.llm, "chat", lambda *a, **k: calls.append(1) or {"content": _j.dumps(RAW)})
+
+    @contextlib.contextmanager
+    def fake():
+        yield object()
+    monkeypatch.setattr(K, "connect", fake)
+    monkeypatch.setattr(K, "_rows", lambda c, q, p=(): [{"id": "sub:SCF-STORAGE", "name": "SCF"}] if "entity" in q else [{"x": 1}])
+    out = K.teach(K.TeachIn(owner_id="lena", messages=[K.TeachMsg(role="veteran", text=SAID)]))
+    assert out["type"] == "draft" and len(calls) == 1

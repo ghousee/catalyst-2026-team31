@@ -5,6 +5,7 @@ On approve the code (never the LLM) auto-links: `about` edges to the graph entit
 subsystem only), `applies_to` the node(s), and +1 on the owner's `expert_in` weight for the subsystem. The veteran
 then confirms which manual sections the note extends/contradicts (POST /knowledge/{id}/link, created_by = 'human').
 """
+import json
 import re
 from datetime import date
 
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 
 from backend.graph.query import resolve
 from backend.ingest import embedder
+from backend.pipeline import llm
 from backend.pipeline.answer import _rows, clean_title, connect
 from backend.pipeline.retrieve import hybrid_search
 
@@ -216,3 +218,98 @@ def retire(nid: str):
         conn.execute("UPDATE heuristic SET status = 'retired' WHERE id = %s", (nid,))
         conn.commit()
         return _view({**h, "status": "retired"}, _links(conn, [nid])[nid])
+
+
+# ---------------------------------------------------------------- teach chat (a veteran talks, the assistant drafts)
+MAX_FOLLOWUPS = 3
+FIELDS = ("trigger_text", "call_text", "why_text", "not_when_text")
+TEACH_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "action": {"type": "string", "enum": ["ask", "draft"]},
+        "question": {"type": "string"},
+        "trigger_text": {"type": "string"}, "call_text": {"type": "string"},
+        "why_text": {"type": "string"}, "not_when_text": {"type": "string"},
+        "node": {"type": "string", "enum": ["PROD", "DR", "ALL", "unknown"]},
+        "subsystem": {"type": "string"},
+        "kind": {"type": "string", "enum": ["note", "warning_pattern"]},
+    },
+    "required": ["action", "question", "trigger_text", "call_text", "why_text", "not_when_text", "node", "subsystem", "kind"],
+}
+TEACH_PROMPT = """You help a senior HPE NonStop operator write down what they know as a short knowledge note.
+Fields: trigger_text (when it happens), call_text (what to do), why_text (why), not_when_text (when it does NOT apply),
+node (PROD, DR, ALL or unknown), subsystem (one id from the list), kind (warning_pattern if it warns of a coming failure, else note).
+Rules:
+- Use ONLY what the operator said, in their own words. Never invent or guess a fact. Leave a field "" if they did not say it.
+- If trigger_text, call_text, node or subsystem is still missing, or something important is unclear, answer action "ask" with ONE short
+  question about the single most important gap (when it happens / what to do / why / when it does NOT apply / which node).
+- Otherwise answer action "draft" and fill the fields. why_text and not_when_text may stay "" if never mentioned.
+- Do not ask about something the operator already answered.
+Subsystems:
+{subs}"""
+_STOP = {"the", "and", "for", "that", "this", "with", "you", "are", "was", "not", "but", "its", "has", "have", "when",
+         "then", "than", "from", "into", "will", "can", "all", "any", "does", "doesn"}
+
+
+def _words(s):
+    return {w for w in re.findall(r"[a-z0-9]+", s.lower()) if len(w) > 2 and w not in _STOP}
+
+
+def grounded(text, said):
+    """True when most of the text's words were actually said by the veteran (the LLM may rephrase, not invent)."""
+    w = _words(text)
+    return not w or len(w & _words(said)) / len(w) >= 0.6
+
+
+def shape_turn(raw, said, subs, followups, node_hint=None, subsystem_hint=None):
+    """Turn one raw LLM answer into {"type": "question"|"draft", ...}. All safety lives here: every text field must be
+    grounded in what the veteran said (else emptied), the subsystem must be a known id, and after MAX_FOLLOWUPS questions
+    we draft with what we have (a missing subsystem/node is then left for the editable form)."""
+    can_ask = followups < MAX_FOLLOWUPS
+    d = {f: (raw.get(f) or "").strip() if grounded(raw.get(f) or "", said) else "" for f in FIELDS}
+    sub = raw.get("subsystem") if raw.get("subsystem") in subs else subsystem_hint if subsystem_hint in subs else ""
+    node = raw.get("node") if raw.get("node") in NODE_ID else node_hint if node_hint in NODE_ID else ""
+    missing = [m for m, ok in (("when it happens", d["trigger_text"]), ("what to do", d["call_text"]),
+                               ("which node", node), ("which subsystem", sub)) if not ok]
+    if can_ask and (raw.get("action") == "ask" or missing):
+        q = (raw.get("question") or "").strip()
+        return {"type": "question", "text": q if raw.get("action") == "ask" and q else f"Can you tell me {missing[0]}?"}
+    if not d["trigger_text"] or not d["call_text"]:  # nothing usable to save: keep asking
+        return {"type": "question", "text": "Can you tell me when it happens and what to do?"}
+    kind = raw.get("kind") if raw.get("kind") in ("note", "warning_pattern") else "note"
+    return {"type": "draft", "draft": {**d, "node": node or "ALL", "subsystem": sub, "kind": kind}}
+
+
+class TeachMsg(BaseModel):
+    role: str
+    text: str
+
+
+class TeachIn(BaseModel):
+    owner_id: str
+    messages: list[TeachMsg]
+    node_hint: str | None = None
+    subsystem_hint: str | None = None
+
+
+@router.post("/knowledge/teach")
+def teach(body: TeachIn):
+    said = " ".join(m.text for m in body.messages if m.role == "veteran")
+    if not said.strip():
+        raise HTTPException(422, "say something first")
+    followups = sum(m.role == "assistant" for m in body.messages)
+    with connect() as conn:
+        if not _rows(conn, "SELECT 1 FROM person WHERE id = %s", (body.owner_id,)):
+            raise HTTPException(404, f"unknown person {body.owner_id}")
+        subs = _rows(conn, "SELECT id, name FROM entity WHERE kind = 'system' ORDER BY id")
+    convo = "\n".join(f"{'Operator' if m.role == 'veteran' else 'Assistant'}: {m.text}" for m in body.messages)
+    hints = "".join(f"\nHint: {k} = {v}" for k, v in (("node", body.node_hint), ("subsystem", body.subsystem_hint)) if v)
+    forced = '\nYou have asked enough questions: answer action "draft".' if followups >= MAX_FOLLOWUPS else ""
+    sys_prompt = TEACH_PROMPT.format(subs="\n".join(f"{s['id']} ({s['name']})" for s in subs))
+    r = llm.chat([{"role": "system", "content": sys_prompt}, {"role": "user", "content": convo + hints + forced}],
+                 schema=TEACH_SCHEMA, max_tokens=500)
+    try:
+        raw = json.loads(r["content"])
+    except ValueError:
+        raise HTTPException(502, "the model returned something unreadable, try again")
+    return shape_turn(raw, said, {s["id"] for s in subs}, followups, body.node_hint, body.subsystem_hint)
