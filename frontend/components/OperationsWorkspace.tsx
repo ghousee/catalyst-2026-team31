@@ -93,7 +93,7 @@ function StatStrip({ items }: { items: Array<{ label: string; value: string; not
         <div key={i.label} className="min-w-0 lg:px-5 lg:first:pl-0">
           <dt className="text-xs text-muted">{i.label}</dt>
           <dd className={`num mt-0.5 text-xl font-medium leading-tight ${TONE_TEXT[i.tone ?? "neutral"]}`}>{i.value}</dd>
-          <dd className="mt-0.5 truncate text-[11.5px] text-muted" title={i.note}>{i.note}</dd>
+          <dd className="mt-0.5 text-[11.5px] leading-4 text-muted">{i.note}</dd>
         </div>
       ))}
     </dl>

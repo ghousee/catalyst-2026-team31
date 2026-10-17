@@ -100,7 +100,7 @@ export function ProposalCard({ proposal: p }: { proposal: Proposal }) {
         </span>
       </header>
 
-      <pre className="overflow-x-auto rounded-[3px] bg-term px-3 py-2 font-mono text-[13.5px] text-termfg">{p.command}</pre>
+      <pre className="overflow-x-auto term-block px-3 py-2 text-[13.5px]">{p.command}</pre>
       <p className="text-[13px]">{p.explanation}</p>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted">Source</span>

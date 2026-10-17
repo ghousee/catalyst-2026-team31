@@ -144,3 +144,11 @@ dialog {
 dialog::backdrop {
   background: rgb(0 0 0 / 0.55);
 }
+
+/* command text: dark terminal surface in both themes */
+.term-block {
+  background: rgb(var(--term));
+  color: rgb(var(--term-fg));
+  border-radius: 3px;
+  font-family: var(--font-mono), "IBM Plex Mono", Consolas, monospace;
+}

@@ -97,3 +97,13 @@ polls every 15 s. Header says it shows encounters, not what the operator knows. 
 entities (ids `cmd:auto:<sub>:..`, `evt:auto:<sub>:..`, ~1,660) behind a checkbox + subsystem picker. Network is
 created once and updated in place (`ready` flag re-syncs after the async import - without it the canvas stayed blank).
 Drag, zoom, click = details panel, double-click = isolate neighbourhood, kind filters, find, auto links dashed.
+
+## Design system (2026-10-17 de-AI pass)
+Direction: a calm, dense operator's console, closer to a terminal tool than a SaaS dashboard. Styling only; no data/logic changes.
+- **Fonts:** IBM Plex Sans (UI) and IBM Plex Mono (commands, node names `\PROD`, ids, numbers) via `next/font/google` in `app/layout.tsx` (CSS vars `--font-sans`, `--font-mono`, Tailwind `font-sans`/`font-mono`). Numbers are tabular (`body` + `.num` for mono figures).
+- **Tokens** (`app/globals.css`, light and dark): cool ink/paper neutrals (`bg`, `panel`, `panel2`, `line`, `fg`, `muted`), ONE accent (indigo), colour otherwise only for meaning: `prod` orange, `dr` blue, `ok`/`warn`/`crit`. `--term`/`--term-fg` for the command surface (`.term-block`). Never hard-code colours in components.
+- **Shape:** radii <= 6px (`rounded` = 4px), hairline borders, no decorative shadows (popovers only). Sections are separated by rules and whitespace (`Block` in `OperationsWorkspace.tsx`); boxes only for real objects (answer, command card, source dialog).
+- **Stat strip** (`StatStrip`, `Strip`+`Tile` on graph/learning) replaces icon tiles. Tabs are underlined, active nav has a thin accent rule. Status = text label + small square marker (`.status-chip`), never colour alone.
+- **Type helpers:** `.label` (small semibold muted section label, sentence case, no uppercase eyebrows), `.code` (inline code), `.num` (mono figures).
+- **Assistant replies** (`ReplyText.tsx`): `` `code` `` renders as `<code>`, `**bold**` as strong, citations as inline bracketed numerals `[1]` (buttons opening the source card), cited sources as a footnote list. Lane/risk/approval labels remain in text.
+- Copy: no emoji or sparkles, no filler subtitles; "Summary", "Investigate".

@@ -14,7 +14,7 @@ function Tile({ label, value, note }: { label: string; value: number | string; n
     <div className="min-w-0 lg:px-5 lg:first:pl-0">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className="num mt-0.5 text-xl font-medium leading-tight">{value}</dd>
-      <dd className="mt-0.5 truncate text-[11.5px] text-muted" title={note}>{note}</dd>
+      <dd className="mt-0.5 text-[11.5px] leading-4 text-muted">{note}</dd>
     </div>
   );
 }
