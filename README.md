@@ -277,36 +277,64 @@ erDiagram
   heuristic ||--o{ alert : "fires"
   heuristic ||--o{ check_result : "asked in"
 ```
-Edge `rel` includes `knows` (a person passed a check on a note). Schema: `sql/schema.sql`; migrations
-`sql/migrations/002–008` (apply with `python -m backend.graph.migrate`).
+Edge `rel` also includes `knows`, `asked_about`, `learned_from` and `wrote`. Schema: `sql/schema.sql`; migrations
+`sql/migrations/002–009` (apply with `python -m backend.graph.migrate`).
 
 ## Setup (Windows / PowerShell)
-Needs Git, Python 3.11+, Node 20+, Docker Desktop (NVIDIA GPU recommended).
+Needs **Git, Python 3.11+, Node 20+, Docker Desktop**, about 15 GB of disk, and the **7 HPE manuals** (not in the repo).
+An NVIDIA GPU is recommended (answers take about 10 s on a 6 GB laptop GPU). Without one, delete the `deploy:` block
+under `ollama` in `docker-compose.yml`, or Docker will refuse to start it; everything still works, just slower.
+
+**1. Services: Postgres + pgvector and Ollama (Docker)**
 ```powershell
-# 1. services: Postgres + pgvector, Ollama
-Copy-Item .env.example .env              # change ports/URLs if 5432/11434 are taken (we use 5433 / 11435)
-docker compose up -d
-docker compose exec ollama ollama pull qwen3.5:4b
-docker compose exec ollama ollama pull embeddinggemma
-
-# 2. Python
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m pytest tests/unit -q
-
-# 3. HPE manuals -> data\raw\hpe\ (gitignored; public HPE docs, don't commit them), then load
-python -m backend.ingest.loader          # sections + embeddings (~6 min with GPU)
-python -m backend.graph.migrate          # migrations 002-008
-python -m backend.graph.load             # Synapse seed: graph, veterans, emerging veterans, notes
-python -m backend.graph.from_docs        # commands and messages from the manuals
-python -m backend.graph.demo_learning    # demo learning history for the emerging veterans
-
-# 4. run
-python -m uvicorn backend.api.main:app --host 127.0.0.1 --port 8000
-cd frontend; Copy-Item .env.local.example .env.local; npm install; npm run dev   # http://localhost:3000
+git clone https://github.com/ghousee/catalyst-2026-team31.git; cd catalyst-2026-team31
+Copy-Item .env.example .env        # defaults: Postgres on 5432, Ollama on 11434 (edit both ports and URLs if taken)
+docker compose up -d               # first start of an empty volume also creates the database schema
+docker compose exec ollama ollama pull qwen3.5:4b       # the language model (~3.4 GB)
+docker compose exec ollama ollama pull embeddinggemma   # the embedding model (~0.6 GB)
 ```
-Use `127.0.0.1`, not `localhost`: on Windows `localhost` tries IPv6 first and adds about 2 s to every request.
+
+**2. Python**
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1      # if blocked: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU build first (much smaller)
+pip install -r requirements.txt
+# one-time download of the reranker (later runs are offline: HF_HUB_OFFLINE=1 in .env)
+$env:HF_HUB_OFFLINE="0"; python -c "from transformers import AutoTokenizer as T, AutoModelForSequenceClassification as M; n='cross-encoder/ms-marco-MiniLM-L-6-v2'; T.from_pretrained(n); M.from_pretrained(n)"; Remove-Item Env:HF_HUB_OFFLINE
+python -m pytest tests/unit -q     # should pass
+```
+
+**3. Load the manuals and Synapse** (Docker must be running)
+
+Put the 7 public HPE NonStop manuals in `data\raw\hpe\` with exactly these names (`.pdf`, or a `.txt` extraction):
+`TMF-Reference`, `Pathway`, `SCF-Storage`, `TACL-Reference`, `PEEK`, `measure`, `FUP`. They come from the HPE
+NonStop Technical Library (support.hpe.com); they are gitignored, so don't commit them.
+```powershell
+python -m backend.graph.migrate          # brings the schema up to date (migrations 002-009; safe to re-run)
+python -m backend.ingest.loader          # manual sections + embeddings (~6 min with a GPU)
+python -m backend.graph.load             # Synapse seed: graph, veterans, emerging veterans, notes, warning rules
+python -m backend.graph.from_docs        # commands and messages from the manuals, linked to their sections
+python -m backend.graph.demo_learning    # demo learning history for the emerging veterans
+```
+
+**4. Run** (two terminals)
+```powershell
+python -m uvicorn backend.api.main:app --host 127.0.0.1 --port 8000          # terminal 1 (venv active)
+cd frontend; Copy-Item .env.local.example .env.local; npm install; npm run dev   # terminal 2: http://localhost:3000
+```
+The first answer after a restart takes ~25 s while Ollama loads the model; after that about 10 s.
+Use `127.0.0.1`, not `localhost`, for the API: on Windows `localhost` tries IPv6 first and adds ~2 s per request.
 Don't run `npm run build` while `npm run dev` is running.
+
+**Quick check:** open http://localhost:3000, pick **You: … → Grace Okafor**, ask the AI Assistant "why is the TMF
+audit trail filling up?" (it should cite a manual section and Maria Rossi), then Training Simulator → **CPU down and
+takeover** → Alerts. Demo walkthrough: [docs/DEMO.md](docs/DEMO.md).
+
+**Troubleshooting**
+- *Schema changed / want a clean database:* `docker compose down -v` (deletes the data, keeps nothing), then repeat steps 1 and 3.
+- *API fails at startup with a Hugging Face error:* run the one-time reranker download in step 2.
+- *Port already in use:* change `PG_PORT` / `OLLAMA_PORT` and the matching `DATABASE_URL` / `OLLAMA_URL` in `.env`.
+- *UI shows "Cannot reach API":* the API isn't running, or `NEXT_PUBLIC_API_URL` in `frontend/.env.local` is wrong.
 
 ## What's in here
 | Path | What |

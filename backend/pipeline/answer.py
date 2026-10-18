@@ -120,9 +120,10 @@ def connect():
     return conn
 
 
-def warm():
-    """Load MiniCheck once (lazy singleton) and get Qwen + the embedder into memory, so the first question isn't slow."""
-    verify._load()
+def warm(verifier=True):
+    """Get Qwen + the embedder into memory (and MiniCheck, for classic mode), so the first question isn't slow."""
+    if verifier:
+        verify._load()
     embed_query("warm up")
     from backend.pipeline import llm
     llm.chat([{"role": "user", "content": "ok"}], max_tokens=1)

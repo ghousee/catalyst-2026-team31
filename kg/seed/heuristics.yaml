@@ -33,6 +33,7 @@ heuristics:
         - {metric: 'met:audit-capacity-pct', trend: rising, above: 60}
       predicts: {event: 'evt:TMF-187', lead_minutes: 40, then: 'evt:TMF-109'}
       propose_commands: ['cmd:tmfcom.status_audittrail_detail', 'cmd:tmfcom.status_transaction']
+    rule: {type: count, event: 'evt:TMF-185', count: 2, window_min: 30, metric: 'met:audit-capacity-pct', above: 60, rising: true, lead_min: 40}
     about: ['evt:TMF-185', 'evt:TMF-187', 'met:audit-capacity-pct', 'obj:audit-trail-MAT']
     mentions: ['obj:sc-SETTLE']
     extends: ['doc:TMF-Reference:status-audittrail-output-displayed']
@@ -235,6 +236,7 @@ heuristics:
         - {metric: 'met:revive-current-sector', field: revive_interval, trend: rising}
       predicts: {event: 'evt:DISK-5034', lead_minutes: 20}
       propose_commands: ['cmd:scf.status_disk_detail']
+    rule: {type: stalled, metric: 'met:revive-current-sector', minutes: 10}
     about: ['evt:DISK-5034', 'met:revive-current-sector', 'obj:vol-DATA01', 'cmd:scf.status_disk_detail']
     extends: ['doc:SCF-Storage:stopping-a-revive-operation']
 

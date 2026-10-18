@@ -29,7 +29,7 @@ SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-
 
 @asynccontextmanager
 async def lifespan(app):
-    pipeline.warm()  # MiniCheck loads once, here, not on the first question
+    pipeline.warm(verifier=ANSWER_MODE == "classic")  # MiniCheck (3 GB) only for the classic pipeline
     if ANSWER_MODE == "assistant":
         assistant.warm()
     if os.getenv("CONNECTORS", "on") != "off":  # monitoring-tool connectors -> watcher
