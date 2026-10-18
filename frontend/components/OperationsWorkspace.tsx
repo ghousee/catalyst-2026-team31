@@ -17,7 +17,6 @@ import {
   Network,
   Search,
   Server,
-  ShieldCheck,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -372,7 +371,8 @@ function WorkspaceShell() {
     <div className="flex h-screen min-w-0 bg-bg text-fg">
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-gradient-to-b from-navy via-navy to-navy2 text-white shadow-lift transition-transform lg:static lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="relative flex h-[60px] items-center gap-3 px-4">
-          <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky to-white/80 text-navy shadow-soft"><ShieldCheck size={20} /></span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- small static logo, no optimisation needed */}
+          <img src="/logo.png" alt="" aria-hidden="true" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full bg-white p-0.5 shadow-soft" />
           <div className="leading-tight"><p className="font-display text-lg font-bold tracking-tight">CAIL</p><p className="text-[11.5px] text-white/75">Operations Assistant</p></div>
           <button type="button" className="ml-auto rounded-md p-1 text-white/80 hover:bg-white/10 lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button>
           <span aria-hidden="true" className="flow-band absolute inset-x-0 bottom-0 h-[3px]" />
