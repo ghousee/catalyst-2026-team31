@@ -1,6 +1,6 @@
 # System design — NonStop Copilot (CAIL challenge, Team #31)
 
-Version 3 · 2026-10-17 · replaces the 2026-10-17 draft (v2). Brief: [vault/design/challenge brief.md](../vault/design/challenge%20brief.md).
+Version 3.1 · 2026-10-18 · adds monitoring-tool connectors, alert priority, roles, knowledge checks and the training sandbox. Brief: [vault/design/challenge brief.md](../vault/design/challenge%20brief.md).
 
 ## 1. Problem and goal
 CAIL's customers run banking, payments and telecom on HPE NonStop. Experienced operators are retiring (about 5 of 20
@@ -10,11 +10,11 @@ the veterans know before they leave.
 
 | Brief capability | Our feature | Status |
 |---|---|---|
-| 1. Natural language → commands, approved | Command catalog, risk classes, node/series guards, dry-run, 1- or 2-person approval | Built |
-| 2. Understand & monitor health | Watcher: veteran patterns, graph chains, metric trends; alert cards; health charts | Built (replay feeds; connectors designed) |
+| 1. Natural language → commands, approved | Command catalog, risk classes, node/series guards, dry-run, veteran-only 1- or 2-person approval | Built |
+| 2. Understand & monitor health | Prognosis/MOMI connectors → watcher (tool alarms, veteran patterns, graph chains, trends); High/Medium/Low priority; alert cards; health charts | Built (tested against stand-ins) |
 | 3. Preserve expert knowledge | Teach chat, owner sign-off, automatic graph links, Synapse | Built |
 | 4. Guide troubleshooting | Cited answers, "check first" commands, risks, what usually comes next, who to call | Built |
-| Training speed (CAIL steer) | Learning maps, starting levels, Emerging Veterans' findings | Built; drill mode next |
+| Training speed (CAIL steer) | Learning maps, starting levels, knowledge checks (`knows` links), guided training sandbox, Emerging Veterans' findings | Built (one guided scenario) |
 
 ## 2. The context problem ("system A and B have the same buttons")
 The same command means different things depending on four things:
@@ -50,8 +50,8 @@ flowchart TB
   end
   subgraph IN["Event sources (one normalised event)"]
     R["Replay feeds<br/>data/replay"]
-    P["Prognosis REST poller<br/>(designed)"]
-    M["MOMI export reader<br/>(designed)"]
+    P["Prognosis REST poller<br/>integrations/prognosis.py"]
+    M["MOMI export reader<br/>integrations/momi.py"]
   end
   subgraph DB["Postgres 16 + pgvector = Synapse"]
     T1["entity / edge<br/>graph"]
@@ -132,7 +132,20 @@ sequenceDiagram
 - **Trend:** a straight-line projection to a hard limit; warns within 60 min, critical within 20.
 - **De-duplication:** one open card per (kind, key, node). A veteran's card closes and suppresses the chain and
   trend cards for the same event or metric.
-- **No LLM** in detection: explainable, fast and testable (`tests/unit/test_watcher_rules.py`).
+- **Tool alarms** (`backend/integrations`):
+  - the connector reads the node and the quoted message number ("TMF 185");
+  - `mapping.entity_for` puts the alarm on a curated event, else on the manual's own message entity, else on a metric
+    or subsystem;
+  - the card is shown at once, and the alarm is also fed on as an event, so patterns and chains see it;
+  - an unreadable node is dropped, never guessed.
+- **Priority** (`rules.priority`): High / Medium / Low from points, with the reasons listed on the card:
+  - +2 for `\PROD`;
+  - +2 if it is, or leads to, a transaction-stopping event;
+  - +1 if a veteran's pattern matched;
+  - +1 if failure is expected within 30 min;
+  - +1 if the tool marks it critical.
+- **No LLM** in detection or priority: explainable, fast and testable (`tests/unit/test_watcher_rules.py`,
+  `test_integrations.py`).
 
 ### 4.3 Capture and sign (Veterans)
 1. Teach chat: the veteran talks, Qwen asks one follow-up at a time, then drafts trigger / do / why / not-when plus
@@ -152,8 +165,17 @@ sequenceDiagram
   the graph nodes "touched". Coverage = touched / nodes per subsystem.
 - It shows the veterans learned from, what has never been touched, recent questions, and the starting level per
   subsystem (`self_level`, self-reported, never used to answer).
-- **Next: drill mode.** Replay a past incident, have the junior answer, compare with the veteran's note, and record
-  the score on the map.
+- **Knowledge check** (`backend/knowledge_check.py`):
+  - a signed note becomes "<trigger>. What would you do?";
+  - Qwen grades the answer against do / why / not-when (0 missed, 1 partly, 2 got it) and shows the veteran's answer;
+  - results go to `check_result`, and a pass adds `knows` (person → note) to Synapse and counts as "Demonstrated".
+- **Training sandbox** (`backend/training.py`, Training Simulator → Audit trail filling): a guided exercise.
+  - Steps: brief → first check (multiple choice) → simulated command output → decision graded against the notes →
+    debrief.
+  - It uses its own simulator and stores nothing.
+- **Roles:**
+  - Veterans: `\PROD`, approve commands, own and sign notes.
+  - Emerging Veterans: `\DR`; can ask, dry-run, take checks and practise, but approval is refused by the API.
 
 ### 4.5 Ingest documents
 - Upload a PDF or text file. It is split into sections and embedded, and added to `doc_chunk` with its edition.
@@ -187,8 +209,8 @@ recorded feeds through the same path.
 
 | Tool | How it exposes alerts | Our adapter | Status |
 |---|---|---|---|
-| IR Prognosis | REST API: admin-defined PQL datasets as JSON over HTTPS, e.g. open problems (`/Prognosis/Rest/v1/data/<id>`); SNMP traps | Poll every 10–30 s; SNMP as fallback | Designed; needs a customer endpoint |
-| BlackWood MOMI | No API. Alarms → email, EMS, log; scheduled history/log exports | Watched export folder; email sink as an option | Designed |
+| IR Prognosis | REST API: admin-defined PQL datasets as JSON over HTTPS, e.g. open problems (`/Prognosis/Rest/v1/data/<id>`); SNMP traps | `Poller`: every 10 s, configurable columns, basic auth (`PROGNOSIS_URL/USER/PASSWORD`) | Built; tested against a local stand-in |
+| BlackWood MOMI | No API. Alarms → email, EMS, log; scheduled history/log exports | `InboxReader`: alarm-template blocks and TAB log lines from `MOMI_INBOX`, every 5 s | Built; tested against sample exports |
 | Third tool | Unknown | Ask CAIL | — |
 
 The alarm-name → graph-node mapping is done in advance, so an incoming alert lands on a node with its notes and
@@ -216,6 +238,6 @@ manual sections already linked. Details: [INTEGRATIONS_PROGNOSIS_MOMI.md](INTEGR
 | No incident history, so no "warned early in X of Y" | Record alerts and outcomes; backtest rules |
 | Graph links come from section titles only (2,645 sections unlinked) | Body-text "mentions" links (deterministic) |
 | Answer path uses graph links only for experts | Follow one hop from named nodes into extra sources |
-| Connectors designed, not connected | Prognosis poller + MOMI folder reader once CAIL provides a sample |
-| No drill mode | Replay incidents as exercises, score on the learning map |
+| Connectors tested only against stand-ins | Point them at a customer's Prognosis URL / MOMI export folder; adjust Prognosis column names |
+| One guided training scenario | Add guided steps for CPU down (the brief's scenario), revive stall and Pathway |
 | 4B model quality | A larger local model if hardware allows |
