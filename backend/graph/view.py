@@ -71,6 +71,15 @@ def shape_graph(entities, edges, notes, persons, docs, link_cap=LINK_CAP):
     }
 
 
+def latest_change(conn_rows):
+    """The newest of the candidate rows [{id, ts}] -> {"id", "ts"} (None when there are none). Pure."""
+    rows = [r for group in conn_rows for r in group if r.get("ts")]
+    if not rows:
+        return None
+    r = max(rows, key=lambda x: x["ts"])
+    return {"id": r["id"], "ts": r["ts"].isoformat()}
+
+
 router = APIRouter()
 
 
@@ -80,8 +89,16 @@ def graph():
         ents = _rows(conn, "SELECT id, kind, name, aliases, parent_id FROM entity ORDER BY kind, id")
         edges = _rows(conn, "SELECT src, rel, dst, source_id, created_by FROM edge")
         people = _rows(conn, "SELECT id, name, role, level FROM person ORDER BY level DESC, name")
+        # newest change for "Show latest change": a signed note, or a person's newest learning link (question or check)
+        latest_note = _rows(conn, "SELECT id, signed_at::timestamptz AS ts FROM heuristic WHERE status = 'approved' "
+                                  "ORDER BY signed_at DESC NULLS LAST, id DESC LIMIT 1")
+        latest_learning = _rows(conn, """
+            SELECT user_id AS id, ts FROM (
+              SELECT user_id, ts FROM answer_log WHERE user_id IN (SELECT src FROM edge WHERE created_by = 'chat')
+              UNION ALL SELECT user_id, ts FROM check_result) x
+            ORDER BY ts DESC LIMIT 1""")
         persons = len(people)
-        raw = _rows(conn, "SELECT h.id, p.name AS owner_name, h.kind, h.system_id, h.site_id, h.status, h.needs_review, "
+        raw = _rows(conn, "SELECT h.id, h.owner_id, p.name AS owner_name, h.kind, h.system_id, h.site_id, h.status, h.needs_review, "
                           "h.signed_at, h.captured_at, h.call_text FROM heuristic h JOIN person p ON p.id = h.owner_id "
                           "ORDER BY h.signed_at DESC NULLS LAST, h.captured_at DESC NULLS LAST, h.id")
         docs = _rows(conn, """
@@ -93,8 +110,12 @@ def graph():
               "scope": f"{r['system_id'].replace('sub:', '')} / {r['site_id'].replace('node:', '') if r['site_id'] else 'all nodes'}",
               "status": r["status"], "needs_review": bool(r["needs_review"]), "signed_at": str(r["signed_at"] or ""),
               "captured_at": str(r["captured_at"] or ""), "call_text": r["call_text"]} for r in raw]
+    # who wrote each note, drawn as a link so veterans connect to their knowledge (veteran -> note <- emerging veteran)
+    edges = edges + [{"src": r["owner_id"], "rel": "wrote", "dst": r["id"], "source_id": r["id"], "created_by": "owner"}
+                     for r in raw if r["status"] != "retired"]
     out = shape_graph(ents, edges, notes, persons, docs)
     out["people"] = people  # veterans and emerging veterans, so the canvas can name and style them
+    out["latest"] = latest_change(conn_rows=(latest_note, latest_learning))
     out["counts"]["veterans"] = sum(1 for p in people if p["level"] == "veteran")
     out["counts"]["emerging"] = persons - out["counts"]["veterans"]
     return out

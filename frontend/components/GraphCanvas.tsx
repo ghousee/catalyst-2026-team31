@@ -26,7 +26,7 @@ const STYLE: Record<Kind, { color: string; shape: string; size: number; label: s
 };
 const REL_COLOR: Record<string, string> = { contradicts: "#e5484d", disagrees_with: "#ea580c", expert_in: "#6a3fc4", precedes: "#b45309", knows: "#2fa05b" };
 /** links made by the system stand out: auto = made when a veteran signs a note, check = made by a knowledge check */
-const BY_COLOR: Record<string, string> = { auto: "#38a8f0", check: "#22a559" };
+const BY_COLOR: Record<string, string> = { auto: "#38a8f0", check: "#22a559", chat: "#f59e0b", owner: "#7c5ce0" };
 
 type GNode = { id: string; kind: Kind; label: string; detail: Record<string, string> };
 
@@ -59,9 +59,9 @@ function buildGraph(data: GraphSnapshot) {
   for (const l of data.links) {
     for (const id of [l.src, l.dst]) {
       if (nodes.has(id)) continue;
-      if ((l.rel === "expert_in" || l.rel === "knows") && id === l.src) {
+      if (["expert_in", "knows", "asked_about", "learned_from", "wrote"].includes(l.rel) && id === l.src) {
         const p = people.get(id);
-        const kind: Kind = l.rel === "knows" || p?.level === "emerging" ? "emerging" : "person";
+        const kind: Kind = p ? (p.level === "emerging" ? "emerging" : "person") : l.rel === "expert_in" || l.rel === "wrote" ? "person" : "emerging";
         nodes.set(id, { id, kind, label: p?.name ?? owners.get(id) ?? id, detail: { Kind: STYLE[kind].label, Id: id, Role: p?.role ?? "" } });
       } else {
         const k = kindOf(id);
@@ -102,13 +102,14 @@ export function GraphCanvas({ data, focus }: { data: GraphSnapshot; focus?: stri
     const g = graphRef.current;
     if (!g.nodes.has(id)) return;
     const ids = new Set([id, ...g.edges.filter((e) => e.from === id || e.to === id).flatMap((e) => [e.from, e.to])]);
-    setFocusIds(ids);
+    // bring in the veteran who wrote each note in view, so the chain veteran -> note <- learner is visible
+    g.edges.filter((e) => e.rel === "wrote" && ids.has(e.to)).forEach((e) => ids.add(e.from));    setFocusIds(ids);
     setSelected(id);
     const centre = () => { const v = vis.current; if (!v || !v.nodes.get(id)) return; v.net.selectNodes([id]); v.net.fit({ nodes: [...ids].filter((i) => v.nodes.get(i)), animation: { duration: 500 } }); };
     setTimeout(centre, 300);
     setTimeout(centre, 1800); // once the layout has settled
   };
-  const latestNote = data.notes[0]?.id;
+  const latestNote = data.latest?.id ?? data.notes[0]?.id;  // newest signed note, question or check
 
   const isAuto = (id: string) => id.includes(":auto:");
   const autoOk = (n: GNode) => !isAuto(n.id) || (showAuto && (autoSub === "all" || n.id.startsWith(`${n.id.split(":")[0]}:auto:${autoSub.replace("sub:", "").toLowerCase()}:`)));
@@ -162,7 +163,7 @@ export function GraphCanvas({ data, focus }: { data: GraphSnapshot; focus?: stri
     const es = graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e) => ({
       id: e.id, from: e.from, to: e.to, label: labels ? e.label : undefined, dashes: e.auto && !BY_COLOR[e.by],
       color: { color: BY_COLOR[e.by] ?? REL_COLOR[e.rel] ?? "#9ca3af", highlight: "#111827" }, width: BY_COLOR[e.by] ? 3 : e.auto ? 2 : 1,
-      title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.by === "check" ? " · made by a knowledge check" : e.by === "auto" ? " · auto-linked on sign-off" : e.auto ? " · auto-created" : ""}`,
+      title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.by === "check" ? " · made by a knowledge check" : e.by === "chat" ? " · from using the AI Assistant" : e.by === "owner" ? " · the veteran who wrote this note" : e.by === "auto" ? " · auto-linked on sign-off" : e.auto ? " · auto-created" : ""}`,
     }));
     // a manual-section node whose links all go to hidden nodes would float alone: hide it too
     const linked = new Set(es.flatMap((e) => [e.from, e.to]));
@@ -251,6 +252,8 @@ export function GraphCanvas({ data, focus }: { data: GraphSnapshot; focus?: stri
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2 border-dashed border-muted" aria-hidden="true" />auto-created link</span>
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.auto }} aria-hidden="true" />auto-linked on sign-off</span>
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.check }} aria-hidden="true" />knows (passed a check)</span>
+        <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.chat }} aria-hidden="true" />asked about / learned from (AI Assistant)</span>
+        <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.owner }} aria-hidden="true" />wrote (veteran → their note)</span>
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2" style={{ borderColor: REL_COLOR.contradicts }} aria-hidden="true" />contradicts</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">

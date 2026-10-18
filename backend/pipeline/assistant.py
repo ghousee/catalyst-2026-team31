@@ -174,6 +174,21 @@ def experts_for(conn, subsystems, note_owner_names):
     return sorted(out, key=lambda e: (not (e["name"] in note_owner_names), order.get(e["availability"], 4)))[:3]
 
 
+def record_learning(conn, user_id, subsystem, note_ids):
+    """An emerging veteran's question shows up in Synapse: `asked_about` -> the subsystem, `learned_from` -> each
+    veteran note the answer cited (weight = how many times). Veterans and unregistered users are not recorded."""
+    if not _is_emerging(conn, user_id):
+        return
+    links = ([("asked_about", subsystem, subsystem)] if subsystem else []) + [("learned_from", n, n) for n in note_ids]
+    for rel, dst, src_id in links:
+        conn.execute("INSERT INTO edge (src, rel, dst, weight, source_id, created_by) VALUES (%s,%s,%s,1,%s,'chat') "
+                     "ON CONFLICT (src, rel, dst) DO UPDATE SET weight = edge.weight + 1", (user_id, rel, dst, src_id))
+
+
+def _is_emerging(conn, user_id):
+    return bool(conn.execute("SELECT 1 FROM person WHERE id = %s AND level = 'emerging'", (user_id,)).fetchone())
+
+
 _OTHER_NODE = re.compile(r"(?<![a-z0-9])\\?(prod|dr)(?![a-z0-9])", re.I)
 
 
@@ -218,6 +233,7 @@ def answer(question, session, override=None, history=()):
             "INSERT INTO answer_log (user_id, question, context, outcome, citations, dropped_claims) "
             "VALUES (%s, %s, %s::jsonb, 'answer', %s, 0) RETURNING id",
             (session.get("user", "newhire1"), question, json.dumps(context), used)).fetchone()[0]
+        record_learning(conn, session.get("user", "newhire1"), sub, [i for i in used if not i.startswith("doc:")])
         conn.commit()
     st["total"] = round((time.perf_counter() - t0) * 1000)
     return {"type": "answer", "answer_log_id": log, "context": context, "reply": reply, "reply_citations": cites,

@@ -105,7 +105,9 @@ CREATE TABLE edge (
             'diagnosed_by',   -- event/symptom -> command
             'mentions',       -- chunk/heuristic -> entity (weak link)
             'applies_to',     -- command/heuristic -> series/node/entity
-            'knows'           -- (008) user -> veteran note they answered correctly in a knowledge check
+            'knows',          -- (008) user -> veteran note they answered correctly in a knowledge check
+            'asked_about',    -- (009) emerging veteran -> subsystem they asked the assistant about
+            'learned_from'    -- (009) emerging veteran -> veteran note an answer cited to them
           )),
   dst     TEXT NOT NULL,
   weight  REAL DEFAULT 1.0,                 -- e.g. resolved-case count for expert_in

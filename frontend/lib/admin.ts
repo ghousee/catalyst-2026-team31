@@ -137,6 +137,8 @@ export interface GraphSnapshot {
   links: { src: string; rel: string; dst: string; source_id: string | null; created_by: string | null }[];
   links_total: number;
   people?: { id: string; name: string; role: string | null; level: "veteran" | "emerging" }[];
+  /** the newest change: a signed note id, or the person whose question or check made the newest learning link */
+  latest?: { id: string; ts: string } | null;
   notes: { id: string; owner_name: string; kind: string; scope: string; status: string; needs_review: boolean; signed_at: string; call_text: string }[];
   recent: { ts: string; type: string; text: string }[];
 }
