@@ -12,12 +12,14 @@ from pathlib import Path
 from backend import settings
 from backend.pipeline.answer import _rows, clean_title, connect
 from backend.pipeline.assistant import experts_for
+from backend.integrations import mapping
 from backend.watcher import rules
 
 BUFFER_HOURS = 3
 REPLAYS = settings.ROOT / "data" / "replay"
 SCENARIO_REPLAY = {"audit_trail_fill": "quarter_end_audit", "disk_revive_stall": "revive_stall",
                    "pathway_no_server": "pathway_no_server", "cpu_down": "cpu_down"}  # simulator page buttons
+TOOL_NAMES = {"prognosis": "IR Prognosis", "momi": "BlackWood MOMI"}
 NODE_DISPLAY = {"node:PROD": "\\PROD", "node:DR": "\\DR"}
 
 
@@ -75,8 +77,9 @@ class Watcher:
             if ev["kind"] == "event" and ("chain", ev["entity"]) not in open_keys:
                 nxt = _rows(conn, "SELECT dst FROM edge WHERE src = %s AND rel = 'precedes'", (ev["entity"],))
                 # a veteran pattern already covering this event says more than the bare chain: don't double up
+                # (and a monitoring tool's own card for it already says what usually follows)
                 pattern_on_it = _rows(conn, "SELECT 1 FROM alert WHERE node_id = %s AND NOT acknowledged AND entity_id = %s "
-                                            "AND kind = 'pattern'", (ev["node"], ev["entity"]))
+                                            "AND kind IN ('pattern', 'tool')", (ev["node"], ev["entity"]))
                 if nxt and not pattern_on_it:
                     made.append(self._store(conn, "chain", ev["node"], ev["entity"], None,
                                             [{"event": ev["entity"], "count": 1}], None, "info"))
@@ -94,12 +97,31 @@ class Watcher:
             conn.commit()
         return made
 
+    def ingest_alarm(self, raw):
+        """A monitoring tool's own alarm (backend/integrations): show it as a card right away, mapped onto Synapse so
+        its steps are already linked, and feed it on as an event so veteran patterns and graph chains see it too.
+        An alarm whose node cannot be read is dropped, never guessed (context safety)."""
+        node = mapping.node_id(raw.get("node_text"))
+        if not node:
+            return []
+        with connect() as conn:
+            entity = mapping.entity_for(conn, raw["text"], raw.get("category")) or node
+            made = []
+            if not _rows(conn, "SELECT 1 FROM alert WHERE node_id = %s AND kind = 'tool' AND entity_id = %s AND message = %s "
+                               "AND NOT acknowledged", (node, entity, raw["text"])):
+                made.append(self._store(conn, "tool", node, entity, None, [{"event": entity, "count": 1, "source": raw["tool"]}],
+                                        None, raw.get("severity") or "warning", message=raw["text"]))
+            conn.commit()
+        if entity.startswith("evt:"):
+            made += self.ingest(parse_event({"node": node, "kind": "event", "entity": entity, "tool": raw["tool"], "text": raw["text"]}))
+        return made
+
     @staticmethod
-    def _store(conn, kind, node, entity, pattern_id, evidence, lead_min, severity):
+    def _store(conn, kind, node, entity, pattern_id, evidence, lead_min, severity, message=""):
         aid = f"al-{uuid.uuid4().hex[:6]}"
         conn.execute("INSERT INTO alert (id, entity_id, pattern_id, probability, message, signal, node_id, kind, severity, lead_min) "
-                     "VALUES (%s,%s,%s,1.0,'',%s,%s,%s,%s,%s)",
-                     (aid, entity, pattern_id, json.dumps(evidence), node, kind, severity, lead_min))
+                     "VALUES (%s,%s,%s,1.0,%s,%s,%s,%s,%s,%s)",
+                     (aid, entity, pattern_id, message, json.dumps(evidence), node, kind, severity, lead_min))
         return aid
 
     def reset(self):
@@ -136,7 +158,9 @@ class Watcher:
         with connect() as conn:
             rows = _rows(conn, "SELECT * FROM alert WHERE (node_id = %s OR %s = 'all') AND NOT acknowledged ORDER BY ts DESC",
                          (node, node))
-            return [self._card(conn, r, propose) for r in rows]
+            cards = [self._card(conn, r, propose) for r in rows]  # newest first ...
+        rank = {"High": 0, "Medium": 1, "Low": 2}
+        return sorted(cards, key=lambda c: rank[c["priority"]])  # ... within High, then Medium, then Low (stable sort)
 
     def _card(self, conn, a, propose):
         ent = {r["id"]: r for r in _rows(conn, "SELECT id, name, parent_id FROM entity WHERE id = %s", (a["entity_id"],))}.get(
@@ -164,9 +188,12 @@ class Watcher:
             if n["not_when_text"]:
                 claims.append({"text": f"Not when: {n['not_when_text']}", "lane": "veteran", "source_id": n["id"], "verified": True, "score": 1.0, "verbatim": True})
         note_ids = [n["id"] for n in notes]
-        docs = _rows(conn, "SELECT DISTINCT d.id, d.section FROM edge e JOIN doc_chunk d ON d.id = e.dst WHERE "
-                           "((e.src = %s AND e.rel IN ('fixed_by', 'diagnosed_by')) OR (e.src = ANY(%s) AND e.rel = 'extends')) "
-                           "ORDER BY d.id LIMIT 3", (a["entity_id"], note_ids))
+        # manual sections: how to fix / diagnose it, the ones the notes extend, and the section the message comes from
+        docs = _rows(conn, "SELECT d.id, d.section FROM doc_chunk d WHERE d.id IN ("
+                           "SELECT dst FROM edge WHERE src = %s AND rel IN ('fixed_by', 'diagnosed_by') "
+                           "UNION SELECT dst FROM edge WHERE src = ANY(%s) AND rel = 'extends' "
+                           "UNION SELECT src FROM edge WHERE dst = %s AND rel = 'about' AND src LIKE 'doc:%%') "
+                           "ORDER BY d.id LIMIT 3", (a["entity_id"], note_ids, a["entity_id"]))
         claims += [{"text": f"Manual: {clean_title(d['section'])}", "lane": "doc", "source_id": d["id"], "verified": True, "score": 1.0}
                    for d in docs]
 
@@ -183,22 +210,36 @@ class Watcher:
         backups = [e for e in experts_for(conn, [sub] if sub else [], set()) if ok(e)] or \
                   [e for e in experts_for(conn, [], set()) if ok(e)]
         evidence = a["signal"] or []
+        source = evidence[0].get("source") if evidence else None
         what = label(ent["name"])
         if a["kind"] == "pattern" and owner:
             first = owner["owner_name"].split(" ")[0]
             lead = f" (about {a['lead_min']} min before failure in {first}'s experience)" if a["lead_min"] else ""
             message = f"{first}'s warning pattern matched: {owner['trigger_text'].split('.')[0]}{lead}"
+        elif a["kind"] == "tool":
+            nxt = _rows(conn, "SELECT x.name FROM edge e JOIN entity x ON x.id = e.dst WHERE e.src = %s AND e.rel = 'precedes'", (a["entity_id"],))
+            follows = f" Usually comes before {', '.join(r['name'] for r in nxt)}." if nxt else ""
+            message = f"{TOOL_NAMES.get(source, source)}: {a['message']}.{follows}"
         elif a["kind"] == "chain":
             nxt = _rows(conn, "SELECT x.name FROM edge e JOIN entity x ON x.id = e.dst WHERE e.src = %s AND e.rel = 'precedes'", (a["entity_id"],))
             message = f"{what} seen. In the knowledge graph it usually comes before {', '.join(r['name'] for r in nxt)}."
         else:
             message = f"{what} is at {evidence[0]['value'] if evidence else '?'} and rising: at this rate it reaches the limit in about {a['lead_min']} min."
+        leads_to = [r["dst"] for r in _rows(conn, "SELECT dst FROM edge WHERE src = %s AND rel = 'precedes'", (a["entity_id"],))]
+        if owner and owner.get("rule"):
+            leads_to += [x for x in (owner["rule"].get("event"),) if x]
+            leads_to += [r["dst"] for r in _rows(conn, "SELECT dst FROM edge WHERE src = %s AND rel = 'about' AND dst LIKE 'evt:%%'",
+                                                 (owner["id"],))]
+        level, reasons = rules.priority(a["kind"], a["node_id"], a["entity_id"], leads_to, a["lead_min"], a["severity"])
         return {
             "id": a["id"], "ts": a["ts"].isoformat().replace("+00:00", "Z"), "node": NODE_DISPLAY.get(a["node_id"], a["node_id"]),
-            "subsystem": sub.replace("sub:", ""), "kind": a["kind"], "pattern_id": a["pattern_id"],
+            "priority": level, "priority_reasons": reasons,
+            "subsystem": sub.replace("sub:", "") or "-", "kind": a["kind"], "pattern_id": a["pattern_id"],
+            "source_tool": TOOL_NAMES.get(source, source) if source else None,
             "owner": owner["owner_id"] if owner else None, "owner_name": owner["owner_name"] if owner else None,
-            "severity": a["severity"] or "warning", "lead_time_min": a["lead_min"], "message": message,
-            "evidence": [{**e, **({"event": _name(conn, e["event"])} if e.get("event") else {}),
+            "severity": {"High": "critical", "Medium": "warning", "Low": "info"}[level],
+            "lead_time_min": a["lead_min"], "message": message,
+            "evidence": [{**{k: v for k, v in e.items() if k != "source"}, **({"event": _name(conn, e["event"])} if e.get("event") else {}),
                           **({"metric": e["metric"].replace("met:", "")} if e.get("metric") else {})} for e in evidence],
             "fix_claims": claims, "next_commands": next_commands, "backtest": None,
             "backup_expert": backups[0] if backups else None,

@@ -1,4 +1,4 @@
-import { Clock, History, Network, TrendingUp, TriangleAlert } from "lucide-react";
+import { Clock, History, Network, Radio, TrendingUp, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { fmtTime } from "@/lib/format";
@@ -26,11 +26,11 @@ function Origin({ a }: { a: Alert }) {
       </span>
     );
   }
-  const Icon = a.kind === "trend" ? TrendingUp : Network;
+  const Icon = a.kind === "tool" ? Radio : a.kind === "trend" ? TrendingUp : Network;
   return (
     <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium">
       <Icon size={14} aria-hidden="true" className="text-muted" />
-      {a.kind === "trend" ? "Metric trend" : "Synapse: usually comes before"}
+      {a.kind === "tool" ? `From ${a.source_tool ?? "monitoring tool"} · steps from Synapse` : a.kind === "trend" ? "Metric trend" : "Synapse: usually comes before"}
     </span>
   );
 }
@@ -44,7 +44,7 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
       <header className="flex flex-wrap items-center gap-2">
         <Badge tone={SEV[a.severity]}>
           <TriangleAlert size={12} aria-hidden="true" />
-          {a.severity.toUpperCase()}
+          {a.priority ? `${a.priority.toUpperCase()} PRIORITY` : a.severity.toUpperCase()}
         </Badge>
         <NodeBadge display={a.node} />
         <SubPill name={a.subsystem} />
@@ -55,6 +55,9 @@ export function AlertCard({ alert: a }: { alert: Alert }) {
         </button>
       </header>
       <p className="font-display text-[16px] font-semibold leading-snug text-head">{a.message}</p>
+      {a.priority_reasons && a.priority_reasons.length > 0 && (
+        <p className="text-[12.5px] text-muted"><span className="font-semibold text-fg">Why {a.priority?.toLowerCase()}:</span> {a.priority_reasons.join("; ")}.</p>
+      )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
         <Origin a={a} />

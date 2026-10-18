@@ -19,6 +19,9 @@ from backend.pipeline import verify
 from backend.simulator.service import simulator
 from backend.watcher.engine import SCENARIO_REPLAY, parse_event, replays, watcher
 from backend.watcher.engine import series as watcher_series
+from backend.integrations import demo as tool_demo
+from backend.integrations.momi import InboxReader
+from backend.integrations.prognosis import Poller
 
 NODES = [{"id": "node:PROD", "display": "\\PROD"}, {"id": "node:DR", "display": "\\DR"}]
 SESSION = {"node": "node:PROD", "series": "rvu:L", "user": "OPS.NEWHIRE"}  # in-memory, single demo user
@@ -29,6 +32,9 @@ async def lifespan(app):
     pipeline.warm()  # MiniCheck loads once, here, not on the first question
     if ANSWER_MODE == "assistant":
         assistant.warm()
+    if os.getenv("CONNECTORS", "on") != "off":  # monitoring-tool connectors -> watcher
+        PROGNOSIS.start()
+        MOMI.start()
     yield
 
 
@@ -263,3 +269,41 @@ def get_metrics(node: str, window: str = "60m"):
         if len(pts) >= 2:
             s["points"] = pts
     return out
+
+
+# ---------------------------------------------------------------- monitoring-tool connectors (backend/integrations)
+PROGNOSIS = Poller(watcher.ingest_alarm)
+MOMI = InboxReader(watcher.ingest_alarm)
+
+
+class SampleIn(BaseModel):
+    sample: str
+
+
+@app.get("/integrations")
+def integrations():
+    """Connector status for the Alerts page: what each tool feeds, how, when it was last read, how many alarms."""
+    return [PROGNOSIS.status, MOMI.status]
+
+
+@app.get("/demo/prognosis/Prognosis/Rest/v1/data/OpenProblems")
+def demo_prognosis_dataset():
+    """Stand-in for a Prognosis REST dataset of open problems (same shape the poller reads from a real one)."""
+    return tool_demo.OPEN_PROBLEMS
+
+
+@app.post("/demo/prognosis/problem")
+def demo_prognosis_problem(body: SampleIn):
+    """Raise a sample problem in the stand-in Prognosis; the poller picks it up on its next poll."""
+    try:
+        return tool_demo.add_problem(body.sample)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.post("/demo/momi/alarm")
+def demo_momi_alarm(body: SampleIn):
+    """Drop a sample MOMI alarm export into the inbox; the reader picks it up within seconds."""
+    if body.sample not in tool_demo.MOMI_SAMPLES:
+        raise HTTPException(404, f"unknown sample {body.sample}")
+    return {"file": tool_demo.momi_file(body.sample, MOMI.inbox)}

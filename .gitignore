@@ -1,6 +1,7 @@
 # COMPANY DATA — never commit
 data/raw/
 data/processed/
+data/inbox/
 *.pdf
 *.docx
 # secrets

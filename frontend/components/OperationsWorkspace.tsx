@@ -39,6 +39,7 @@ import { Sparkline } from "./Sparkline";
 import { ThemeToggle } from "./ThemeToggle";
 import { CountUp, PageHeader, Panel, Skeleton, StatCard, SubPill, hueStyle, type Hue } from "./ui";
 import { WhoAmI } from "./WhoAmI";
+import { IntegrationsPanel } from "./IntegrationsPanel";
 import { useMe } from "@/lib/me";
 
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph" | "learning";
@@ -248,6 +249,7 @@ function InvestigationsPage({ onNavigate }: { onNavigate: (page: PageId) => void
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.65fr)]">
         <Block title="Active watcher alerts"><AlertsPanel /></Block>
         <aside className="stagger space-y-4">
+          <Block title="Connected monitoring tools"><IntegrationsPanel /></Block>
           <Block title="Ground rules">
             <ul className="space-y-3 text-sm">
               {RULES.map((r) => (

@@ -226,7 +226,12 @@ export interface Alert {
   node: string;
   subsystem: string;
   /** pattern = a veteran's warning pattern; chain = the graph says this usually comes before worse; trend = metric heading for its limit */
-  kind?: "pattern" | "chain" | "trend";
+  kind?: "pattern" | "chain" | "trend" | "tool";
+  /** High / Medium / Low, judged from the graph (node, what it leads to, veteran pattern, lead time, tool severity) */
+  priority?: "High" | "Medium" | "Low";
+  priority_reasons?: string[];
+  /** the monitoring tool that raised it (kind "tool"), e.g. "IR Prognosis", "BlackWood MOMI" */
+  source_tool?: string | null;
   pattern_id: string | null;
   owner: string | null;
   owner_name: string | null;

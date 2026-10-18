@@ -56,6 +56,37 @@ def check_rule(rule, events, node, now):
     raise ValueError(f"unknown rule type {rule['type']}")
 
 
+# events that stop or block transactions: reaching one of these is the failure the warnings are about
+IMPACT = {"evt:TMF-187": "audit trail critically full", "evt:TMF-109": "BEGINTRANS disabled (no new transactions)",
+          "evt:PATHWAY-1034": "no server available (requests fail)", "evt:DISK-5032": "mirror drive down",
+          "evt:CPU-101": "a processor is down"}
+
+
+def priority(kind, node, entity, leads_to, lead_min, tool_severity):
+    """High / Medium / Low with the reasons, from what the graph knows. Pure. Points:
+    +2 production node, +2 the entity is (or usually leads to) a transaction-stopping event, +1 a veteran's pattern
+    matched, +1 failure expected within 30 min, +1 the monitoring tool itself says critical. High >= 4, Medium 2-3."""
+    pts, why = 0, []
+    if node == "node:PROD":
+        pts += 2
+        why.append("on production (\\PROD)")
+    hit = entity if entity in IMPACT else next((x for x in leads_to if x in IMPACT), None)
+    if hit:
+        pts += 2
+        why.append(IMPACT[hit] if hit == entity else f"usually leads to {IMPACT[hit]}")
+    if kind == "pattern":
+        pts += 1
+        why.append("a veteran has seen this go wrong before")
+    if lead_min is not None and lead_min <= 30:
+        pts += 1
+        why.append(f"failure expected in about {lead_min} min")
+    if tool_severity == "critical":
+        pts += 1
+        why.append("the monitoring tool marks it critical")
+    level = "High" if pts >= 4 else "Medium" if pts >= 2 else "Low"
+    return level, why
+
+
 def check_rule_shape(rule):
     """Validate a rule before it is stored (POST /knowledge). Raises ValueError."""
     need = {"count": ("event", "count", "window_min"), "stalled": ("metric", "minutes")}
