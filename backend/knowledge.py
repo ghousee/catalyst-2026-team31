@@ -145,6 +145,7 @@ class PersonIn(BaseModel):
     expertise: list[str] = []
     availability: str | None = None
     contact: str | None = None
+    level: str = "veteran"  # "emerging" for a new junior (the "New here?" button)
 
 
 class SignIn(BaseModel):
@@ -166,10 +167,12 @@ def persons():
 
 @router.post("/persons")
 def add_person(body: PersonIn):
-    """Add a veteran so they can own, teach and sign notes."""
+    """Add a person: a veteran (can own, teach and sign notes) or an emerging veteran (a junior joining)."""
     pid = body.id.strip().lower()
     if not PERSON_ID.fullmatch(pid):
         raise HTTPException(422, "id must be lowercase letters, digits or _ (e.g. 'omar')")
+    if body.level not in ("veteran", "emerging"):
+        raise HTTPException(422, "level must be veteran or emerging")
     if not body.name.strip():
         raise HTTPException(422, "name is required")
     if body.availability is not None and body.availability not in AVAILABILITY:
@@ -177,10 +180,10 @@ def add_person(body: PersonIn):
     with connect() as conn:
         if _rows(conn, "SELECT 1 FROM person WHERE id = %s", (pid,)):
             raise HTTPException(409, f"person {pid} already exists")
-        conn.execute("INSERT INTO person (id, name, role, team, years, expertise, availability, active, contact) "
-                     "VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,%s)",
+        conn.execute("INSERT INTO person (id, name, role, team, years, expertise, availability, active, contact, level) "
+                     "VALUES (%s,%s,%s,%s,%s,%s,%s,TRUE,%s,%s)",
                      (pid, body.name.strip(), body.role, body.team, body.years, body.expertise, body.availability,
-                      body.contact))
+                      body.contact, body.level))
         conn.commit()
         row = _rows(conn, "SELECT id, name, role, team, years, expertise, availability, active, contact FROM person "
                           "WHERE id = %s", (pid,))[0]

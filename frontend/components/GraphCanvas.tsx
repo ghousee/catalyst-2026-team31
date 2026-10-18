@@ -45,6 +45,11 @@ function buildGraph(data: GraphSnapshot) {
     const k = (Object.keys(STYLE).includes(e.kind) ? e.kind : "other") as Kind;
     nodes.set(e.id, { id: e.id, kind: k, label: e.name, detail: { Kind: STYLE[k].label, Id: e.id, Aliases: e.aliases.join(", ") || "none" } });
   }
+  // every person shows up, even before they have any link (a new emerging veteran appears the moment they join)
+  for (const p of people.values()) {
+    const kind: Kind = p.level === "emerging" ? "emerging" : "person";
+    nodes.set(p.id, { id: p.id, kind, label: p.name, detail: { Kind: STYLE[kind].label, Id: p.id, Role: p.role ?? "" } });
+  }
   for (const n of data.notes) {
     nodes.set(n.id, {
       id: n.id, kind: "note", label: `${n.owner_name.split(" ")[0]} · ${n.id.split(":")[1]}`,

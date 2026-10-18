@@ -36,6 +36,9 @@ export function WhoAmI({ onNewJunior }: { onNewJunior?: () => void }) {
     e.preventDefault();
     const id = toUserId(name);
     if (!id) return;
+    // register them as an emerging veteran, so they appear in Synapse right away (409 = already registered: fine)
+    admin.addPerson({ id, name: name.trim(), role: "Emerging Veteran", team: null, years: 0, expertise: [],
+                      availability: "on_shift", contact: null, level: "emerging" }).catch(() => undefined);
     pick(id, name.trim(), "junior");
     setName("");
     onNewJunior?.();

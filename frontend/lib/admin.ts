@@ -24,6 +24,7 @@ export interface NewPerson {
   expertise: string[];
   availability: string | null;
   contact: string | null;
+  level?: "veteran" | "emerging";
 }
 
 export interface NoteLink {
