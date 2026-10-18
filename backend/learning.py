@@ -154,4 +154,8 @@ def learning(user_id: str):
                   "JOIN person p ON p.id = h.owner_id WHERE h.id = ANY(%s)", (ids,))}
         docs = {r["id"]: r["system_id"] for r in _rows(conn, "SELECT id, system_id FROM doc_chunk WHERE id = ANY(%s)", (ids,))}
         edges = _rows(conn, "SELECT src, dst FROM edge WHERE rel = 'about' AND src = ANY(%s)", (ids,))
-    return {**shape_map(user_id, logs, ents, notes, docs, edges), "self_levels": levels}
+        from backend.knowledge_check import checks_summary  # here, not at the top: knowledge_check imports this module
+        checks, demonstrated = checks_summary(conn, user_id)
+    out = shape_map(user_id, logs, ents, notes, docs, edges)
+    out["totals"]["demonstrated"] = demonstrated  # notes the user answered correctly in a knowledge check
+    return {**out, "self_levels": levels, "checks": checks}

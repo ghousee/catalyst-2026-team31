@@ -104,7 +104,8 @@ CREATE TABLE edge (
             'depends_on',     -- object -> object (blast radius: SETTLE-SC -> TMF -> $AUDIT)
             'diagnosed_by',   -- event/symptom -> command
             'mentions',       -- chunk/heuristic -> entity (weak link)
-            'applies_to'      -- command/heuristic -> series/node/entity
+            'applies_to',     -- command/heuristic -> series/node/entity
+            'knows'           -- (008) user -> veteran note they answered correctly in a knowledge check
           )),
   dst     TEXT NOT NULL,
   weight  REAL DEFAULT 1.0,                 -- e.g. resolved-case count for expert_in
@@ -134,6 +135,18 @@ CREATE TABLE self_level (
   set_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, system_id)
 );
+
+-- knowledge checks (008): an emerging veteran answers "what would you do?" for a veteran note; Qwen grades it
+CREATE TABLE check_result (
+  id        BIGSERIAL PRIMARY KEY,
+  ts        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  user_id   TEXT NOT NULL,
+  note_id   TEXT NOT NULL REFERENCES heuristic(id),
+  answer    TEXT NOT NULL,
+  score     INT  NOT NULL CHECK (score BETWEEN 0 AND 2),   -- 0 missed, 1 partly, 2 got it
+  feedback  TEXT
+);
+CREATE INDEX check_result_user ON check_result (user_id);
 
 -- ---------- Referral loop (POST /refer, POST /refer/{id}/answer) ----------
 CREATE TABLE referral (
