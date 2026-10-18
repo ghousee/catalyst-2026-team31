@@ -237,6 +237,10 @@ export function GraphCanvas({ data, focus }: { data: GraphSnapshot; focus?: stri
         <span className="ml-auto text-muted">Drag to move · scroll to zoom · click for details · double-click to isolate</span>
       </div>
       <div className="flex flex-wrap gap-1.5 text-[11px]" role="group" aria-label="Show or hide node kinds">
+        <button type="button" className="rounded border border-accent/40 bg-accent/10 px-2 py-0.5 font-semibold text-accent"
+          onClick={() => setHidden(new Set())}>Select all</button>
+        <button type="button" className="rounded border border-line px-2 py-0.5 font-semibold text-muted"
+          onClick={() => setHidden(new Set((Object.keys(STYLE) as Kind[]).filter((k) => k !== "other")))}>Deselect all</button>
         {(Object.keys(STYLE) as Kind[]).filter((k) => k !== "other").map((k) => (
           <button key={k} type="button" aria-pressed={!hidden.has(k)}
             onClick={() => setHidden((h) => { const n = new Set(h); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
