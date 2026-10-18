@@ -21,7 +21,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ALERTS_ARE_MOCK, api } from "@/lib/api";
 import { admin, subName } from "@/lib/admin";
 import { fmtTime } from "@/lib/format";
@@ -351,11 +351,19 @@ function SimulatorPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
 function WorkspaceShell() {
   const { session, sessionError } = useConsole();
   const [page, setPage] = useState<PageId>("overview");
+  const [focus, setFocus] = useState<string | undefined>(undefined);
+  // deep link: /?page=graph&focus=<node id>
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const p = q.get("page");
+    if (p && NAV.some((n) => n.id === p)) setPage(p as PageId);
+    setFocus(q.get("focus") ?? undefined);
+  }, []);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { data: alerts, error: watchError } = usePolling(() => api.getAlerts(), 2000, session?.node ?? "");
   const alertCount = alerts?.length ?? 0;
-  const navigate = (next: PageId) => { setPage(next); setMobileOpen(false); };
+  const navigate = (next: PageId) => { setPage(next); setFocus(undefined); setMobileOpen(false); };
   const current = NAV.find((item) => item.id === page)?.label ?? "Overview";
 
   return (
@@ -406,7 +414,7 @@ function WorkspaceShell() {
               {page === "assistant" && <AssistantPage />}
               {page === "knowledge" && <KnowledgePage />}
               {page === "simulator" && <SimulatorPage onNavigate={navigate} />}
-              {page === "graph" && <KnowledgeGraphPage />}
+              {page === "graph" && <KnowledgeGraphPage focus={focus} />}
               {page === "learning" && <LearningPage />}
             </div>
           </div>

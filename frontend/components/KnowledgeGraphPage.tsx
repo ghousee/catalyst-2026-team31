@@ -35,7 +35,7 @@ function Origin({ by }: { by: string | null }) {
   return <span className={`text-xs ${cls}`}>{who === "seed" ? "seed" : `${who} (new)`}</span>;
 }
 
-export function KnowledgeGraphPage() {
+export function KnowledgeGraphPage({ focus }: { focus?: string }) {
   const { data, error, loading } = useGraph();
   const [q, setQ] = useState("");
   const needle = q.trim().toLowerCase();
@@ -46,12 +46,12 @@ export function KnowledgeGraphPage() {
       <PageHeader title="Synapse" icon={<Network size={18} aria-hidden="true" />} description="The knowledge graph: manuals, veterans, emerging veterans and how they connect. Live from the database, refreshed every 10 s." aside={<span className="inline-flex items-center gap-2 rounded-full border border-ok/35 bg-ok/10 px-3 py-1 text-xs font-semibold text-ok"><span className="live-dot" aria-hidden="true" />Live</span>} />
       {error && <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/10 p-3 text-sm text-crit">Graph unavailable: {error}</p>}
       {!data && loading && <p className="text-sm text-muted">Loading graph...</p>}
-      {data && <Body data={data} q={q} setQ={setQ} has={has} />}
+      {data && <Body data={data} focus={focus} q={q} setQ={setQ} has={has} />}
     </div>
   );
 }
 
-function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v: string) => void; has: (...p: (string | null)[]) => boolean }) {
+function Body({ data, focus, q, setQ, has }: { data: GraphSnapshot; focus?: string; q: string; setQ: (v: string) => void; has: (...p: (string | null)[]) => boolean }) {
   const c = data.counts;
   const ents = data.entities.filter((e) => has(e.id, e.kind, e.name, e.aliases.join(" ")));
   const links = data.links.filter((l) => has(l.src, l.rel, l.dst, l.source_id, l.created_by ?? "seed"));
@@ -73,7 +73,7 @@ function Body({ data, q, setQ, has }: { data: GraphSnapshot; q: string; setQ: (v
           </button>
         ))}
       </div>
-      {view === "graph" && <div className="rise mt-3 h-[78vh] min-h-[560px]"><GraphCanvas data={data} /></div>}
+      {view === "graph" && <div className="rise mt-3 h-[78vh] min-h-[560px]"><GraphCanvas data={data} focus={focus} /></div>}
       {view === "tables" && <>
       <label className="relative mt-3 block max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} aria-hidden="true" />

@@ -91,6 +91,7 @@ function SignedResult({ r, onChanged }: { r: ApproveResult; onChanged: () => voi
         </ul>
       </div>
       {err && <p role="alert" className="text-[12.5px] text-crit">{err}</p>}
+      <a className="btn btn-primary" href={`/?page=graph&focus=${encodeURIComponent(r.note.id)}`}>See it in Synapse</a>
     </div>
   );
 }

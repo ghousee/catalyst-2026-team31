@@ -115,3 +115,8 @@ Top-bar picker, remembered in localStorage (`cail.me`). Seniors = person rows (T
 approve send `userId()` read at call time (store.tsx). Learning map: "Said they know" column (PUT /learning/{id}/self,
 table `self_level`, migration 005) and "Share something you found" (POST /knowledge, owner = a senior, entered_by = the
 junior; draft until that senior signs). Knowledge page: "Add a senior" (POST /persons).
+
+## Knowledge check and Synapse deep links
+- Learning map has "Check what I know" (own map only): `learning.check` / `learning.answer` in `lib/learning.ts`; a passed answer adds a `knows` link user -> note. Extra stat card "Demonstrated" and a "Checked" column (passed/tried).
+- `/?page=graph&focus=<node id>` opens Synapse with that node isolated and centred (`OperationsWorkspace` reads the query on mount). Used by "See it in Synapse" in the check result and after signing on `/knowledge`.
+- GraphCanvas: links with `created_by` auto (sky blue) and check (green) are thicker and in the legend; "Show latest change" isolates the newest signed note.

@@ -1,10 +1,10 @@
 "use client";
 
-import { BookMarked, Compass, MessageCircleQuestion, Users } from "lucide-react";
+import { BookMarked, Compass, GraduationCap, MessageCircleQuestion, Users } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { admin, isVeteran, type Person } from "@/lib/admin";
 import { usePolling } from "@/lib/hooks";
-import { learning, type Level, type LearningMap, type LearningSubsystem } from "@/lib/learning";
+import { learning, type CheckQuestion, type CheckResult, type Level, type LearningMap, type LearningSubsystem } from "@/lib/learning";
 import { useMe } from "@/lib/me";
 import { SplitPane } from "./SplitPane";
 import { CountUp, PageHeader, Panel as UiPanel, Skeleton, StatCard, SubPill, hueStyle } from "./ui";
@@ -12,7 +12,7 @@ import { CountUp, PageHeader, Panel as UiPanel, Skeleton, StatCard, SubPill, hue
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const when = (ts: string | null) => (ts ? ts.slice(0, 16).replace("T", " ") : "never");
 
-const Strip = ({ children }: { children: ReactNode }) => <dl className="stagger grid grid-cols-2 gap-4 lg:grid-cols-4">{children}</dl>;
+const Strip = ({ children }: { children: ReactNode }) => <dl className="stagger grid grid-cols-2 gap-4 lg:grid-cols-5">{children}</dl>;
 
 const Panel = (p: Omit<Parameters<typeof UiPanel>[0], "flush">) => <UiPanel flush {...p} />;
 
@@ -23,6 +23,7 @@ export function LearningPage() {
   const [user, setUser] = useState(me.id);
   const [rev, setRev] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [checking, setChecking] = useState(false);
   useEffect(() => setUser(me.id), [me.id]);
   const users = usePolling(() => learning.users(), 15000, "learning-users");
   const people = usePolling(() => admin.persons(), 60000, "learning-people");
@@ -48,9 +49,15 @@ export function LearningPage() {
             </optgroup>
           </select>
         </label>
-        {mine && <button type="button" className="btn ml-auto" aria-expanded={sharing} onClick={() => setSharing((s) => !s)}>Share something you found</button>}
+        {mine && (
+          <span className="ml-auto flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primary" aria-expanded={checking} onClick={() => setChecking((c) => !c)}>Check what I know</button>
+            <button type="button" className="btn" aria-expanded={sharing} onClick={() => setSharing((s) => !s)}>Share something you found</button>
+          </span>
+        )}
       </div>
       {mine && sharing && data && <ShareFinding me={me.id} subs={data.subsystems} onDone={() => setSharing(false)} />}
+      {mine && checking && data && <KnowledgeCheck me={me.id} subs={data.subsystems} onChanged={() => setRev((r) => r + 1)} onDone={() => setChecking(false)} />}
       {(users.error || map.error) && (
         <p role="alert" className="mb-3 rounded-xl border border-crit/30 bg-crit/10 p-3 text-sm text-crit">Learning map unavailable: {map.error ?? users.error}</p>
       )}
@@ -70,6 +77,100 @@ const byOwner = (notes: { owner: string }[]) =>
   Object.entries(notes.reduce<Record<string, number>>((m, n) => ({ ...m, [n.owner]: (m[n.owner] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]);
 
 const LEVEL_TEXT: Record<Level, string> = { new: "New to it", some: "Know some", confident: "Confident" };
+
+const SCORE: Record<number, { text: string; cls: string }> = {
+  2: { text: "Got it", cls: "status-healthy" },
+  1: { text: "Partly", cls: "status-warning" },
+  0: { text: "Missed", cls: "status-critical" },
+};
+
+/** Scenario questions built from veterans' signed notes; a local LLM grades the answer. Passing adds a `knows` link in Synapse. */
+function KnowledgeCheck({ me, subs, onChanged, onDone }: { me: string; subs: LearningSubsystem[]; onChanged: () => void; onDone: () => void }) {
+  const [sub, setSub] = useState(subs.find((x) => x.notes.length > 0)?.id ?? "sub:TMF");
+  const [qs, setQs] = useState<CheckQuestion[] | null>(null);
+  const [i, setI] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [grading, setGrading] = useState(false);
+  const [res, setRes] = useState<CheckResult | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    setQs(null); setI(0); setRes(null); setAnswer(""); setErr(null);
+    learning.check(me, sub).then((c) => live && setQs(c.questions)).catch((e) => live && setErr(e instanceof Error ? e.message : "Could not load questions"));
+    return () => { live = false; };
+  }, [me, sub]);
+  const q = qs?.[i];
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!q || !answer.trim()) return;
+    setGrading(true); setErr(null);
+    try {
+      setRes(await learning.answer(me, q.note_id, answer.trim()));
+      onChanged();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Could not grade the answer");
+    } finally {
+      setGrading(false);
+    }
+  };
+  const next = () => { setRes(null); setAnswer(""); setI((n) => n + 1); };
+  const last = !!qs && i >= qs.length - 1;
+  const v = res?.veteran;
+  const first = (v?.owner_name ?? "").split(" ")[0];
+  return (
+    <section className="card rise mb-4 space-y-3 p-4 text-[13px]" aria-label="Knowledge check">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="icon-chip !h-8 !w-8 !rounded-lg"><GraduationCap size={16} aria-hidden="true" /></span>
+        <h2 className="font-display text-base font-semibold text-head">Check what I know</h2>
+        <label className="ml-auto flex items-center gap-2"><span className="text-xs text-muted">Subsystem</span>
+          <select className="field h-8" value={sub} onChange={(e) => setSub(e.target.value)} disabled={grading} aria-label="Subsystem to be checked on">
+            {subs.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+        </label>
+        <button type="button" className="btn" onClick={onDone}>Close</button>
+      </div>
+      {err && <p role="alert" className="text-crit">{err}</p>}
+      {!qs && !err && <div role="status" aria-label="Loading"><Skeleton className="h-16 w-full" /></div>}
+      {qs && qs.length === 0 && <p className="text-muted">No veteran notes in this subsystem yet, so there is nothing to check.</p>}
+      {q && (
+        <form onSubmit={submit} className="space-y-3">
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span>Question {i + 1} of {qs?.length}</span>
+            <span>From {q.owner_name}&apos;s experience</span>
+            <span className="pill" style={hueStyle(q.node === "ALL" ? "sky" : q.node === "PROD" ? "amber" : "teal")}>{q.node === "ALL" ? "all nodes" : `\\${q.node}`}</span>
+            {q.passed_before && <span className="status-chip status-healthy">Passed before</span>}
+          </p>
+          <p className="text-sm font-medium leading-6">{q.question}</p>
+          <textarea className="field min-h-[84px] w-full" value={answer} onChange={(e) => setAnswer(e.target.value)} disabled={grading || !!res} placeholder="Say what you would do and what you would check first" aria-label="Your answer" required />
+          {!res && (
+            <div className="flex items-center gap-3">
+              <button type="submit" className="btn btn-primary" disabled={grading || !answer.trim()}>{grading ? "Grading…" : "Submit"}</button>
+              {grading && <span role="status" className="flex items-center gap-2 text-muted"><span className="live-dot" aria-hidden="true" />A local model is grading this against {q.owner_name.split(" ")[0]}&apos;s note</span>}
+            </div>
+          )}
+        </form>
+      )}
+      {res && v && (
+        <div className="rise space-y-3 rounded-xl border border-line bg-skysoft/50 p-3" role="status">
+          <p className="flex flex-wrap items-center gap-2"><span className={`status-chip ${SCORE[res.score].cls}`}>{SCORE[res.score].text}</span><span>{res.feedback}</span></p>
+          <div>
+            <p className="label">What {first} would do</p>
+            <p>{v.call_text}</p>
+            {v.why_text && <p className="mt-1"><b>Why:</b> {v.why_text}</p>}
+            {v.not_when_text && <p className="mt-1"><b>Not when:</b> {v.not_when_text}</p>}
+          </div>
+          {res.linked && (
+            <p className="flex flex-wrap items-center gap-2 text-ok">
+              Added to Synapse: {me} knows {v.note_id}
+              <a className="btn" href={`/?page=graph&focus=${encodeURIComponent(v.note_id)}`}>See it in Synapse</a>
+            </p>
+          )}
+          <button type="button" className="btn btn-primary" onClick={last ? onDone : next}>{last ? "Done" : "Next question"}</button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 /** A junior writes down something they found; it goes to a senior as a draft, and only goes live once that senior signs. */
 function ShareFinding({ me, subs, onDone }: { me: string; subs: LearningSubsystem[]; onDone: () => void }) {
@@ -120,6 +221,7 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
         <StatCard hue="sky" icon={<MessageCircleQuestion size={18} aria-hidden="true" />} label="Questions asked" value={<CountUp value={t.questions} />} note="logged answers, referrals and clarifications" />
         <StatCard hue="teal" icon={<Compass size={18} aria-hidden="true" />} label="Subsystems touched" value={<span><CountUp value={t.subsystems_touched} /> <span className="text-lg font-medium text-muted">of {t.subsystems_total}</span></span>} note="a manual section or veteran note was cited" />
         <StatCard hue="amber" icon={<Users size={18} aria-hidden="true" />} label="Veteran notes seen" value={<CountUp value={t.notes_seen} />} note={`from ${d.veterans.length} veteran(s) · ${t.sections_cited} manual sections cited`} />
+        <StatCard hue="violet" icon={<GraduationCap size={18} aria-hidden="true" />} label="Demonstrated" value={<CountUp value={t.demonstrated ?? 0} />} note="veteran notes answered correctly in checks" />
         <StatCard hue="green" icon={<BookMarked size={18} aria-hidden="true" />} label="Coverage" value={<CountUp value={Math.round(t.coverage * 100)} suffix="%" />} note={`${t.entities_touched} of ${t.entities_total} events, objects, metrics and commands`} />
       </Strip>
       <div className="mt-4 flex h-[70vh] min-h-[520px]">
@@ -127,7 +229,7 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
           <Panel title="By subsystem" sub="Coverage = entities touched through cited notes and manual sections / entities in the subsystem">
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-skysoft text-xs text-muted">
-                <tr>{["Subsystem", "Said they know", "Questions", "Sections", "Notes", "Coverage", "Last seen"].map((c) => <th key={c} className="px-4 py-2 font-medium">{c}</th>)}</tr>
+                <tr>{["Subsystem", "Said they know", "Questions", "Sections", "Notes", "Checked", "Coverage", "Last seen"].map((c) => <th key={c} className="px-4 py-2 font-medium">{c}</th>)}</tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {d.subsystems.map((s) => (
@@ -149,6 +251,7 @@ function Body({ d, editable, onLevel }: { d: LearningMap; editable: boolean; onL
                     <td className="whitespace-nowrap px-4 py-2 text-xs" title={s.notes.map((n) => `${n.id} (${n.owner})`).join(", ")}>
                       {s.notes.length ? byOwner(s.notes).map(([owner, n]) => <p key={owner}>{owner} <span className="text-muted">· {n} note{n > 1 ? "s" : ""}</span></p>) : <span className="text-muted">none</span>}
                     </td>
+                    <td className="px-4 py-2 text-xs tabular-nums">{d.checks?.[s.id]?.tried ? `${d.checks[s.id].passed}/${d.checks[s.id].tried}` : <span className="text-muted">—</span>}</td>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2" role="img" aria-label={`${pct(s.coverage)} covered`}>
                         <div className="h-2 w-28 overflow-hidden rounded-full bg-panel2"><div className="bar-grow h-full rounded-full bg-gradient-to-r from-sky to-navy2 transition-[width] duration-700" style={{ width: pct(s.coverage) }} /></div>

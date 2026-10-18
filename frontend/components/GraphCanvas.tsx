@@ -1,6 +1,6 @@
 "use client";
 
-import { Crosshair, Expand, Maximize2, Pause, Play, Search } from "lucide-react";
+import { Crosshair, Expand, History, Maximize2, Pause, Play, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GraphSnapshot } from "@/lib/admin";
 
@@ -24,7 +24,9 @@ const STYLE: Record<Kind, { color: string; shape: string; size: number; label: s
   doc: { color: "#a9bbd3", shape: "box", size: 10, label: "Manual section" },
   other: { color: "#9ca3af", shape: "dot", size: 10, label: "Other" },
 };
-const REL_COLOR: Record<string, string> = { contradicts: "#e5484d", disagrees_with: "#ea580c", expert_in: "#6a3fc4", precedes: "#b45309" };
+const REL_COLOR: Record<string, string> = { contradicts: "#e5484d", disagrees_with: "#ea580c", expert_in: "#6a3fc4", precedes: "#b45309", knows: "#2fa05b" };
+/** links made by the system stand out: auto = made when a veteran signs a note, check = made by a knowledge check */
+const BY_COLOR: Record<string, string> = { auto: "#38a8f0", check: "#22a559" };
 
 type GNode = { id: string; kind: Kind; label: string; detail: Record<string, string> };
 
@@ -52,9 +54,9 @@ function buildGraph(data: GraphSnapshot) {
   for (const l of data.links) {
     for (const id of [l.src, l.dst]) {
       if (nodes.has(id)) continue;
-      if (l.rel === "expert_in" && id === l.src) {
+      if ((l.rel === "expert_in" || l.rel === "knows") && id === l.src) {
         const p = people.get(id);
-        const kind: Kind = p?.level === "emerging" ? "emerging" : "person";
+        const kind: Kind = l.rel === "knows" || p?.level === "emerging" ? "emerging" : "person";
         nodes.set(id, { id, kind, label: p?.name ?? owners.get(id) ?? id, detail: { Kind: STYLE[kind].label, Id: id, Role: p?.role ?? "" } });
       } else {
         const k = kindOf(id);
@@ -65,12 +67,12 @@ function buildGraph(data: GraphSnapshot) {
   }
   const edges = data.links.map((l) => ({
     id: `${l.src}|${l.rel}|${l.dst}`, from: l.src, to: l.dst, label: l.rel, rel: l.rel,
-    auto: !!l.created_by && l.created_by !== "seed", citation: l.source_id,
+    auto: !!l.created_by && l.created_by !== "seed", by: l.created_by ?? "seed", citation: l.source_id,
   }));
   return { nodes, edges };
 }
 
-export function GraphCanvas({ data }: { data: GraphSnapshot }) {
+export function GraphCanvas({ data, focus }: { data: GraphSnapshot; focus?: string }) {
   const box = useRef<HTMLDivElement>(null);
   // vis objects live in refs: created once, then updated in place on every poll
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +90,20 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
   const graph = useMemo(() => buildGraph(data), [data]);
   const graphRef = useRef(graph);
   graphRef.current = graph;
+  const focusedOnce = useRef(false);
+  const isolateRef = useRef<(id: string) => void>(() => {});
+  /** show only a node and its neighbours, select it and centre the view on them */
+  isolateRef.current = (id: string) => {
+    const g = graphRef.current;
+    if (!g.nodes.has(id)) return;
+    const ids = new Set([id, ...g.edges.filter((e) => e.from === id || e.to === id).flatMap((e) => [e.from, e.to])]);
+    setFocusIds(ids);
+    setSelected(id);
+    const centre = () => { const v = vis.current; if (!v || !v.nodes.get(id)) return; v.net.selectNodes([id]); v.net.fit({ nodes: [...ids].filter((i) => v.nodes.get(i)), animation: { duration: 500 } }); };
+    setTimeout(centre, 300);
+    setTimeout(centre, 1800); // once the layout has settled
+  };
+  const latestNote = data.notes[0]?.id;
 
   const isAuto = (id: string) => id.includes(":auto:");
   const autoOk = (n: GNode) => !isAuto(n.id) || (showAuto && (autoSub === "all" || n.id.startsWith(`${n.id.split(":")[0]}:auto:${autoSub.replace("sub:", "").toLowerCase()}:`)));
@@ -111,13 +127,11 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         edges: { arrows: { to: { enabled: true, scaleFactor: 0.5 } }, font: { size: 9, color: `rgb(${fg})`, strokeWidth: 0, align: "middle" },
                  smooth: { enabled: true, type: "continuous", roundness: 0.4 }, width: 1 },
       });
-      net.once("stabilizationIterationsDone", () => net.fit({ animation: { duration: 400, easingFunction: "easeInOutQuad" } }));
+      net.once("stabilizationIterationsDone", () => { if (!focusedOnce.current) net.fit({ animation: { duration: 400, easingFunction: "easeInOutQuad" } }); });
       net.on("click", (p: { nodes: string[] }) => setSelected(p.nodes[0] ?? null));
       net.on("doubleClick", (p: { nodes: string[] }) => {
         if (!p.nodes[0]) { setFocusIds(null); return; }
-        const id = p.nodes[0];
-        const ids = new Set([id, ...graphRef.current.edges.filter((e) => e.from === id || e.to === id).flatMap((e) => [e.from, e.to])]);
-        setFocusIds(ids);
+        isolateRef.current(p.nodes[0]);
       });
       vis.current = { net, nodes, edges };
       setReady(true);
@@ -141,9 +155,9 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
     }));
     const ids = new Set(ns.map((n) => n.id));
     const es = graph.edges.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e) => ({
-      id: e.id, from: e.from, to: e.to, label: labels ? e.label : undefined, dashes: e.auto,
-      color: { color: REL_COLOR[e.rel] ?? "#9ca3af", highlight: "#111827" }, width: e.auto ? 2 : 1,
-      title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.auto ? " · auto-created" : ""}`,
+      id: e.id, from: e.from, to: e.to, label: labels ? e.label : undefined, dashes: e.auto && !BY_COLOR[e.by],
+      color: { color: BY_COLOR[e.by] ?? REL_COLOR[e.rel] ?? "#9ca3af", highlight: "#111827" }, width: BY_COLOR[e.by] ? 3 : e.auto ? 2 : 1,
+      title: `${e.rel}${e.citation ? ` · cites ${e.citation}` : ""}${e.by === "check" ? " · made by a knowledge check" : e.by === "auto" ? " · auto-linked on sign-off" : e.auto ? " · auto-created" : ""}`,
     }));
     // a manual-section node whose links all go to hidden nodes would float alone: hide it too
     const linked = new Set(es.flatMap((e) => [e.from, e.to]));
@@ -156,6 +170,13 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
     v.edges.update(es);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graph, hidden, focusIds, ready, labels, showAuto, autoSub]);
+
+  // deep link /?page=graph&focus=<id>: isolate that node once the network exists
+  useEffect(() => {
+    if (!ready || !focus || focusedOnce.current || !graph.nodes.has(focus)) return;
+    focusedOnce.current = true;
+    isolateRef.current(focus);
+  }, [ready, focus, graph]);
 
   useEffect(() => {
     vis.current?.net.setOptions({ physics: { enabled: physics } });
@@ -206,6 +227,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
         <button type="button" className="btn" onClick={() => setLabels((l) => !l)} aria-pressed={labels}>
           {labels ? "Hide link labels" : "Show link labels"}
         </button>
+        <button type="button" className="btn" disabled={!latestNote} onClick={() => latestNote && isolateRef.current(latestNote)}><History size={13} aria-hidden="true" /> Show latest change</button>
         {focusIds && <button type="button" className="btn" onClick={() => setFocusIds(null)}><Expand size={13} aria-hidden="true" /> Show whole graph</button>}
         <span className="ml-auto text-muted">Drag to move · scroll to zoom · click for details · double-click to isolate</span>
       </div>
@@ -218,6 +240,8 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
           </button>
         ))}
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2 border-dashed border-muted" aria-hidden="true" />auto-created link</span>
+        <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.auto }} aria-hidden="true" />auto-linked on sign-off</span>
+        <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-[3px]" style={{ borderColor: BY_COLOR.check }} aria-hidden="true" />knows (passed a check)</span>
         <span className="flex items-center gap-1 px-2 text-muted"><span className="inline-block w-5 border-t-2" style={{ borderColor: REL_COLOR.contradicts }} aria-hidden="true" />contradicts</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-2">
@@ -244,7 +268,7 @@ export function GraphCanvas({ data }: { data: GraphSnapshot }) {
                         const other = end === "to" ? e.to : e.from;
                         return (
                           <li key={e.id}>
-                            <span className="text-muted">{e.rel}{e.auto ? " (auto)" : ""} </span>
+                            <span className="text-muted">{e.rel}{e.by === "check" ? " (check)" : e.auto ? " (auto)" : ""} </span>
                             <button type="button" className="text-left text-accent hover:underline" onClick={() => jump(other)}>
                               {graph.nodes.get(other)?.label ?? other}
                             </button>
