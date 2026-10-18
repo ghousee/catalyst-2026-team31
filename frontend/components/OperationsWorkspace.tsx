@@ -39,6 +39,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { CountUp, PageHeader, Panel, Skeleton, StatCard, SubPill, hueStyle, type Hue } from "./ui";
 import { WhoAmI } from "./WhoAmI";
 import { IntegrationsPanel } from "./IntegrationsPanel";
+import { TrainingRun } from "./TrainingRun";
 import { useMe } from "@/lib/me";
 
 type PageId = "overview" | "systems" | "investigations" | "assistant" | "knowledge" | "simulator" | "graph" | "learning";
@@ -328,7 +329,9 @@ const LEVEL_HUE: Record<string, Hue> = { Beginner: "green", Intermediate: "sky",
 function SimulatorPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
   const [running, setRunning] = useState<ScenarioName | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [guided, setGuided] = useState(false);
   const start = async (scenario: ScenarioName) => {
+    if (scenario === "audit_trail_fill") { setGuided(true); return; }  // guided sandbox exercise, nothing recorded
     setRunning(scenario); setStatus("Preparing synthetic evidence...");
     try { const result = await api.runScenario({ scenario, speed: 10 }); setStatus(`Scenario ${result.status}. Open the AI Assistant to begin.`); }
     catch (error) { setStatus(error instanceof Error ? error.message : "Scenario failed to start"); setRunning(null); }
@@ -344,6 +347,7 @@ function SimulatorPage({ onNavigate }: { onNavigate: (page: PageId) => void }) {
           <button type="button" className="btn btn-primary" disabled={running === scenario.id} onClick={() => void start(scenario.id)}>{running === scenario.id ? "Running" : "Start"}</button>
         </li>
       ))}</ul>
+      {guided && <TrainingRun onClose={() => setGuided(false)} />}
       {status && <div className="rise mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ok/30 bg-ok/10 p-3 text-sm" role="status"><span className="flex items-center gap-2"><span className="live-dot text-ok" aria-hidden="true" />{status}</span>{running && <button type="button" className="btn" onClick={() => onNavigate("assistant")}>Open AI Assistant</button>}</div>}
     </div>
   );

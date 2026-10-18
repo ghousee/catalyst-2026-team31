@@ -53,6 +53,23 @@ def clamp_grade(raw, answer):
     return max(0, min(2, score)), str(raw.get("feedback") or "").strip()[:400]
 
 
+def grade(notes, answer):
+    """Grade an answer against one or more veteran notes (rows with trigger/call/why/not_when/owner_name).
+    Returns (score 0..2, feedback). Stores nothing: the caller decides whether to record it."""
+    veteran = "\n\n".join(f"Situation: {n['trigger_text']}\nVeteran ({n['owner_name']}) says do: {n['call_text']}\n"
+                          f"Why: {n['why_text'] or '-'}\nNot when: {n['not_when_text'] or '-'}" for n in notes)
+    raw = {}
+    if len(answer.split()) >= 3:
+        r = llm.chat([{"role": "system", "content": GRADER},
+                      {"role": "user", "content": f"{veteran}\n\nJunior's answer: {answer.strip()}"}],
+                     schema=GRADE_SCHEMA, max_tokens=200)
+        try:
+            raw = json.loads(r["content"])
+        except ValueError:
+            raw = {}
+    return clamp_grade(raw, answer)
+
+
 router = APIRouter()
 
 
@@ -92,18 +109,7 @@ def answer_check(user_id: str, body: CheckAnswerIn):
         if not rows:
             raise HTTPException(404, f"unknown note {body.note_id}")
         n = rows[0]
-        veteran = (f"Situation: {n['trigger_text']}\nVeteran ({n['owner_name']}) says do: {n['call_text']}\n"
-                   f"Why: {n['why_text'] or '-'}\nNot when: {n['not_when_text'] or '-'}")
-        raw = {}
-        if len(body.answer.split()) >= 3:
-            r = llm.chat([{"role": "system", "content": GRADER},
-                          {"role": "user", "content": f"{veteran}\n\nJunior's answer: {body.answer.strip()}"}],
-                         schema=GRADE_SCHEMA, max_tokens=200)
-            try:
-                raw = json.loads(r["content"])
-            except ValueError:
-                raw = {}
-        score, feedback = clamp_grade(raw, body.answer)
+        score, feedback = grade([n], body.answer)
         conn.execute("INSERT INTO check_result (user_id, note_id, answer, score, feedback) VALUES (%s,%s,%s,%s,%s)",
                      (user_id, n["id"], body.answer.strip(), score, feedback))
         linked = score >= PASS
