@@ -13,6 +13,13 @@ npm run lint
 npm run build
 ```
 
+## Public demo
+
+The GitHub Pages workflow builds this frontend as a static, mock-mode demo at
+`https://ghousee.github.io/catalyst-2026-team31/`. It deploys after changes to `frontend/`
+are merged to `main` and Pages is enabled for the repository with **GitHub Actions** as the
+build and deployment source. The demo does not include the local API, database, or AI models.
+
 ## Mock vs real API
 
 | Variable | Default | Meaning |

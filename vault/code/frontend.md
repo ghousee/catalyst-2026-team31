@@ -4,6 +4,8 @@ Task-based CAIL operations workspace in `frontend/` (Next.js App Router + Tailwi
 sidebar opens Overview, Systems, Investigations, AI Assistant, Knowledge and Training Simulator. The terminal-first
 layout was removed; command output remains simulated evidence inside the assistant workflow.
 Contract: [[api contract]] (v2 section authoritative). Run instructions: `frontend/README.md`.
+Static public demo export uses `frontend/next.config.mjs`; `.github/workflows/deploy-frontend.yml` deploys it to
+GitHub Pages at `https://ghousee.github.io/catalyst-2026-team31/` after a change lands on `main`.
 
 ## Entry points
 - `frontend/app/page.tsx` -> `components/Console.tsx` -> `components/OperationsWorkspace.tsx` (responsive shell, pages, provider)
